@@ -6329,13 +6329,7 @@
 
     // ===== OPEN / CLOSE SIGNING FLOW =====
     function openSigningFlow() {
-      // Require sign-in before accessing signing flow
-      const user = typeof DPStudioAPI !== 'undefined' ? DPStudioAPI.auth.getUser() : null;
-      if (!user) {
-        showToast('Sign in or create an account first', 'info');
-        openAuthModal('login');
-        return;
-      }
+      // Sign & Pay flow works without auth — uses quick-checkout endpoint
       document.getElementById('signing-overlay').classList.add('visible');
       setSigningStep(1);
     }
