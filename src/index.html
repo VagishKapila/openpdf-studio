@@ -1662,6 +1662,33 @@
     }
     .field-overlay:hover .field-delete-btn,
     .field-overlay.active-field .field-delete-btn { opacity: 1; }
+    .field-overlay .field-confirm-btn {
+      position: absolute;
+      top: -10px;
+      right: 16px;
+      width: 22px;
+      height: 22px;
+      background: #22c55e;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 35;
+      font-size: 12px;
+      color: #fff;
+      line-height: 1;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .field-overlay .field-confirm-btn.confirmed {
+      background: #16a34a;
+      opacity: 1;
+    }
+    .field-overlay:hover .field-confirm-btn,
+    .field-overlay.active-field .field-confirm-btn { opacity: 1; }
     /* Add-field picker popup */
     .add-field-picker {
       position: absolute;
@@ -6828,6 +6855,7 @@
         div.onmousedown = (e) => {
           if (e.target.classList.contains('resize-handle')) return;
           if (e.target.classList.contains('field-delete-btn')) return;
+          if (e.target.classList.contains('field-confirm-btn')) return;
           e.preventDefault();
           signingState.currentFieldIndex = idx;
           startFieldDrag(e, idx);
@@ -6837,24 +6865,41 @@
 
         if (field.filled) {
           if (field.fieldType === 'signature' && signingState.signatureDataUrl) {
-            div.innerHTML = `<img src="${signingState.signatureDataUrl}" alt="Signature">`;
+            div.innerHTML = '<img src="' + signingState.signatureDataUrl + '" alt="Signature">';
           } else if (field.fieldType === 'initials' && signingState.initialsDataUrl) {
-            div.innerHTML = `<img src="${signingState.initialsDataUrl}" alt="Initials">`;
-          } else if (field.fieldType === 'date') {
-            const dateVal = field.textValue || new Date().toLocaleDateString();
-            div.innerHTML = `<div class="field-text">${dateVal}</div>`;
-          } else if (field.fieldType === 'name') {
-            const nameVal = field.textValue || signingState.signerName || 'Name';
-            div.innerHTML = `<div class="field-text">${nameVal}</div>`;
-          } else if (field.fieldType === 'text') {
-            div.innerHTML = `<div class="field-text">${field.textValue || '<span style="color:#999;font-style:italic;font-size:10px;">' + field.label + '</span>'}</div>`;
+            div.innerHTML = '<img src="' + signingState.initialsDataUrl + '" alt="Initials">';
+          } else if (field.fieldType === 'date' || field.fieldType === 'name' || field.fieldType === 'text') {
+            var defVal = '';
+            if (field.fieldType === 'date') defVal = field.textValue || new Date().toLocaleDateString();
+            else if (field.fieldType === 'name') defVal = field.textValue || signingState.signerName || '';
+            else defVal = field.textValue || '';
+            var inp = document.createElement('input');
+            inp.type = 'text';
+            inp.className = 'field-inline-edit';
+            inp.value = defVal;
+            inp.placeholder = field.label;
+            inp.style.cssText = 'width:100%;height:100%;border:none;background:transparent;font-size:12px;font-weight:500;padding:2px 4px;outline:none;pointer-events:auto;';
+            inp.onmousedown = function(ev) { ev.stopPropagation(); };
+            inp.onclick = function(ev) { ev.stopPropagation(); };
+            (function(fieldIdx) {
+              inp.oninput = function() { updateFieldValue(fieldIdx, this.value); };
+            })(idx);
+            div.appendChild(inp);
           }
         } else {
-          const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤', text: '📝' };
-          div.innerHTML = `<div class="field-text" style="color:#6366f1;font-size:11px;justify-content:center;">${icons[field.fieldType] || '📝'} ${field.label}</div>`;
+          var icons = { signature: '\u270d\ufe0f', initials: '\u270f\ufe0f', date: '\ud83d\udcc5', name: '\ud83d\udc64', text: '\ud83d\udcdd' };
+          div.innerHTML = '<div class="field-text" style="color:#6366f1;font-size:11px;justify-content:center;">' + (icons[field.fieldType] || '\ud83d\udcdd') + ' ' + field.label + '</div>';
         }
 
-        // Add delete button to every field
+        // Add confirm (checkmark) button
+        const confirmBtn = document.createElement('div');
+        confirmBtn.className = 'field-confirm-btn' + (field.confirmed ? ' confirmed' : '');
+        confirmBtn.innerHTML = '✓';
+        confirmBtn.title = field.confirmed ? 'Confirmed' : 'Click to confirm';
+        confirmBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); confirmSigningField(idx); };
+        div.appendChild(confirmBtn);
+
+        // Add delete button
         const delBtn = document.createElement('div');
         delBtn.className = 'field-delete-btn';
         delBtn.innerHTML = '✕';
@@ -6887,6 +6932,15 @@
       renderFieldOverlays(signingCurrentPage);
       renderSigningSidebar();
       showToast('Field deleted', 'info');
+    }
+
+    function confirmSigningField(idx) {
+      const field = signingState.fields[idx];
+      if (!field) return;
+      field.confirmed = !field.confirmed;
+      if (field.confirmed) field.filled = true;
+      renderFieldOverlays(signingCurrentPage);
+      renderSigningSidebar();
     }
 
     // ===== CLICK TO ADD FIELD =====
@@ -6942,7 +6996,7 @@
       if (!field) return;
       field.textValue = value;
       field.filled = true;
-      renderFieldOverlays(signingCurrentPage);
+      // Don't re-render overlays here — it would destroy the active input and lose focus
     }
 
     // ===== SAVE CURRENT FIELD EDIT BEFORE NAVIGATION =====
@@ -7586,7 +7640,7 @@
           }
 
           try {
-            const apiBase = 'https://dpstudio-backend-production.up.railway.app';
+            const apiBase = 'https://openpdf-studio-production.up.railway.app';
             const amountCents = Math.round(amount * 100);
 
             const currentOrigin = window.location.origin;
