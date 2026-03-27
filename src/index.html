@@ -6685,104 +6685,82 @@
             continue; // Don't double-detect this line
           }
 
-          // ===== 2. KEYWORD-BASED DETECTION (existing logic, enhanced) =====
-
-          // Signature fields
-          if (/\b(signature|sign here|signed|authorized sig|x_{2,})\b/i.test(text) &&
-              !/\b(email.*signature|digital signature policy|signature.*block)\b/i.test(lowerText)) {
-            addField({
-              fieldType: 'signature', pageNumber: i,
-              x, y: y + 5, width: 200, height: 50,
-              label: 'Signature', aiDetected: true,
-            });
-          }
-
-          // Initials
-          if (/\b(initials?|init here|init\.?:)\b/i.test(text)) {
-            addField({
-              fieldType: 'initials', pageNumber: i,
-              x, y: y + 5, width: 80, height: 40,
-              label: 'Initials', aiDetected: true,
-            });
-          }
-
-          // Date fields
-          if (/\b(date:?\s*$|date signed|dated:?|mm\/dd|__\/__)\b/i.test(text) &&
-              !/\b(effective date|expiration date|as of the date)\b/i.test(lowerText)) {
-            addField({
-              fieldType: 'date', pageNumber: i,
-              x, y: y + 5, width: 120, height: 25,
-              label: 'Date', aiDetected: true,
-            });
-          }
-
-          // Name fields
-          if (/\b(print(ed)?\s*name|full\s*name|name:?\s*$|type\s*name|legal\s*name|printed\s*name)\b/i.test(text)) {
-            addField({
-              fieldType: 'name', pageNumber: i,
-              x, y: y + 5, width: 200, height: 25,
-              label: 'Name', aiDetected: true,
-            });
-          }
-
-          // ===== 3. STRUCTURAL DETECTION — signature blocks =====
-          // Lines that are just a label word alone (like "Signature" or "Date" standalone)
-          // These typically appear BELOW a signature line in formal agreements
+          // Helper: calculate X position to the right of a label
+          const lastItem = line.items[line.items.length - 1];
+          const rightOfLabel = lastItem ? lastItem._x + (lastItem.str.length * lastItem._fontSize * 0.55) + 8 : x + 100;
           const trimmed = text.trim();
-          if (/^Signature\s*$/i.test(trimmed)) {
-            // The actual signature area is ABOVE this label
-            addField({
-              fieldType: 'signature', pageNumber: i,
-              x, y: y - 50, width: 200, height: 50,
-              label: 'Signature', aiDetected: true,
-            });
-          }
-          if (/^Date\s*$/i.test(trimmed)) {
-            addField({
-              fieldType: 'date', pageNumber: i,
-              x, y: y - 25, width: 150, height: 25,
-              label: 'Date', aiDetected: true,
-            });
-          }
-          if (/^(Printed\s*Name|Print\s*Name)\s*$/i.test(trimmed)) {
-            addField({
-              fieldType: 'name', pageNumber: i,
-              x, y: y - 25, width: 200, height: 25,
-              label: 'Printed Name', aiDetected: true,
-            });
-          }
-          if (/^Initials?\s*$/i.test(trimmed)) {
-            addField({
-              fieldType: 'initials', pageNumber: i,
-              x, y: y - 35, width: 80, height: 35,
-              label: 'Initials', aiDetected: true,
-            });
-          }
 
-          // ===== 4. COLON-TERMINATED LABEL DETECTION =====
-          // Patterns like "Name:", "Address:", "Email:", "Title:" at end of line
-          // suggest a fill-in field follows
+          // ===== 2. COLON-TERMINATED LABELS (highest priority — "Signature:", "Name:", "Date:", "Email:", "Title:") =====
           if (/:\s*$/.test(trimmed) && trimmed.length < 40) {
-            const labelLower = trimmed.replace(/:.*$/, '').toLowerCase().trim();
+            const labelText = trimmed.replace(/:.*$/, '').trim();
+            const labelLower = labelText.toLowerCase();
             let fieldType = 'text';
-            let label = trimmed.replace(/:.*$/, '').trim();
+            let label = labelText;
 
-            if (/name|contact|representative/i.test(labelLower)) fieldType = 'name';
-            else if (/date|when/i.test(labelLower)) fieldType = 'date';
-            else if (/sign/i.test(labelLower)) fieldType = 'signature';
+            if (/sign/i.test(labelLower)) { fieldType = 'signature'; label = 'Signature'; }
+            else if (/printed.*name|print.*name|full.*name|legal.*name/i.test(labelLower)) { fieldType = 'name'; label = 'Printed Name'; }
+            else if (/^name$/i.test(labelLower)) { fieldType = 'name'; label = 'Name'; }
+            else if (/date/i.test(labelLower)) { fieldType = 'date'; label = 'Date'; }
+            else if (/initial/i.test(labelLower)) { fieldType = 'initials'; label = 'Initials'; }
+            else if (/email|e-mail/i.test(labelLower)) { label = 'Email'; }
+            else if (/title|position|role/i.test(labelLower)) { label = 'Title'; }
+            else if (/company|org/i.test(labelLower)) { label = 'Company'; }
+            else if (/phone|tel|mobile/i.test(labelLower)) { label = 'Phone'; }
+            else if (/address/i.test(labelLower)) { label = 'Address'; }
 
-            // Only add if this looks like a standalone label (short text)
-            if (labelLower.length < 25 && !/\b(section|article|paragraph|pursuant|including)\b/i.test(labelLower)) {
-              const lastItem = line.items[line.items.length - 1];
-              const fieldX = lastItem._x + (lastItem.str.length * lastItem._fontSize * 0.5) + 10;
+            if (!/\b(section|article|paragraph|pursuant|including|herein|thereof)\b/i.test(labelLower)) {
               addField({
                 fieldType, pageNumber: i,
-                x: fieldX, y: y + 5,
+                x: rightOfLabel, y: y - 2,
                 width: fieldType === 'signature' ? 200 : 160,
-                height: fieldType === 'signature' ? 50 : 25,
+                height: fieldType === 'signature' ? 50 : (fieldType === 'initials' ? 40 : 25),
                 label, aiDetected: true,
               });
+              continue; // Don't double-detect
             }
+          }
+
+          // ===== 3. KEYWORD DETECTION (label + underscore patterns like "Signature ___") =====
+          if (/\b(signature|sign here)\b/i.test(text) &&
+              !/\b(email.*signature|digital signature policy|signature.*block|in witness)\b/i.test(lowerText)) {
+            addField({
+              fieldType: 'signature', pageNumber: i,
+              x: rightOfLabel, y: y - 2, width: 200, height: 50,
+              label: 'Signature', aiDetected: true,
+            });
+            continue;
+          }
+
+          if (/\b(initials?|init here)\b/i.test(text) && trimmed.length < 30) {
+            addField({
+              fieldType: 'initials', pageNumber: i,
+              x: rightOfLabel, y: y - 2, width: 80, height: 40,
+              label: 'Initials', aiDetected: true,
+            });
+            continue;
+          }
+
+          if (/\b(printed?\s*name|full\s*name|type\s*name|legal\s*name)\b/i.test(text) && trimmed.length < 40) {
+            addField({
+              fieldType: 'name', pageNumber: i,
+              x: rightOfLabel, y: y - 2, width: 180, height: 25,
+              label: 'Printed Name', aiDetected: true,
+            });
+            continue;
+          }
+
+          // ===== 4. STRUCTURAL — standalone labels below lines =====
+          if (/^Signature\s*$/i.test(trimmed)) {
+            addField({ fieldType: 'signature', pageNumber: i, x, y: y - 50, width: 200, height: 50, label: 'Signature', aiDetected: true });
+          }
+          if (/^Date\s*$/i.test(trimmed)) {
+            addField({ fieldType: 'date', pageNumber: i, x, y: y - 25, width: 150, height: 25, label: 'Date', aiDetected: true });
+          }
+          if (/^(Printed\s*Name|Print\s*Name)\s*$/i.test(trimmed)) {
+            addField({ fieldType: 'name', pageNumber: i, x, y: y - 25, width: 200, height: 25, label: 'Printed Name', aiDetected: true });
+          }
+          if (/^Initials?\s*$/i.test(trimmed)) {
+            addField({ fieldType: 'initials', pageNumber: i, x, y: y - 35, width: 80, height: 35, label: 'Initials', aiDetected: true });
           }
         }
       }
@@ -7235,9 +7213,10 @@
       signingState.signerEmail = email || '';
       generateInitials();
 
-      // Fill all auto-detected fields and set default text values
+      // Set default text values but mark as unconfirmed
       signingState.fields.forEach(f => {
-        f.filled = true;
+        f.filled = true; // Pre-fill with data so overlays show values
+        f.confirmed = false; // User hasn't reviewed yet
         if (f.fieldType === 'name' && !f.textValue) f.textValue = signingState.signerName;
         if (f.fieldType === 'date' && !f.textValue) f.textValue = new Date().toLocaleDateString();
         // Pre-fill email text fields
@@ -7277,11 +7256,10 @@
       const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤', text: '📝' };
       const icon = icons[field.fieldType] || '📝';
 
-      // Fill in the current field automatically
-      if (!field.filled) {
-        field.filled = true;
-        renderFieldOverlays(signingCurrentPage);
-      }
+      // Mark current field as confirmed (user has seen it)
+      field.filled = true;
+      field.confirmed = true;
+      renderFieldOverlays(signingCurrentPage);
 
       content.innerHTML = `
         <div class="field-banner">
@@ -7336,23 +7314,31 @@
               <div class="field-label">${f.label}</div>
               <div class="field-page">Page ${f.pageNumber}</div>
             </div>
-            <div style="font-size:14px;flex-shrink:0;">${f.filled ? '✅' : '⬜'}</div>
+            <div style="font-size:14px;flex-shrink:0;">${f.confirmed ? '✅' : '⬜'}</div>
             <div onclick="event.stopPropagation(); deleteSigningField(${i});" title="Delete field" style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:#ef4444;font-size:12px;flex-shrink:0;transition:background 0.12s;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'">🗑</div>
           </div>
         `).join('')}
       `;
 
       const isLast = idx >= total - 1;
+      const allConfirmed = fields.every(f => f.confirmed);
       actions.innerHTML = `
-        <div style="display:flex;gap:6px;width:100%;justify-content:space-between;">
-          <button class="btn btn-secondary" onclick="${idx === 0 ? 'setSigningStep(2)' : 'guidedPrev()'}" style="font-size:13px;">
-            ${idx === 0 ? '← Setup' : '← Prev'}
-          </button>
-          <button class="btn btn-primary" onclick="saveCurrentFieldEdit(); setSigningStep(4);" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;font-size:12px;padding:8px 12px;">
+        <button class="btn btn-secondary" onclick="${idx === 0 ? 'setSigningStep(2)' : 'guidedPrev()'}" style="font-size:13px;">
+          ${idx === 0 ? '← Setup' : '← Previous'}
+        </button>
+        ${isLast && allConfirmed ? `
+          <button class="btn btn-primary" onclick="saveCurrentFieldEdit(); setSigningStep(4);" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;font-size:13px;">
             Finalize →
           </button>
-          ${!isLast ? '<button class="btn btn-primary" onclick="guidedNext()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;font-size:13px;">Next →</button>' : ''}
-        </div>
+        ` : isLast ? `
+          <button class="btn btn-primary" onclick="showToast('Review all fields first — ' + signingState.fields.filter(f=>!f.confirmed).length + ' remaining', 'info'); signingState.currentFieldIndex = signingState.fields.findIndex(f=>!f.confirmed); scrollToField(signingState.currentFieldIndex); renderSigningSidebar();" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;font-size:13px;">
+            ${fields.filter(f => !f.confirmed).length} fields left ⚠️
+          </button>
+        ` : `
+          <button class="btn btn-primary" onclick="guidedNext()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;font-size:13px;">
+            Next Field →
+          </button>
+        `}
       `;
     }
 
