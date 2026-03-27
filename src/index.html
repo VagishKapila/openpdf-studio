@@ -6951,6 +6951,56 @@
       });
     }
 
+    // ===== ADJUST FIELD COUNTS (Setup step) =====
+    function adjustFieldCount(fieldType, delta) {
+      const currentFields = signingState.fields.filter(f => f.fieldType === fieldType);
+      const currentCount = currentFields.length;
+      const newCount = Math.max(0, currentCount + delta);
+      if (newCount === currentCount) return;
+
+      const sizes = { signature: { w: 200, h: 50 }, name: { w: 160, h: 30 }, date: { w: 120, h: 30 }, initials: { w: 80, h: 40 } };
+      const labels = { signature: 'Signature', name: 'Name', date: 'Date', initials: 'Initials' };
+
+      if (newCount > currentCount) {
+        // Add fields — spread them out on the last page
+        const totalPages = signingState.pdfDoc ? signingState.pdfDoc.numPages : 1;
+        const s = sizes[fieldType] || { w: 160, h: 30 };
+        for (let i = 0; i < (newCount - currentCount); i++) {
+          const yOffset = 100 + (currentCount + i) * 60;
+          signingState.fields.push({
+            id: 'field-' + signingState.fields.length,
+            fieldType: fieldType,
+            pageNumber: totalPages,
+            x: 72 + (i % 2) * 250,
+            y: yOffset,
+            width: s.w,
+            height: s.h,
+            label: labels[fieldType] || fieldType,
+            filled: false,
+            aiDetected: false,
+            textValue: ''
+          });
+        }
+      } else {
+        // Remove fields of this type from the end
+        const toRemove = currentCount - newCount;
+        for (let i = 0; i < toRemove; i++) {
+          const lastIdx = signingState.fields.map((f, idx) => f.fieldType === fieldType ? idx : -1).filter(x => x >= 0).pop();
+          if (lastIdx >= 0) signingState.fields.splice(lastIdx, 1);
+        }
+        // Re-index
+        signingState.fields.forEach((f, i) => f.id = 'field-' + i);
+        if (signingState.currentFieldIndex >= signingState.fields.length) {
+          signingState.currentFieldIndex = Math.max(0, signingState.fields.length - 1);
+        }
+      }
+
+      // Update the count display
+      const countEl = document.getElementById('field-count-' + fieldType);
+      if (countEl) countEl.textContent = newCount;
+      renderFieldOverlays(signingCurrentPage);
+    }
+
     // Add field to center of current visible PDF area (from sidebar button)
     function addFieldToCenter(fieldType, label, width, height) {
       const wrap = document.getElementById('signing-canvas-wrap');
@@ -7101,8 +7151,25 @@
         ` : ''}
 
         <div style="background:var(--bg);border-radius:8px;padding:12px;margin-top:12px;">
-          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Detected ${signingState.fields.length} field(s):</div>
-          ${signingState.fields.map(f => `<span style="display:inline-block;background:rgba(99,102,241,0.1);color:#6366f1;font-size:11px;padding:2px 8px;border-radius:10px;margin:2px;">${f.label} (p${f.pageNumber})</span>`).join('')}
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;">How many fields does this document need?</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">We detected some automatically. Adjust if needed — you can always add or delete later.</div>
+          ${['signature','name','date','initials'].map(type => {
+            const icons = { signature: '✍️', name: '👤', date: '📅', initials: '✏️' };
+            const labels = { signature: 'Signatures', name: 'Names', date: 'Dates', initials: 'Initials' };
+            const count = signingState.fields.filter(f => f.fieldType === type).length;
+            return \`
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:6px;font-size:13px;">
+                  <span>\${icons[type]}</span> \${labels[type]}
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <button onclick="adjustFieldCount('\${type}', -1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">−</button>
+                  <span id="field-count-\${type}" style="width:24px;text-align:center;font-weight:600;font-size:14px;">\${count}</span>
+                  <button onclick="adjustFieldCount('\${type}', 1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">+</button>
+                </div>
+              </div>
+            \`;
+          }).join('')}
         </div>
       `;
 
