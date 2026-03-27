@@ -1589,6 +1589,60 @@
       cursor: nwse-resize;
       z-index: 30;
     }
+    .field-overlay .field-delete-btn {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 22px;
+      height: 22px;
+      background: #ef4444;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 35;
+      font-size: 11px;
+      color: #fff;
+      line-height: 1;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .field-overlay:hover .field-delete-btn,
+    .field-overlay.active-field .field-delete-btn { opacity: 1; }
+    /* Add-field picker popup */
+    .add-field-picker {
+      position: absolute;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      padding: 6px;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 150px;
+    }
+    .add-field-picker-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.12s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .add-field-picker-item:hover { background: rgba(99,102,241,0.08); }
+    .add-field-picker-item span { font-size: 16px; }
     .signing-page-nav {
       display: flex;
       align-items: center;
@@ -6367,6 +6421,23 @@
       if (fileInput) fileInput.value = '';
     }
 
+    // ===== KEYBOARD SHORTCUTS FOR SIGNING =====
+    document.addEventListener('keydown', (e) => {
+      const overlay = document.getElementById('signing-overlay');
+      if (!overlay || !overlay.classList.contains('visible')) return;
+      if (signingState.step !== 2 && signingState.step !== 3) return;
+      // Close add-field picker on Escape if open
+      const picker = document.querySelector('.add-field-picker');
+      if (picker && e.key === 'Escape') { picker.remove(); return; }
+      // Delete active field with Escape or Delete key
+      if ((e.key === 'Escape' || e.key === 'Delete' || e.key === 'Backspace') && signingState.fields.length > 0) {
+        // Don't delete if user is typing in a text input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        e.preventDefault();
+        deleteSigningField(signingState.currentFieldIndex);
+      }
+    });
+
     // ===== STEP MANAGEMENT =====
     function setSigningStep(step) {
       signingState.step = step;
@@ -6425,7 +6496,8 @@
 
         // Move to step 2 (Setup)
         setSigningStep(2);
-        showToast(`Found ${signingState.fields.length} field(s) in your document`, 'success');
+        initClickToAddField();
+        showToast(`Found ${signingState.fields.length} field(s) — click anywhere on the PDF to add more, hover a field to delete`, 'success');
       } catch (err) {
         console.error('Signing upload error:', err);
         showToast('Failed to load document: ' + (err.message || 'Unknown error'), 'error');
@@ -6747,6 +6819,14 @@
           div.innerHTML = `<div class="field-text" style="color:#6366f1;font-size:11px;justify-content:center;">${icons[field.fieldType] || '📝'} ${field.label}</div>`;
         }
 
+        // Add delete button to every field
+        const delBtn = document.createElement('div');
+        delBtn.className = 'field-delete-btn';
+        delBtn.innerHTML = '✕';
+        delBtn.title = 'Delete field';
+        delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); deleteSigningField(idx); };
+        div.appendChild(delBtn);
+
         // Add resize handle for active field
         if (isActive) {
           const handle = document.createElement('div');
@@ -6757,6 +6837,88 @@
 
         container.appendChild(div);
       });
+    }
+
+    // ===== DELETE FIELD =====
+    function deleteSigningField(idx) {
+      if (idx < 0 || idx >= signingState.fields.length) return;
+      signingState.fields.splice(idx, 1);
+      // Re-index field IDs
+      signingState.fields.forEach((f, i) => f.id = 'field-' + i);
+      // Adjust current index
+      if (signingState.currentFieldIndex >= signingState.fields.length) {
+        signingState.currentFieldIndex = Math.max(0, signingState.fields.length - 1);
+      }
+      renderFieldOverlays(signingCurrentPage);
+      renderSigningSidebar();
+      showToast('Field deleted', 'info');
+    }
+
+    // ===== CLICK TO ADD FIELD =====
+    function initClickToAddField() {
+      const overlayContainer = document.getElementById('signing-field-overlays');
+      if (!overlayContainer) return;
+      overlayContainer.addEventListener('click', (e) => {
+        // Only in steps 2 or 3
+        if (signingState.step !== 2 && signingState.step !== 3) return;
+        // If clicked on an existing field overlay or its child, ignore
+        if (e.target.closest('.field-overlay') || e.target.closest('.add-field-picker')) return;
+        // Remove any existing picker
+        const old = document.querySelector('.add-field-picker');
+        if (old) { old.remove(); return; }
+        // Calculate position relative to the canvas wrap
+        const wrap = document.getElementById('signing-canvas-wrap');
+        const wrapRect = wrap.getBoundingClientRect();
+        const clickX = e.clientX - wrapRect.left;
+        const clickY = e.clientY - wrapRect.top;
+        const scale = signingState.pageScale;
+        const fieldX = clickX / scale;
+        const fieldY = clickY / scale;
+        // Create picker popup
+        const picker = document.createElement('div');
+        picker.className = 'add-field-picker';
+        picker.style.left = clickX + 'px';
+        picker.style.top = clickY + 'px';
+        const types = [
+          { type: 'signature', label: 'Signature', icon: '✍️', w: 200, h: 50 },
+          { type: 'name', label: 'Name', icon: '👤', w: 160, h: 30 },
+          { type: 'date', label: 'Date', icon: '📅', w: 120, h: 30 },
+          { type: 'initials', label: 'Initials', icon: '✏️', w: 80, h: 40 },
+        ];
+        types.forEach(t => {
+          const btn = document.createElement('button');
+          btn.className = 'add-field-picker-item';
+          btn.innerHTML = `<span>${t.icon}</span> ${t.label}`;
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            picker.remove();
+            addNewSigningField(t.type, t.label, fieldX, fieldY, t.w, t.h);
+          };
+          picker.appendChild(btn);
+        });
+        overlayContainer.appendChild(picker);
+      });
+    }
+
+    function addNewSigningField(fieldType, label, x, y, width, height) {
+      const newField = {
+        id: 'field-' + signingState.fields.length,
+        fieldType: fieldType,
+        pageNumber: signingCurrentPage,
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+        label: label,
+        filled: true, // Auto-fill with current data
+        aiDetected: false,
+        textValue: ''
+      };
+      signingState.fields.push(newField);
+      signingState.currentFieldIndex = signingState.fields.length - 1;
+      renderFieldOverlays(signingCurrentPage);
+      renderSigningSidebar();
+      showToast(`${label} field added — drag to reposition`, 'success');
     }
 
     // ===== DRAG FIELDS =====
@@ -6957,7 +7119,7 @@
         </div>
 
         <div style="background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.2);border-radius:8px;padding:10px;margin-bottom:16px;font-size:12px;color:#6366f1;">
-          <strong>Tip:</strong> Drag the field on the PDF to reposition it. Use the corner handle to resize.
+          <strong>Tip:</strong> Drag to move, corner to resize. <strong>Click empty space</strong> on the PDF to add fields. Press <strong>Delete</strong> or hover &amp; click ✕ to remove.
         </div>
 
         <h3 style="margin-top:8px;font-size:13px;">All Fields</h3>
@@ -6971,6 +7133,7 @@
               <div class="field-page">Page ${f.pageNumber}</div>
             </div>
             <div class="field-status ${f.filled ? 'filled' : ''}"></div>
+            <div onclick="event.stopPropagation(); deleteSigningField(${i});" title="Delete field" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:#ef4444;font-size:14px;flex-shrink:0;transition:background 0.12s;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'">🗑</div>
           </div>
         `).join('')}
       `;
