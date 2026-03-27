@@ -6425,7 +6425,7 @@
       initialsDataUrl: null,
       signerName: '',
       signerEmail: '',
-      paymentEnabled: false,
+      paymentEnabled: true,
       paymentAmount: 0,
       paymentDescription: '',
       pageScale: 1,
@@ -6451,7 +6451,7 @@
       signingState.requestId = null;
       signingState.documentId = null;
       signingState.currentFieldIndex = 0;
-      signingState.paymentEnabled = false;
+      signingState.paymentEnabled = true;
       signingState.paymentAmount = 0;
       signingState.paymentDescription = '';
       signingState.signerName = '';
@@ -6859,11 +6859,13 @@
           } else if (field.fieldType === 'initials' && signingState.initialsDataUrl) {
             div.innerHTML = `<img src="${signingState.initialsDataUrl}" alt="Initials">`;
           } else if (field.fieldType === 'date') {
-            div.innerHTML = `<div class="field-text">${new Date().toLocaleDateString()}</div>`;
+            const dateVal = field.textValue || new Date().toLocaleDateString();
+            div.innerHTML = `<div class="field-text">${dateVal}</div>`;
           } else if (field.fieldType === 'name') {
-            div.innerHTML = `<div class="field-text">${signingState.signerName || 'Name'}</div>`;
+            const nameVal = field.textValue || signingState.signerName || 'Name';
+            div.innerHTML = `<div class="field-text">${nameVal}</div>`;
           } else if (field.fieldType === 'text') {
-            div.innerHTML = `<div class="field-text" style="color:#999;font-style:italic;font-size:10px;">${field.label}</div>`;
+            div.innerHTML = `<div class="field-text">${field.textValue || '<span style="color:#999;font-style:italic;font-size:10px;">' + field.label + '</span>'}</div>`;
           }
         } else {
           const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤', text: '📝' };
@@ -6935,6 +6937,7 @@
           { type: 'name', label: 'Name', icon: '👤', w: 160, h: 30 },
           { type: 'date', label: 'Date', icon: '📅', w: 120, h: 30 },
           { type: 'initials', label: 'Initials', icon: '✏️', w: 80, h: 40 },
+          { type: 'text', label: 'Text', icon: '📝', w: 160, h: 30 },
         ];
         types.forEach(t => {
           const btn = document.createElement('button');
@@ -6949,6 +6952,28 @@
         });
         overlayContainer.appendChild(picker);
       });
+    }
+
+    // ===== UPDATE FIELD VALUE (inline edit in sidebar) =====
+    function updateFieldValue(idx, value) {
+      const field = signingState.fields[idx];
+      if (!field) return;
+      field.textValue = value;
+      field.filled = true;
+      renderFieldOverlays(signingCurrentPage);
+    }
+
+    // ===== SAVE CURRENT FIELD EDIT BEFORE NAVIGATION =====
+    function saveCurrentFieldEdit() {
+      const editEl = document.getElementById('signing-field-edit');
+      if (editEl) {
+        const idx = signingState.currentFieldIndex;
+        const field = signingState.fields[idx];
+        if (field) {
+          field.textValue = editEl.value;
+          field.filled = true;
+        }
+      }
     }
 
     // ===== BUILD FIELD COUNT ROWS (Setup step) =====
@@ -7206,8 +7231,12 @@
       signingState.signerEmail = email || '';
       generateInitials();
 
-      // Fill all auto-detected fields
-      signingState.fields.forEach(f => { f.filled = true; });
+      // Fill all auto-detected fields and set default text values
+      signingState.fields.forEach(f => {
+        f.filled = true;
+        if (f.fieldType === 'name' && !f.textValue) f.textValue = signingState.signerName;
+        if (f.fieldType === 'date' && !f.textValue) f.textValue = new Date().toLocaleDateString();
+      });
 
       // Start at first field
       signingState.currentFieldIndex = 0;
@@ -7264,15 +7293,15 @@
           ` : ''}
           ${field.fieldType === 'date' ? `
             <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:6px;">Date:</label>
-            <div style="font-size:16px;font-weight:600;">${new Date().toLocaleDateString()}</div>
+            <input type="date" id="signing-field-edit" value="${field.textValue || new Date().toISOString().split('T')[0]}" oninput="updateFieldValue(${idx}, this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
           ` : ''}
           ${field.fieldType === 'name' ? `
             <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:6px;">Name:</label>
-            <div style="font-size:16px;font-weight:600;">${signingState.signerName}</div>
+            <input type="text" id="signing-field-edit" value="${field.textValue || signingState.signerName}" placeholder="Enter name..." oninput="updateFieldValue(${idx}, this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
           ` : ''}
           ${field.fieldType === 'text' ? `
             <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:6px;">${field.label}:</label>
-            <input type="text" id="signing-text-field-value" placeholder="Enter value..." value="${field.textValue || ''}" onchange="signingState.fields[${idx}].textValue = this.value; renderFieldOverlays(signingCurrentPage);" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+            <input type="text" id="signing-field-edit" placeholder="Enter value..." value="${field.textValue || ''}" oninput="updateFieldValue(${idx}, this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
           ` : ''}
         </div>
 
@@ -7282,10 +7311,11 @@
 
         <h3 style="margin-top:8px;font-size:13px;">Add Field</h3>
         <div class="add-field-sidebar-menu">
-          <button onclick="addFieldToCenter('signature','Signature',200,50)"><span>✍️</span>Signature</button>
-          <button onclick="addFieldToCenter('name','Name',160,30)"><span>👤</span>Name</button>
-          <button onclick="addFieldToCenter('date','Date',120,30)"><span>📅</span>Date</button>
-          <button onclick="addFieldToCenter('initials','Initials',80,40)"><span>✏️</span>Initials</button>
+          <button type="button" onclick="addFieldToCenter('signature','Signature',200,50)"><span>✍️</span>Signature</button>
+          <button type="button" onclick="addFieldToCenter('name','Name',160,30)"><span>👤</span>Name</button>
+          <button type="button" onclick="addFieldToCenter('date','Date',120,30)"><span>📅</span>Date</button>
+          <button type="button" onclick="addFieldToCenter('initials','Initials',80,40)"><span>✏️</span>Initials</button>
+          <button type="button" onclick="addFieldToCenter('text','Text',160,30)"><span>📝</span>Text</button>
         </div>
 
         <h3 style="margin-top:4px;font-size:13px;">All Fields</h3>
@@ -7316,6 +7346,7 @@
     }
 
     function guidedNext() {
+      saveCurrentFieldEdit();
       const total = signingState.fields.length;
       if (signingState.currentFieldIndex < total - 1) {
         signingState.currentFieldIndex++;
@@ -7325,6 +7356,7 @@
     }
 
     function guidedPrev() {
+      saveCurrentFieldEdit();
       if (signingState.currentFieldIndex > 0) {
         signingState.currentFieldIndex--;
         scrollToField(signingState.currentFieldIndex);
@@ -7468,6 +7500,12 @@
     // ===== FINALIZE: FLATTEN PDF + OPTIONAL PAYMENT =====
     async function finalizeAndSign() {
       try {
+        // Save payment values from DOM before we do anything
+        const amtEl = document.getElementById('signing-payment-amount');
+        const descEl = document.getElementById('signing-payment-desc');
+        if (amtEl) signingState.paymentAmount = amtEl.value;
+        if (descEl) signingState.paymentDescription = descEl.value;
+
         showToast('Finalizing document...', 'info');
 
         const pdfDoc = signingState.pdfLibDoc;
@@ -7508,7 +7546,8 @@
           } else if (field.fieldType === 'date') {
             const { rgb } = PDFLib;
             const fontSize = Math.min(14, pdfH * 0.7);
-            page.drawText(new Date().toLocaleDateString(), {
+            const dateText = field.textValue || new Date().toLocaleDateString();
+            page.drawText(dateText, {
               x: pdfX + 2,
               y: pdfY + (pdfH - fontSize) / 2,
               size: fontSize,
@@ -7517,7 +7556,7 @@
           } else if (field.fieldType === 'name') {
             const { rgb } = PDFLib;
             const fontSize = Math.min(14, pdfH * 0.7);
-            page.drawText(signingState.signerName, {
+            page.drawText(field.textValue || signingState.signerName, {
               x: pdfX + 2,
               y: pdfY + (pdfH - fontSize) / 2,
               size: fontSize,
@@ -7541,8 +7580,8 @@
 
         // Check if payment is required
         if (signingState.paymentEnabled) {
-          const amount = parseFloat(document.getElementById('signing-payment-amount')?.value || '0');
-          const desc = document.getElementById('signing-payment-desc')?.value || 'Signing payment';
+          const amount = parseFloat(signingState.paymentAmount || '0');
+          const desc = signingState.paymentDescription || 'Signing payment';
 
           if (amount < 0.50) {
             showToast('Minimum payment is $0.50', 'error');
@@ -7566,7 +7605,7 @@
                 amount: amountCents,
                 currency: 'usd',
                 description: desc,
-                documentName: signingState.file?.name || 'Document',
+                documentName: signingState.fileName || 'Document',
                 payerEmail: signingState.signerEmail,
                 successUrl: currentOrigin + window.location.pathname + '?payment=success',
                 cancelUrl: currentOrigin + window.location.pathname + '?payment=cancelled',
@@ -7583,7 +7622,8 @@
             if (data.checkoutUrl) {
               saveAs(blob, signedFilename);
               showToast('Document saved! Redirecting to payment...', 'success');
-              setTimeout(() => { window.open(data.checkoutUrl, '_blank'); }, 1000);
+              setTimeout(() => { window.location.href = data.checkoutUrl; }, 1500);
+              return; // Don't close flow — we're redirecting
             } else {
               throw new Error('No checkout URL returned');
             }
