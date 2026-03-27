@@ -6598,7 +6598,11 @@
       const totalPages = doc.numPages;
       const seenPositions = new Set(); // Deduplicate overlapping fields
 
+      const maxPerType = { signature: 3, initials: 3, name: 4, date: 4, text: 8 };
       function addField(f) {
+        // Cap fields per type to avoid clutter
+        const typeCount = fields.filter(x => x.fieldType === f.fieldType).length;
+        if (typeCount >= (maxPerType[f.fieldType] || 6)) return;
         // Deduplicate: skip if a field of the same type is within 30px
         const key = `${f.fieldType}-${f.pageNumber}-${Math.round(f.x/30)}-${Math.round(f.y/30)}`;
         if (seenPositions.has(key)) return;
@@ -7236,6 +7240,10 @@
         f.filled = true;
         if (f.fieldType === 'name' && !f.textValue) f.textValue = signingState.signerName;
         if (f.fieldType === 'date' && !f.textValue) f.textValue = new Date().toLocaleDateString();
+        // Pre-fill email text fields
+        if (f.fieldType === 'text' && f.label.toLowerCase().includes('email') && !f.textValue) {
+          f.textValue = signingState.signerEmail;
+        }
       });
 
       // Start at first field
@@ -7328,20 +7336,23 @@
               <div class="field-label">${f.label}</div>
               <div class="field-page">Page ${f.pageNumber}</div>
             </div>
-            <div class="field-status ${f.filled ? 'filled' : ''}"></div>
-            <div onclick="event.stopPropagation(); deleteSigningField(${i});" title="Delete field" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:#ef4444;font-size:14px;flex-shrink:0;transition:background 0.12s;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'">🗑</div>
+            <div style="font-size:14px;flex-shrink:0;">${f.filled ? '✅' : '⬜'}</div>
+            <div onclick="event.stopPropagation(); deleteSigningField(${i});" title="Delete field" style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:#ef4444;font-size:12px;flex-shrink:0;transition:background 0.12s;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'">🗑</div>
           </div>
         `).join('')}
       `;
 
       const isLast = idx >= total - 1;
       actions.innerHTML = `
-        <button class="btn btn-secondary" onclick="${idx === 0 ? 'setSigningStep(2)' : 'guidedPrev()'}" style="font-size:13px;">
-          ${idx === 0 ? '← Setup' : '← Previous'}
-        </button>
-        <button class="btn btn-primary" onclick="${isLast ? 'setSigningStep(4)' : 'guidedNext()'}" style="background:linear-gradient(135deg,${isLast ? '#22c55e,#16a34a' : '#6366f1,#8b5cf6'});border:none;font-size:13px;">
-          ${isLast ? 'Finalize →' : 'Next Field →'}
-        </button>
+        <div style="display:flex;gap:6px;width:100%;justify-content:space-between;">
+          <button class="btn btn-secondary" onclick="${idx === 0 ? 'setSigningStep(2)' : 'guidedPrev()'}" style="font-size:13px;">
+            ${idx === 0 ? '← Setup' : '← Prev'}
+          </button>
+          <button class="btn btn-primary" onclick="saveCurrentFieldEdit(); setSigningStep(4);" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;font-size:12px;padding:8px 12px;">
+            Finalize →
+          </button>
+          ${!isLast ? '<button class="btn btn-primary" onclick="guidedNext()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;font-size:13px;">Next →</button>' : ''}
+        </div>
       `;
     }
 
@@ -7589,13 +7600,13 @@
           }
 
           try {
-            const apiBase = (typeof DPStudioAPI !== 'undefined' && DPStudioAPI.baseUrl)
-              ? DPStudioAPI.baseUrl
-              : 'https://openpdf-studio-production.up.railway.app';
-            const token = localStorage.getItem('dpstudio_access_token');
+            const apiBase = 'https://dpstudio-backend-production.up.railway.app';
             const amountCents = Math.round(amount * 100);
 
             const currentOrigin = window.location.origin;
+            showToast('Connecting to payment server...', 'info');
+            console.log('Payment request to:', apiBase + '/payments/quick-checkout', 'amount:', amountCents);
+
             const resp = await fetch(apiBase + '/payments/quick-checkout', {
               method: 'POST',
               headers: {
@@ -7615,22 +7626,26 @@
             if (!resp.ok) {
               const errText = await resp.text();
               console.error('Payment API error:', resp.status, errText);
-              throw new Error('Payment API returned ' + resp.status);
+              showToast('Payment server error: ' + resp.status + '. Check console for details.', 'error');
+              throw new Error('Payment API returned ' + resp.status + ': ' + errText);
             }
 
             const data = await resp.json();
+            console.log('Payment response:', data);
             if (data.checkoutUrl) {
               saveAs(blob, signedFilename);
-              showToast('Document saved! Redirecting to payment...', 'success');
+              showToast('Document saved! Redirecting to Stripe checkout...', 'success');
               setTimeout(() => { window.location.href = data.checkoutUrl; }, 1500);
               return; // Don't close flow — we're redirecting
             } else {
-              throw new Error('No checkout URL returned');
+              throw new Error('No checkout URL in response: ' + JSON.stringify(data));
             }
           } catch (payErr) {
             console.error('Payment error:', payErr);
-            showToast('Payment setup failed: ' + payErr.message + '. Document saved without payment.', 'error');
+            showToast('Payment failed: ' + payErr.message, 'error');
+            // Still save the document
             saveAs(blob, signedFilename);
+            showToast('Document saved without payment. See console (F12) for error details.', 'info');
           }
         } else {
           saveAs(blob, signedFilename);
