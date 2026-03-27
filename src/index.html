@@ -7434,12 +7434,12 @@
       const name = document.getElementById('signing-name')?.value || signingState.signerName || '';
       const initials = name.split(' ').filter(w => w).map(w => w[0]).join('').toUpperCase().slice(0, 3);
       const canvas = document.createElement('canvas');
-      canvas.width = 80;
-      canvas.height = 40;
+      canvas.width = 120;
+      canvas.height = 50;
       const ctx = canvas.getContext('2d');
-      ctx.font = "italic 24px 'Brush Script MT', cursive";
-      ctx.fillStyle = '#000';
-      ctx.fillText(initials, 5, 30);
+      ctx.font = "italic 20px Georgia, 'Times New Roman', serif";
+      ctx.fillStyle = '#333';
+      ctx.fillText(initials, 8, 32);
       signingState.initialsDataUrl = canvas.toDataURL('image/png');
     }
 
