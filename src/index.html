@@ -1613,9 +1613,29 @@
       border-color: #22c55e;
       background: rgba(34, 197, 94, 0.05);
     }
-    .field-overlay.filled.active-field {
-      border-color: #6366f1;
+    .field-overlay.field-confirmed {
+      border: 1px solid transparent;
+      background: transparent;
+      cursor: default;
+    }
+    .field-overlay.field-confirmed:hover {
+      border: 1px dashed #c4c4c4;
+      background: rgba(0,0,0,0.02);
+    }
+    .field-overlay.field-confirmed:hover .field-delete-btn,
+    .field-overlay.field-confirmed:hover .field-confirm-btn { opacity: 1; }
+    .field-overlay.field-confirmed .field-confirm-btn.confirmed {
+      opacity: 0;
+    }
+    .field-overlay.field-confirmed:hover .field-confirm-btn.confirmed {
+      opacity: 1;
+    }
+    .field-overlay.filled.active-field,
+    .field-overlay.field-confirmed.active-field {
+      border: 2px solid #6366f1;
+      background: rgba(99, 102, 241, 0.08);
       box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
+      cursor: move;
     }
     .field-overlay img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .field-overlay .field-text {
@@ -6844,7 +6864,7 @@
 
         const div = document.createElement('div');
         const isActive = idx === signingState.currentFieldIndex;
-        div.className = 'field-overlay' + (field.filled ? ' filled' : '') + (isActive ? ' active-field' : '');
+        div.className = 'field-overlay' + (field.filled ? ' filled' : '') + (field.confirmed ? ' field-confirmed' : '') + (isActive ? ' active-field' : '');
         div.style.left = (field.x * scale) + 'px';
         div.style.top = (field.y * scale) + 'px';
         div.style.width = (field.width * scale) + 'px';
@@ -6878,8 +6898,11 @@
             inp.className = 'field-inline-edit';
             inp.value = defVal;
             inp.placeholder = field.label;
-            inp.style.cssText = 'width:100%;height:100%;border:none;background:transparent;font-size:12px;font-weight:500;padding:2px 4px;outline:none;pointer-events:auto;';
-            inp.onmousedown = function(ev) { ev.stopPropagation(); };
+            inp.style.cssText = 'width:calc(100% - 8px);height:100%;border:none;background:transparent;font-size:12px;font-weight:500;padding:2px 4px;outline:none;pointer-events:auto;cursor:text;';
+            inp.onmousedown = function(ev) {
+              // Only block drag if this field is already active (allow first click to select/drag)
+              if (isActive) { ev.stopPropagation(); }
+            };
             inp.onclick = function(ev) { ev.stopPropagation(); };
             (function(fieldIdx) {
               inp.oninput = function() { updateFieldValue(fieldIdx, this.value); };
@@ -6917,6 +6940,8 @@
 
         container.appendChild(div);
       });
+      // Add the + button at top-right of the page
+      renderAddFieldButton(container);
     }
 
     // ===== DELETE FIELD =====
@@ -6943,51 +6968,48 @@
       renderSigningSidebar();
     }
 
-    // ===== CLICK TO ADD FIELD =====
+    // ===== ADD FIELD BUTTON (+ button at top of page) =====
     function initClickToAddField() {
-      const overlayContainer = document.getElementById('signing-field-overlays');
-      if (!overlayContainer) return;
-      overlayContainer.addEventListener('click', (e) => {
-        // Only in steps 2 or 3
-        if (signingState.step !== 2 && signingState.step !== 3) return;
-        // If clicked on an existing field overlay or its child, ignore
-        if (e.target.closest('.field-overlay') || e.target.closest('.add-field-picker')) return;
-        // Remove any existing picker
-        const old = document.querySelector('.add-field-picker');
-        if (old) { old.remove(); return; }
-        // Calculate position relative to the canvas wrap
-        const wrap = document.getElementById('signing-canvas-wrap');
-        const wrapRect = wrap.getBoundingClientRect();
-        const clickX = e.clientX - wrapRect.left;
-        const clickY = e.clientY - wrapRect.top;
-        const scale = signingState.pageScale;
-        const fieldX = clickX / scale;
-        const fieldY = clickY / scale;
-        // Create picker popup
-        const picker = document.createElement('div');
+      // No-op: the old click-on-empty-space popup is removed.
+      // Add-field is now handled by the + button rendered in renderFieldOverlays.
+    }
+
+    function renderAddFieldButton(container) {
+      // Only show in steps 2 or 3
+      if (signingState.step !== 2 && signingState.step !== 3) return;
+      var addBtn = document.createElement('div');
+      addBtn.className = 'add-field-page-btn';
+      addBtn.innerHTML = '+ Add Field';
+      addBtn.style.cssText = 'position:absolute;top:8px;right:8px;z-index:40;background:#6366f1;color:#fff;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);user-select:none;';
+      addBtn.onclick = function(e) {
+        e.stopPropagation();
+        // Toggle dropdown
+        var existing = container.querySelector('.add-field-picker');
+        if (existing) { existing.remove(); return; }
+        var picker = document.createElement('div');
         picker.className = 'add-field-picker';
-        picker.style.left = clickX + 'px';
-        picker.style.top = clickY + 'px';
-        const types = [
-          { type: 'signature', label: 'Signature', icon: '✍️', w: 200, h: 50 },
-          { type: 'name', label: 'Name', icon: '👤', w: 160, h: 30 },
-          { type: 'date', label: 'Date', icon: '📅', w: 120, h: 30 },
-          { type: 'initials', label: 'Initials', icon: '✏️', w: 80, h: 40 },
-          { type: 'text', label: 'Text', icon: '📝', w: 160, h: 30 },
+        picker.style.cssText = 'position:absolute;top:38px;right:8px;z-index:50;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.18);padding:6px;';
+        var types = [
+          { type: 'signature', label: 'Signature', icon: '\u270d\ufe0f', w: 200, h: 50 },
+          { type: 'name', label: 'Name', icon: '\ud83d\udc64', w: 160, h: 30 },
+          { type: 'date', label: 'Date', icon: '\ud83d\udcc5', w: 120, h: 30 },
+          { type: 'initials', label: 'Initials', icon: '\u270f\ufe0f', w: 80, h: 40 },
+          { type: 'text', label: 'Text', icon: '\ud83d\udcdd', w: 160, h: 30 },
         ];
-        types.forEach(t => {
-          const btn = document.createElement('button');
+        types.forEach(function(t) {
+          var btn = document.createElement('button');
           btn.className = 'add-field-picker-item';
-          btn.innerHTML = `<span>${t.icon}</span> ${t.label}`;
-          btn.onclick = (ev) => {
+          btn.innerHTML = '<span>' + t.icon + '</span> ' + t.label;
+          btn.onclick = function(ev) {
             ev.stopPropagation();
             picker.remove();
-            addNewSigningField(t.type, t.label, fieldX, fieldY, t.w, t.h);
+            addNewSigningField(t.type, t.label, undefined, undefined, t.w, t.h);
           };
           picker.appendChild(btn);
         });
-        overlayContainer.appendChild(picker);
-      });
+        container.appendChild(picker);
+      };
+      container.appendChild(addBtn);
     }
 
     // ===== UPDATE FIELD VALUE (inline edit in sidebar) =====
@@ -6996,6 +7018,13 @@
       if (!field) return;
       field.textValue = value;
       field.filled = true;
+      // Auto-fill other fields of the same type (e.g. fill one Title, fills all Titles)
+      signingState.fields.forEach(function(f, i) {
+        if (i !== idx && f.fieldType === field.fieldType && f.fieldType !== 'signature' && f.fieldType !== 'initials') {
+          f.textValue = value;
+          f.filled = true;
+        }
+      });
       // Don't re-render overlays here — it would destroy the active input and lose focus
     }
 
