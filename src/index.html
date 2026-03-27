@@ -6845,6 +6845,7 @@
         // Click to select this field
         div.onmousedown = (e) => {
           if (e.target.classList.contains('resize-handle')) return;
+          if (e.target.classList.contains('field-delete-btn')) return;
           e.preventDefault();
           signingState.currentFieldIndex = idx;
           startFieldDrag(e, idx);
