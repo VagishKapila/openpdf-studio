@@ -1444,6 +1444,56 @@
       background: white;
       box-shadow: 0 2px 20px rgba(0,0,0,0.3);
     }
+    #signing-field-overlays {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+    }
+    .add-field-sidebar-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: #6366f1;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .add-field-sidebar-btn:hover { background: rgba(99,102,241,0.06); border-color: #6366f1; }
+    .add-field-sidebar-menu {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .add-field-sidebar-menu button {
+      flex: 1;
+      min-width: 70px;
+      padding: 8px 6px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .add-field-sidebar-menu button:hover { border-color: #6366f1; background: rgba(99,102,241,0.05); }
+    .add-field-sidebar-menu button span { font-size: 18px; }
     .signing-sidebar {
       width: 320px;
       background: var(--bg-secondary);
@@ -6900,6 +6950,22 @@
       });
     }
 
+    // Add field to center of current visible PDF area (from sidebar button)
+    function addFieldToCenter(fieldType, label, width, height) {
+      const wrap = document.getElementById('signing-canvas-wrap');
+      if (!wrap) return;
+      const scale = signingState.pageScale;
+      // Place in the center of the visible area
+      const wrapRect = wrap.getBoundingClientRect();
+      const pdfArea = document.getElementById('signing-pdf-area');
+      const scrollTop = pdfArea ? pdfArea.scrollTop : 0;
+      const visibleCenterX = (wrapRect.width / 2) / scale;
+      const visibleCenterY = ((wrapRect.height / 2) + scrollTop) / scale;
+      const x = visibleCenterX - (width / 2);
+      const y = visibleCenterY - (height / 2);
+      addNewSigningField(fieldType, label, Math.max(10, x), Math.max(10, y), width, height);
+    }
+
     function addNewSigningField(fieldType, label, x, y, width, height) {
       const newField = {
         id: 'field-' + signingState.fields.length,
@@ -7122,7 +7188,15 @@
           <strong>Tip:</strong> Drag to move, corner to resize. <strong>Click empty space</strong> on the PDF to add fields. Press <strong>Delete</strong> or hover &amp; click ✕ to remove.
         </div>
 
-        <h3 style="margin-top:8px;font-size:13px;">All Fields</h3>
+        <h3 style="margin-top:8px;font-size:13px;">Add Field</h3>
+        <div class="add-field-sidebar-menu">
+          <button onclick="addFieldToCenter('signature','Signature',200,50)"><span>✍️</span>Signature</button>
+          <button onclick="addFieldToCenter('name','Name',160,30)"><span>👤</span>Name</button>
+          <button onclick="addFieldToCenter('date','Date',120,30)"><span>📅</span>Date</button>
+          <button onclick="addFieldToCenter('initials','Initials',80,40)"><span>✏️</span>Initials</button>
+        </div>
+
+        <h3 style="margin-top:4px;font-size:13px;">All Fields</h3>
         ${fields.map((f, i) => `
           <div class="field-card ${i === idx ? 'active' : ''}" onclick="signingState.currentFieldIndex=${i}; scrollToField(${i}); renderSigningSidebar();">
             <div class="field-icon ${f.fieldType === 'signature' ? 'sig' : f.fieldType === 'initials' ? 'init' : f.fieldType === 'date' ? 'date' : 'name'}">
