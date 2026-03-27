@@ -6966,9 +6966,9 @@
         html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">'
           + '<div style="display:flex;align-items:center;gap:6px;font-size:13px;"><span>' + t.icon + '</span> ' + t.label + '</div>'
           + '<div style="display:flex;align-items:center;gap:4px;">'
-          + '<button onclick="adjustFieldCount(\'' + t.type + '\', -1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">−</button>'
+          + '<button type="button" onclick="adjustFieldCount(\'' + t.type + '\', -1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">−</button>'
           + '<span id="field-count-' + t.type + '" style="width:24px;text-align:center;font-weight:600;font-size:14px;">' + count + '</span>'
-          + '<button onclick="adjustFieldCount(\'' + t.type + '\', 1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">+</button>'
+          + '<button type="button" onclick="adjustFieldCount(\'' + t.type + '\', 1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">+</button>'
           + '</div></div>';
       }
       return html;
@@ -6976,6 +6976,12 @@
 
     // ===== ADJUST FIELD COUNTS (Setup step) =====
     function adjustFieldCount(fieldType, delta) {
+      // Save current form values so they don't get lost
+      const nameEl = document.getElementById('signing-name');
+      const emailEl = document.getElementById('signing-email');
+      if (nameEl) signingState.signerName = nameEl.value;
+      if (emailEl) signingState.signerEmail = emailEl.value;
+
       const currentFields = signingState.fields.filter(f => f.fieldType === fieldType);
       const currentCount = currentFields.length;
       const newCount = Math.max(0, currentCount + delta);
@@ -7194,10 +7200,14 @@
       const email = document.getElementById('signing-email')?.value;
       if (!name) { showToast('Please enter your name', 'error'); return; }
       if (!signingState.signatureDataUrl) { showToast('Please draw or type your signature first', 'error'); return; }
+      if (signingState.fields.length === 0) { showToast('No fields to sign. Add at least one field first.', 'error'); return; }
 
       signingState.signerName = name;
       signingState.signerEmail = email || '';
       generateInitials();
+
+      // Fill all auto-detected fields
+      signingState.fields.forEach(f => { f.filled = true; });
 
       // Start at first field
       signingState.currentFieldIndex = 0;
@@ -7206,9 +7216,12 @@
       // Navigate to first field
       const firstField = signingState.fields[0];
       if (firstField) {
-        scrollToField(0);
+        signingCurrentPage = firstField.pageNumber;
+        renderSigningPage(firstField.pageNumber).then(() => {
+          scrollToField(0);
+        });
       }
-      showToast('Place each field one at a time. Drag to move, resize from corner.', 'info');
+      showToast('Review each field. Drag to reposition, click + to add more.', 'info');
     }
 
     // ----- STEP 3: GUIDED FIELD-BY-FIELD (DocuSign style) -----
@@ -7218,7 +7231,11 @@
       const field = fields[idx];
       const total = fields.length;
 
-      if (!field) return;
+      if (!field || total === 0) {
+        content.innerHTML = '<div style="padding:20px;text-align:center;"><p style="color:var(--text-secondary);font-size:13px;">No fields to review. Go back to Setup to add fields.</p></div>';
+        actions.innerHTML = '<button class="btn btn-secondary" onclick="setSigningStep(2)" style="font-size:13px;">← Back to Setup</button>';
+        return;
+      }
 
       const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤', text: '📝' };
       const icon = icons[field.fieldType] || '📝';
@@ -7402,10 +7419,10 @@
           </ul>
         </div>
 
-        <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
+        <div style="border:2px solid #6366f1;border-radius:10px;padding:14px;margin-top:14px;background:rgba(99,102,241,0.03);">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-            <input type="checkbox" id="signing-payment-toggle" onchange="togglePayment()" ${signingState.paymentEnabled ? 'checked' : ''}>
-            <label for="signing-payment-toggle" style="font-size:13px;font-weight:500;cursor:pointer;">Require payment after signing</label>
+            <input type="checkbox" id="signing-payment-toggle" onchange="togglePayment()" ${signingState.paymentEnabled ? 'checked' : ''} style="width:18px;height:18px;accent-color:#6366f1;">
+            <label for="signing-payment-toggle" style="font-size:14px;font-weight:600;cursor:pointer;">💳 Collect payment after signing</label>
           </div>
 
           <div id="signing-payment-config" style="display:${signingState.paymentEnabled ? 'block' : 'none'};">
@@ -7439,6 +7456,13 @@
       if (amtEl) signingState.paymentAmount = amtEl.value;
       if (descEl) signingState.paymentDescription = descEl.value;
       document.getElementById('signing-payment-config').style.display = signingState.paymentEnabled ? 'block' : 'none';
+      // Update finalize button text
+      const actions = document.getElementById('signing-actions');
+      if (actions) {
+        actions.innerHTML = '<button class="btn btn-secondary" onclick="setSigningStep(3)">← Back</button>'
+          + '<button class="btn btn-primary" onclick="finalizeAndSign()" style="background:linear-gradient(135deg,' + (signingState.paymentEnabled ? '#6366f1,#8b5cf6' : '#22c55e,#16a34a') + ');border:none;padding:10px 20px;">'
+          + (signingState.paymentEnabled ? '💳 Finalize & Pay' : '🔒 Finalize & Download') + '</button>';
+      }
     }
 
     // ===== FINALIZE: FLATTEN PDF + OPTIONAL PAYMENT =====
