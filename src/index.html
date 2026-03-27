@@ -6951,6 +6951,29 @@
       });
     }
 
+    // ===== BUILD FIELD COUNT ROWS (Setup step) =====
+    function buildFieldCountRows() {
+      var types = [
+        { type: 'signature', icon: '✍️', label: 'Signatures' },
+        { type: 'name', icon: '👤', label: 'Names' },
+        { type: 'date', icon: '📅', label: 'Dates' },
+        { type: 'initials', icon: '✏️', label: 'Initials' }
+      ];
+      var html = '';
+      for (var i = 0; i < types.length; i++) {
+        var t = types[i];
+        var count = signingState.fields.filter(function(f) { return f.fieldType === t.type; }).length;
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">'
+          + '<div style="display:flex;align-items:center;gap:6px;font-size:13px;"><span>' + t.icon + '</span> ' + t.label + '</div>'
+          + '<div style="display:flex;align-items:center;gap:4px;">'
+          + '<button onclick="adjustFieldCount(\'' + t.type + '\', -1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">−</button>'
+          + '<span id="field-count-' + t.type + '" style="width:24px;text-align:center;font-weight:600;font-size:14px;">' + count + '</span>'
+          + '<button onclick="adjustFieldCount(\'' + t.type + '\', 1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">+</button>'
+          + '</div></div>';
+      }
+      return html;
+    }
+
     // ===== ADJUST FIELD COUNTS (Setup step) =====
     function adjustFieldCount(fieldType, delta) {
       const currentFields = signingState.fields.filter(f => f.fieldType === fieldType);
@@ -7153,23 +7176,7 @@
         <div style="background:var(--bg);border-radius:8px;padding:12px;margin-top:12px;">
           <div style="font-size:12px;font-weight:600;margin-bottom:8px;">How many fields does this document need?</div>
           <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">We detected some automatically. Adjust if needed — you can always add or delete later.</div>
-          ${['signature','name','date','initials'].map(type => {
-            const icons = { signature: '✍️', name: '👤', date: '📅', initials: '✏️' };
-            const labels = { signature: 'Signatures', name: 'Names', date: 'Dates', initials: 'Initials' };
-            const count = signingState.fields.filter(f => f.fieldType === type).length;
-            return \`
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
-                <div style="display:flex;align-items:center;gap:6px;font-size:13px;">
-                  <span>\${icons[type]}</span> \${labels[type]}
-                </div>
-                <div style="display:flex;align-items:center;gap:4px;">
-                  <button onclick="adjustFieldCount('\${type}', -1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">−</button>
-                  <span id="field-count-\${type}" style="width:24px;text-align:center;font-weight:600;font-size:14px;">\${count}</span>
-                  <button onclick="adjustFieldCount('\${type}', 1)" style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">+</button>
-                </div>
-              </div>
-            \`;
-          }).join('')}
+          ${buildFieldCountRows()}
         </div>
       `;
 
