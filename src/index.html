@@ -6989,8 +6989,8 @@
       // Remove any previous floating button
       var oldFloat = document.getElementById('signing-add-field-float');
       if (oldFloat) oldFloat.remove();
-      // Create floating button attached to the signing viewer (not the overlay container)
-      var viewer = document.getElementById('signing-viewer');
+      // Create floating button attached to the signing PDF area
+      var viewer = document.getElementById('signing-pdf-preview') || document.getElementById('signing-pdf-area');
       if (!viewer) return;
       var floatWrap = document.createElement('div');
       floatWrap.id = 'signing-add-field-float';
