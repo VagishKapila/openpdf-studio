@@ -133,7 +133,8 @@ paymentRoutes.post('/quick-checkout', async (c) => {
           currency: body.currency || 'usd',
           product_data: {
             name: body.description || 'Document Signing Payment',
-            description: 'Payment for signed document via DocPix Studio',
+            description: `Payment for "${body.documentName || 'document'}" via DocPix Studio`,
+            // Note: Add a hosted logo PNG to show on Stripe checkout (e.g. icon-512.png in src/)
           },
           unit_amount: body.amount,
         },
@@ -142,6 +143,9 @@ paymentRoutes.post('/quick-checkout', async (c) => {
       customer_email: body.payerEmail || undefined,
       success_url: body.successUrl || `${baseUrl}?payment=success`,
       cancel_url: body.cancelUrl || `${baseUrl}?payment=cancelled`,
+      custom_text: {
+        submit: { message: 'DocPix Studio will process your signed document after payment.' },
+      },
       metadata: {
         source: 'sign-and-pay',
         documentName: body.documentName || 'Unknown',

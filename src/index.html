@@ -1617,7 +1617,7 @@
       border: 1px solid transparent !important;
       background: transparent !important;
       box-shadow: none !important;
-      cursor: default;
+      cursor: grab;
     }
     .field-overlay.filled.field-confirmed:hover {
       border: 1px dashed #c4c4c4 !important;
@@ -6447,14 +6447,15 @@
         showResetPasswordForm(resetToken);
       }
 
-      // Handle payment return
+      // Handle payment return — show branded success/cancel page
       const paymentStatus = params.get('payment');
       if (paymentStatus === 'success') {
-        showToast('Payment completed successfully!', 'success');
         window.history.replaceState({}, '', window.location.pathname);
+        // Wait a tick so the page fully loads, then show success overlay
+        setTimeout(() => showPaymentSuccessPage(), 300);
       } else if (paymentStatus === 'cancelled') {
-        showToast('Payment was cancelled.', 'info');
         window.history.replaceState({}, '', window.location.pathname);
+        setTimeout(() => showPaymentCancelledPage(), 300);
       }
     })();
 
@@ -6875,6 +6876,19 @@
         div.style.height = (field.height * scale) + 'px';
         div.dataset.fieldIdx = idx;
 
+        // Double-click to re-edit a confirmed field
+        div.ondblclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (field.confirmed) {
+            field.confirmed = false; // Un-confirm so user can edit
+            signingState.currentFieldIndex = idx;
+            renderFieldOverlays(pageNum);
+            renderSigningSidebar();
+            showToast('Field unlocked for editing', 'info');
+          }
+        };
+
         // Click to select this field and start drag
         div.onmousedown = (e) => {
           if (e.target.classList.contains('resize-handle')) return;
@@ -6884,7 +6898,7 @@
           e.preventDefault();
           const wasActive = signingState.currentFieldIndex === idx;
           signingState.currentFieldIndex = idx;
-          // Start drag immediately — renderFieldOverlays will be called by onMove
+          // Start drag immediately
           startFieldDrag(e, idx);
           // Only re-render sidebar if selection changed (avoid re-render during drag)
           if (!wasActive) {
@@ -6903,21 +6917,32 @@
             if (field.fieldType === 'date') defVal = field.textValue || new Date().toLocaleDateString();
             else if (field.fieldType === 'name') defVal = field.textValue || signingState.signerName || '';
             else defVal = field.textValue || '';
-            var inp = document.createElement('input');
-            inp.type = 'text';
-            inp.className = 'field-inline-edit';
-            inp.value = defVal;
-            inp.placeholder = field.label;
-            inp.style.cssText = 'width:calc(100% - 8px);height:100%;border:none;background:transparent;font-size:12px;font-weight:500;padding:2px 4px;outline:none;pointer-events:auto;cursor:text;';
-            inp.onmousedown = function(ev) {
-              // Only block drag if this field is already active (allow first click to select/drag)
-              if (isActive) { ev.stopPropagation(); }
-            };
-            inp.onclick = function(ev) { ev.stopPropagation(); };
-            (function(fieldIdx) {
-              inp.oninput = function() { updateFieldValue(fieldIdx, this.value); };
-            })(idx);
-            div.appendChild(inp);
+
+            if (field.confirmed) {
+              // Confirmed text: show as static text (pointer-events:none) so dragging works everywhere
+              var span = document.createElement('span');
+              span.className = 'field-inline-edit';
+              span.textContent = defVal || field.label;
+              span.style.cssText = 'width:calc(100% - 8px);height:100%;display:flex;align-items:center;border:none;background:transparent;font-size:12px;font-weight:500;padding:2px 4px;pointer-events:none;cursor:grab;color:#333;';
+              div.appendChild(span);
+            } else {
+              // Editable: show input
+              var inp = document.createElement('input');
+              inp.type = 'text';
+              inp.className = 'field-inline-edit';
+              inp.value = defVal;
+              inp.placeholder = field.label;
+              inp.style.cssText = 'width:calc(100% - 8px);height:100%;border:none;background:transparent;font-size:12px;font-weight:500;padding:2px 4px;outline:none;pointer-events:auto;cursor:text;';
+              inp.onmousedown = function(ev) {
+                // Only block drag if this field is already active (allow first click to select/drag)
+                if (isActive) { ev.stopPropagation(); }
+              };
+              inp.onclick = function(ev) { ev.stopPropagation(); };
+              (function(fieldIdx) {
+                inp.oninput = function() { updateFieldValue(fieldIdx, this.value); };
+              })(idx);
+              div.appendChild(inp);
+            }
           }
         } else {
           var icons = { signature: '\u270d\ufe0f', initials: '\u270f\ufe0f', date: '\ud83d\udcc5', name: '\ud83d\udc64', text: '\ud83d\udcdd' };
@@ -7286,6 +7311,36 @@
       }, 100);
     }
 
+    // ===== ARROW KEY NUDGE =====
+    document.addEventListener('keydown', function(e) {
+      // Only when signing flow is open and a field is selected
+      if (!signingState || signingState.step < 2 || signingState.step > 3) return;
+      const idx = signingState.currentFieldIndex;
+      if (idx < 0 || idx >= signingState.fields.length) return;
+      // Don't intercept if user is typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+      if (!arrows.includes(e.key)) return;
+      e.preventDefault();
+
+      const field = signingState.fields[idx];
+      const nudge = e.shiftKey ? 10 : 2; // Shift = bigger moves
+
+      if (e.key === 'ArrowUp') field.y = Math.max(0, field.y - nudge);
+      else if (e.key === 'ArrowDown') field.y += nudge;
+      else if (e.key === 'ArrowLeft') field.x = Math.max(0, field.x - nudge);
+      else if (e.key === 'ArrowRight') field.x += nudge;
+
+      // Direct DOM update for smooth movement
+      const scale = signingState.pageScale || 1;
+      const overlayEl = document.querySelector('.field-overlay[data-field-idx="' + idx + '"]');
+      if (overlayEl) {
+        overlayEl.style.left = (field.x * scale) + 'px';
+        overlayEl.style.top = (field.y * scale) + 'px';
+      }
+    });
+
     // ===== SIDEBAR RENDERING =====
     function renderSigningSidebar() {
       const content = document.getElementById('signing-sidebar-content');
@@ -7426,7 +7481,7 @@
         `;
         actions.innerHTML = `
           <button class="btn btn-secondary" onclick="setSigningStep(2)" style="font-size:13px;">← Setup</button>
-          <button class="btn btn-primary" onclick="setSigningStep(4); renderSigningSidebar();" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;font-size:13px;">Finalize →</button>
+          <button class="btn btn-primary" onclick="autoConfirmAndFinalize()" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;font-size:13px;">Finalize →</button>
         `;
         return;
       }
@@ -7498,25 +7553,27 @@
         `).join('')}
       `;
 
-      const isLast = idx >= total - 1;
       const allConfirmed = fields.every(f => f.confirmed);
+      const allFilled = fields.every(f => f.filled);
+      const unconfirmedCount = fields.filter(f => !f.confirmed).length;
+      const hasNextUnconfirmed = fields.some((f, i) => i !== idx && !f.confirmed);
+
       actions.innerHTML = `
         <button class="btn btn-secondary" onclick="${idx === 0 ? 'setSigningStep(2)' : 'guidedPrev()'}" style="font-size:13px;">
           ${idx === 0 ? '← Setup' : '← Previous'}
         </button>
-        ${isLast && allConfirmed ? `
-          <button class="btn btn-primary" onclick="saveCurrentFieldEdit(); setSigningStep(4);" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;font-size:13px;">
-            Finalize →
-          </button>
-        ` : isLast ? `
-          <button class="btn btn-primary" onclick="showToast('Review all fields first — ' + signingState.fields.filter(f=>!f.confirmed).length + ' remaining', 'info'); signingState.currentFieldIndex = signingState.fields.findIndex(f=>!f.confirmed); scrollToField(signingState.currentFieldIndex); renderSigningSidebar();" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;font-size:13px;">
-            ${fields.filter(f => !f.confirmed).length} fields left ⚠️
-          </button>
-        ` : `
-          <button class="btn btn-primary" onclick="guidedNext()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;font-size:13px;">
-            Next Field →
-          </button>
-        `}
+        <div style="display:flex;gap:6px;">
+          ${hasNextUnconfirmed ? `
+            <button class="btn btn-primary" onclick="guidedNext()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;font-size:13px;">
+              Next →
+            </button>
+          ` : ''}
+          ${allFilled || allConfirmed ? `
+            <button class="btn btn-primary" onclick="autoConfirmAndFinalize()" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;font-size:13px;">
+              Finalize →
+            </button>
+          ` : ''}
+        </div>
       `;
     }
 
@@ -7553,6 +7610,15 @@
         scrollToField(signingState.currentFieldIndex);
         renderSigningSidebar();
       }
+    }
+
+    function autoConfirmAndFinalize() {
+      saveCurrentFieldEdit();
+      // Auto-confirm all filled fields so user doesn't have to click ✓ on each one
+      signingState.fields.forEach(f => {
+        if (f.filled) f.confirmed = true;
+      });
+      setSigningStep(4);
     }
 
     // ----- Signature Pad for Signing Flow -----
@@ -7769,6 +7835,11 @@
         const blob = new Blob([signedBytes], { type: 'application/pdf' });
         const signedFilename = signingState.fileName.replace(/\.pdf$/i, '') + '-signed.pdf';
 
+        // Store signed PDF for download (survives Stripe redirect via sessionStorage)
+        const base64Pdf = btoa(String.fromCharCode(...signedBytes));
+        try { sessionStorage.setItem('dpstudio_signed_pdf', base64Pdf); } catch(e) { console.warn('PDF too large for sessionStorage, will download immediately'); }
+        sessionStorage.setItem('dpstudio_signed_filename', signedFilename);
+
         // Check if payment is required
         if (signingState.paymentEnabled) {
           const amount = parseFloat(signingState.paymentAmount || '0');
@@ -7785,13 +7856,10 @@
 
             const currentOrigin = window.location.origin;
             showToast('Connecting to payment server...', 'info');
-            console.log('Payment request to:', apiBase + '/payments/quick-checkout', 'amount:', amountCents);
 
             const resp = await fetch(apiBase + '/payments/quick-checkout', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 amount: amountCents,
                 currency: 'usd',
@@ -7806,22 +7874,20 @@
             if (!resp.ok) {
               const errText = await resp.text();
               console.error('Payment API error:', resp.status, errText);
-              throw new Error('Stripe returned error ' + resp.status + '. Your Stripe API key may be invalid or expired. Check Railway environment variables.');
+              throw new Error('Stripe returned error ' + resp.status);
             }
 
             const data = await resp.json();
-            console.log('Payment response:', data);
             if (data.checkoutUrl) {
-              saveAs(blob, signedFilename);
-              showToast('Document saved! Redirecting to Stripe checkout...', 'success');
-              setTimeout(() => { window.location.href = data.checkoutUrl; }, 1500);
-              return; // Don't close flow — we're redirecting
+              // Pay FIRST — no download yet. Redirect to Stripe.
+              showToast('Redirecting to secure payment...', 'info');
+              setTimeout(() => { window.location.href = data.checkoutUrl; }, 800);
+              return;
             } else {
-              throw new Error('No checkout URL in response: ' + JSON.stringify(data));
+              throw new Error('No checkout URL in response');
             }
           } catch (payErr) {
             console.error('Payment error:', payErr);
-            // Show persistent error on the Finalize step — do NOT close the flow
             var errBox = document.getElementById('signing-payment-error');
             if (!errBox) {
               errBox = document.createElement('div');
@@ -7830,16 +7896,15 @@
               var sidebar = document.getElementById('signing-sidebar');
               if (sidebar) sidebar.appendChild(errBox);
             }
-            errBox.innerHTML = '<strong style="font-size:14px;">Payment Failed</strong><br><br>'
-              + 'Could not connect to Stripe. The signed PDF was saved to your device, but no payment was collected.'
-              + '<br><br><em style="color:#b91c1c;font-size:11px;">Error: ' + (payErr.message || 'Unknown') + '</em>'
-              + '<br><br><button onclick="this.parentElement.remove()" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:12px;">Dismiss</button>';
-            // Save the document anyway so user isn't stuck
-            saveAs(blob, signedFilename);
-            showToast('Document saved. Payment failed — see error above.', 'error');
-            return; // Do NOT close the flow — let user see the error
+            errBox.innerHTML = '<strong>Payment Failed</strong><br><br>'
+              + 'Could not connect to Stripe. You can still download your signed document.'
+              + '<br><br><em style="color:#b91c1c;font-size:11px;">' + (payErr.message || 'Unknown error') + '</em>'
+              + '<br><br><button onclick="downloadSignedPdf()" style="background:#6366f1;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:12px;">Download Signed PDF</button>'
+              + ' <button onclick="this.parentElement.remove()" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:12px;">Dismiss</button>';
+            return;
           }
         } else {
+          // No payment — download directly
           saveAs(blob, signedFilename);
           showToast('Document signed and saved!', 'success');
         }
@@ -7848,6 +7913,96 @@
       } catch (err) {
         console.error('Finalize error:', err);
         showToast('Failed to finalize: ' + err.message, 'error');
+      }
+    }
+    // ===== DOWNLOAD SIGNED PDF FROM SESSIONSTORAGE =====
+    function downloadSignedPdf() {
+      try {
+        const b64 = sessionStorage.getItem('dpstudio_signed_pdf');
+        const filename = sessionStorage.getItem('dpstudio_signed_filename') || 'document-signed.pdf';
+        if (!b64) {
+          showToast('Signed document not found. It may have expired.', 'error');
+          return;
+        }
+        const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        saveAs(blob, filename);
+        showToast('Downloading your signed document!', 'success');
+      } catch (err) {
+        console.error('Download error:', err);
+        showToast('Failed to download: ' + err.message, 'error');
+      }
+    }
+
+    // ===== POST-PAYMENT SUCCESS PAGE =====
+    function showPaymentSuccessPage() {
+      const filename = sessionStorage.getItem('dpstudio_signed_filename') || 'document-signed.pdf';
+      const hasDoc = !!sessionStorage.getItem('dpstudio_signed_pdf');
+
+      // Create a full-screen overlay
+      var overlay = document.createElement('div');
+      overlay.id = 'payment-success-overlay';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:linear-gradient(135deg,#f0f0ff 0%,#e8e0ff 50%,#f0f0ff 100%);display:flex;align-items:center;justify-content:center;';
+      overlay.innerHTML = `
+        <div style="background:#fff;border-radius:20px;padding:40px 36px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(99,102,241,0.15);text-align:center;">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px;">
+            <svg width="32" height="32" viewBox="0 0 40 40"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#6366f1"/><stop offset="100%" style="stop-color:#8b5cf6"/></linearGradient></defs><rect width="40" height="40" rx="10" fill="url(#lg)"/><text x="20" y="28" text-anchor="middle" fill="#fff" font-size="22" font-weight="bold">D</text></svg>
+            <span style="font-size:20px;font-weight:700;color:#1e1b4b;">DocPix Studio</span>
+          </div>
+
+          <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+
+          <h2 style="margin:0 0 8px;color:#166534;font-size:22px;">Payment Successful!</h2>
+          <p style="color:#64748b;margin:0 0 24px;font-size:14px;">Your document has been signed and payment has been processed.</p>
+
+          ${hasDoc ? `
+            <button onclick="downloadSignedPdf()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:transform 0.1s;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Signed PDF
+            </button>
+            <p style="color:#94a3b8;font-size:12px;margin:0 0 20px;">${filename}</p>
+          ` : `
+            <p style="color:#ef4444;font-size:13px;margin:0 0 20px;">Signed document not available for download. It may have been too large to store temporarily.</p>
+          `}
+
+          <div style="border-top:1px solid #e2e8f0;padding-top:20px;margin-top:8px;">
+            <p style="color:#475569;font-size:14px;margin:0 0 12px;font-weight:500;">Want to save your documents securely?</p>
+            <button onclick="document.getElementById('payment-success-overlay').remove(); openAuthModal('register');" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px 24px;background:#fff;color:#6366f1;border:2px solid #6366f1;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;transition:background 0.15s;" onmouseover="this.style.background='rgba(99,102,241,0.05)'" onmouseout="this.style.background='#fff'">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Create Free Account
+            </button>
+            <button onclick="document.getElementById('payment-success-overlay').remove();" style="width:100%;padding:10px;background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;">
+              Continue without account
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    function showPaymentCancelledPage() {
+      showToast('Payment was cancelled. Your signed document is still available.', 'info');
+      // If we have a signed doc, offer to download or retry
+      if (sessionStorage.getItem('dpstudio_signed_pdf')) {
+        var overlay = document.createElement('div');
+        overlay.id = 'payment-cancelled-overlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML = `
+          <div style="background:#fff;border-radius:16px;padding:32px 28px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2);text-align:center;">
+            <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+            <h2 style="margin:0 0 8px;font-size:20px;">Payment Cancelled</h2>
+            <p style="color:#64748b;font-size:14px;margin:0 0 20px;">No worries! Your signed document is still ready.</p>
+            <button onclick="downloadSignedPdf(); document.getElementById('payment-cancelled-overlay').remove();" style="width:100%;padding:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px;">
+              Download Signed PDF
+            </button>
+            <button onclick="document.getElementById('payment-cancelled-overlay').remove();" style="width:100%;padding:10px;background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;">
+              Close
+            </button>
+          </div>
+        `;
+        document.body.appendChild(overlay);
       }
     }
   </script>
