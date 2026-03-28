@@ -6367,15 +6367,15 @@
       }
     });
 
-    // ===== FUTURE NAV PLACEHOLDERS =====
+    // ===== CROSS-PAGE NAVIGATION =====
     function openDashboard() {
       closeUserDropdown();
-      showToast('Dashboard coming soon!', 'info');
+      window.location.href = 'dashboard.html';
     }
 
     function openMyDocuments() {
       closeUserDropdown();
-      showToast('My Documents coming soon!', 'info');
+      window.location.href = 'dashboard.html#documents';
     }
 
     function openMarketplace() {
@@ -6385,7 +6385,7 @@
 
     function openAccountSettings() {
       closeUserDropdown();
-      showToast('Account Settings coming soon!', 'info');
+      window.location.href = 'dashboard.html#settings';
     }
 
     // ===== AUTH STATE SYNC =====
@@ -6456,6 +6456,15 @@
       } else if (paymentStatus === 'cancelled') {
         window.history.replaceState({}, '', window.location.pathname);
         setTimeout(() => showPaymentCancelledPage(), 300);
+      }
+
+      // Handle action=sign from dashboard (auto-open signing flow)
+      const actionParam = params.get('action');
+      if (actionParam === 'sign') {
+        window.history.replaceState({}, '', window.location.pathname);
+        setTimeout(() => {
+          if (typeof openSigningFlow === 'function') openSigningFlow();
+        }, 500);
       }
     })();
 
@@ -7973,8 +7982,12 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               Create Free Account
             </button>
+            <button onclick="window.location.href='dashboard.html?toast=Payment+received&toast_type=success'" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:none;border:1px solid #e2e8f0;border-radius:10px;color:#475569;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:8px;" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#e2e8f0'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              Go to Dashboard
+            </button>
             <button onclick="document.getElementById('payment-success-overlay').remove();" style="width:100%;padding:10px;background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;">
-              Continue without account
+              Continue editing
             </button>
           </div>
         </div>
