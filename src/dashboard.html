@@ -754,77 +754,70 @@
         html += '<div class="table-empty">No documents match your filters.</div>';
       } else {
         filtered.forEach(doc => {
-          const contact = contacts.find(c => c.id === doc.contverdue-badge');
-      if (overdueCount > 0) { badge.style.display = ''; badge.textContent = overdueCount; }
-      else { badge.style.display = 'none'; }
-
-      switch (currentPage) {
-        case 'dashboard': renderDashboard(main); break;
-        case 'documents': renderDocuments(main); break;
-        case 'contacts': renderContacts(main); break;
-        case 'contact-detail': renderContactDetail(main); break;
-        case 'payments': renderPayments(main); break;
-        default: renderPlaceholder(main, currentPage); break;
+          const contact = contacts.find(c => c.id === doc.contactId);
+          const ci = contacts.indexOf(contact);
+          const iconBg = doc.status === 'overdue' ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)';
+          html += `
+          <div class="table-row" onclick="alert('Document detail: ${doc.name.replace(/'/g, '')}')">
+            <div class="table-row-icon" style="background:${iconBg}">${doc.name.charAt(0)}</div>
+            <div style="flex:2;min-width:0">
+              <div class="table-row-name">${doc.name}</div>
+              <div class="table-row-sub">${doc.category}</div>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div class="table-row-link" onclick="event.stopPropagation();${contact ? `navigateTo('contact-detail','${contact.id}')` : ''}">${contact ? contact.name : doc.recipient || '—'}</div>
+            </div>
+            <div style="width:90px" class="table-row-amount${doc.amount > 0 ? '' : ' muted'}">${doc.amount > 0 ? formatCurrency(doc.amount) : '—'}</div>
+            <div style="width:90px" class="table-row-date">${formatDate(doc.sentAt)}</div>
+            <div style="width:90px">${badgeHTML(doc.status)}</div>
+            <div style="width:32px" class="table-row-actions" onclick="event.stopPropagation()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </div>
+          </div>`;
+        });
       }
+      html += '</div>';
+      return html;
     }
 
-    // ===== DASHBOARD PAGE =====
-    function renderDashboard(el) {
-      const overdueCount = documents.filter(d => d.status === 'overdue').length;
-      const awaitingCount = documents.filter(d => d.status === 'awaiting_signature').length;
-      const paidThisMonth = payments.filter(p => p.status === 'completed' && p.date && p.date.startsWith('2026-03')).reduce((s, p) => s + p.amount, 0);
-      const pendingAmount = payments.filter(p => p.status === 'pending' || p.status === 'overdue').reduce((s, p) => s + p.amount, 0);
-      const overdueAmount = payments.filter(p => p.status === 'overdue').reduce((s, p) => s + p.amount, 0);
-
-      let html = `
+    // ===== DOCUMENTS PAGE =====
+    function renderDocuments(el) {
+      el.innerHTML = `
         <div class="page-header">
-          <div>
-            <div class="page-title">Good morning, Vagish</div>
-            <div class="page-subtitle">Here's your document activity overview.</div>
-          </div>
+          <div><div class="page-title">Documents</div><div class="page-subtitle">All your sent and draft documents.</div></div>
           <button class="btn btn-primary" onclick="navigateTo('sign')">
             <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             New Document
           </button>
-        </div>`;
+        </div>
+        ${renderDocumentsTable(documents, 'All Documents')}`;
+    }
 
-      // Overdue alert
-      if (overdueCount > 0) {
+    // ===== CONTACTS PAGE =====
+    function renderContacts(el) {
+      let html = `
+        <div class="page-header">
+          <div><div class="page-title">Contacts</div><div class="page-subtitle">All your clients and their documents in one place.</div></div>
+          <button class="btn btn-primary" onclick="showToast('Add Contact — coming soon!', 'info')">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Contact
+          </button>
+        </div>
+        <div style="margin-bottom:20px">
+          <input class="table-search" style="width:100%;max-width:400px;padding:10px 14px;" placeholder="Search contacts by name or company..." oninput="searchQuery=this.value;renderPage()">
+        </div>
+        <div class="contacts-grid">`;
+
+      const filtered = contacts.filter(c => !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.company.toLowerCase().includes(searchQuery.toLowerCase()));
+      filtered.forEach((c, i) => {
         html += `
-        <div class="alert-banner danger">
-          <div class="alert-banner-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div class="contact-card" onclick="navigateTo('contact-detail','${c.id}')">
+          <div class="contact-header">
+            <div class="contact-avatar" style="background:${getContactColor(i)}">${c.avatar}</div>
+            <div><div class="contact-name">${c.name}</div><div class="contact-company">${c.company}</div></div>
           </div>
-          <div style="flex:1">
-            <div class="alert-banner-title">${overdueCount} overdue payment${overdueCount > 1 ? 's' : ''} — ${formatCurrency(overdueAmount)} outstanding</div>
-            <div class="alert-banner-desc">Consider sending a reminder to collect faster.</div>
-          </div>
-          <button class="btn btn-danger btn-sm" onclick="showToast('Reminder emails sent!', 'success')">Send Reminders</button>
-        </div>`;
-      }
-
-      // Stats
-      html += `
-        <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-card-accent" style="background:rgba(99,102,241,0.04)"></div>
-            <div class="stat-icon" style="background:rgba(99,102,241,0.08)">
-              <svg viewBox="0 0 24 24" stroke="#6366f1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
-            <div class="stat-value">${documents.length}</div>
-            <div class="stat-label">Documents Sent</div>
-            <div class="stat-trend up">3 this week</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-accent" style="background:rgba(245,158,11,0.04)"></div>
-            <div class="stat-icon" style="background:rgba(245,158,11,0.08)">
-              <svg viewBox="0 0 24 24" stroke="#d97706"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-            <div class="stat-value">${awaitingCount}</div>
-            <div class="stat-label">Awaiting Signature</div>
-            <div class="stat-trend down">${overdueCount} overdue</div>
-          </div>
-iv></div>
+          <div class="contact-stats">
+            <div class="contact-stat"><div class="contact-stat-value">${c.totalDocs}</div><div class="contact-stat-label">Documents</div></div>
             <div class="contact-stat paid"><div class="contact-stat-value">${formatCurrency(c.totalPaid)}</div><div class="contact-stat-label">Total Paid</div></div>
           </div>
           <div class="contact-meta">Last active: ${c.lastActive}</div>
