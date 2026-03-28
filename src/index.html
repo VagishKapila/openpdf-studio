@@ -6964,8 +6964,14 @@
       field.confirmed = !field.confirmed;
       if (field.confirmed) {
         field.filled = true;
-        // Deselect this field so the active-field border goes away
-        signingState.currentFieldIndex = -1;
+        // Move to the next unconfirmed field (or stay deselected if all confirmed)
+        const nextUnconfirmed = signingState.fields.findIndex((f, i) => i !== idx && !f.confirmed);
+        if (nextUnconfirmed >= 0) {
+          signingState.currentFieldIndex = nextUnconfirmed;
+        } else {
+          // All fields confirmed — deselect
+          signingState.currentFieldIndex = -1;
+        }
       }
       renderFieldOverlays(signingCurrentPage);
       renderSigningSidebar();
@@ -7346,18 +7352,46 @@
       const field = fields[idx];
       const total = fields.length;
 
-      if (!field || total === 0) {
+      if (total === 0) {
         content.innerHTML = '<div style="padding:20px;text-align:center;"><p style="color:var(--text-secondary);font-size:13px;">No fields to review. Go back to Setup to add fields.</p></div>';
         actions.innerHTML = '<button class="btn btn-secondary" onclick="setSigningStep(2)" style="font-size:13px;">← Back to Setup</button>';
+        return;
+      }
+
+      // All fields confirmed — show ready-to-finalize view
+      if (!field) {
+        const confirmedCount = fields.filter(f => f.confirmed).length;
+        const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤', text: '📝' };
+        content.innerHTML = `
+          <div style="text-align:center;padding:20px 10px;">
+            <div style="font-size:36px;margin-bottom:8px;">✅</div>
+            <h3 style="margin-bottom:4px;">All ${confirmedCount} Fields Confirmed</h3>
+            <p style="color:var(--text-secondary);font-size:13px;">Your document is ready to finalize.</p>
+          </div>
+          <h3 style="margin-top:8px;font-size:13px;">All Fields</h3>
+          ${fields.map((f, i) => `
+            <div class="field-card" onclick="signingState.currentFieldIndex=${i}; scrollToField(${i}); renderSigningSidebar();">
+              <div class="field-icon ${f.fieldType === 'signature' ? 'sig' : f.fieldType === 'initials' ? 'init' : f.fieldType === 'date' ? 'date' : 'name'}">
+                ${icons[f.fieldType] || '📝'}
+              </div>
+              <div class="field-info"><strong>${f.label}</strong><span>Page ${f.pageNumber}</span></div>
+              <span style="color:#16a34a;font-size:16px;">✓</span>
+            </div>
+          `).join('')}
+        `;
+        actions.innerHTML = `
+          <button class="btn btn-secondary" onclick="setSigningStep(2)" style="font-size:13px;">← Setup</button>
+          <button class="btn btn-primary" onclick="setSigningStep(4); renderSigningSidebar();" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;font-size:13px;">Finalize →</button>
+        `;
         return;
       }
 
       const icons = { signature: '✍️', initials: '✏️', date: '📅', name: '👤', text: '📝' };
       const icon = icons[field.fieldType] || '📝';
 
-      // Mark current field as confirmed (user has seen it)
+      // Mark current field as filled (user has seen it) but NOT confirmed
+      // User must explicitly click ✓ to confirm
       field.filled = true;
-      field.confirmed = true;
       renderFieldOverlays(signingCurrentPage);
 
       content.innerHTML = `
