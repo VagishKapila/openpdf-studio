@@ -1613,22 +1613,21 @@
       border-color: #22c55e;
       background: rgba(34, 197, 94, 0.05);
     }
-    .field-overlay.field-confirmed {
-      border: 1px solid transparent;
-      background: transparent;
+    .field-overlay.filled.field-confirmed {
+      border: 1px solid transparent !important;
+      background: transparent !important;
+      box-shadow: none !important;
       cursor: default;
     }
-    .field-overlay.field-confirmed:hover {
-      border: 1px dashed #c4c4c4;
-      background: rgba(0,0,0,0.02);
+    .field-overlay.filled.field-confirmed:hover {
+      border: 1px dashed #c4c4c4 !important;
+      background: rgba(0,0,0,0.02) !important;
     }
-    .field-overlay.field-confirmed:hover .field-delete-btn,
-    .field-overlay.field-confirmed:hover .field-confirm-btn { opacity: 1; }
-    .field-overlay.field-confirmed .field-confirm-btn.confirmed {
-      opacity: 0;
-    }
-    .field-overlay.field-confirmed:hover .field-confirm-btn.confirmed {
-      opacity: 1;
+    .field-overlay.filled.field-confirmed:hover .field-delete-btn,
+    .field-overlay.filled.field-confirmed:hover .field-confirm-btn { opacity: 1; }
+    .field-overlay.filled.field-confirmed .field-confirm-btn.confirmed {
+      background: #16a34a;
+      opacity: 0.6;
     }
     .field-overlay.filled.active-field,
     .field-overlay.field-confirmed.active-field {
@@ -6963,7 +6962,11 @@
       const field = signingState.fields[idx];
       if (!field) return;
       field.confirmed = !field.confirmed;
-      if (field.confirmed) field.filled = true;
+      if (field.confirmed) {
+        field.filled = true;
+        // Deselect this field so the active-field border goes away
+        signingState.currentFieldIndex = -1;
+      }
       renderFieldOverlays(signingCurrentPage);
       renderSigningSidebar();
     }
@@ -6977,18 +6980,28 @@
     function renderAddFieldButton(container) {
       // Only show in steps 2 or 3
       if (signingState.step !== 2 && signingState.step !== 3) return;
+      // Remove any previous floating button
+      var oldFloat = document.getElementById('signing-add-field-float');
+      if (oldFloat) oldFloat.remove();
+      // Create floating button attached to the signing viewer (not the overlay container)
+      var viewer = document.getElementById('signing-viewer');
+      if (!viewer) return;
+      var floatWrap = document.createElement('div');
+      floatWrap.id = 'signing-add-field-float';
+      floatWrap.style.cssText = 'position:sticky;bottom:24px;z-index:45;display:flex;justify-content:center;pointer-events:none;margin-top:-60px;';
       var addBtn = document.createElement('div');
       addBtn.className = 'add-field-page-btn';
-      addBtn.innerHTML = '+ Add Field';
-      addBtn.style.cssText = 'position:absolute;top:8px;right:8px;z-index:40;background:#6366f1;color:#fff;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);user-select:none;';
+      addBtn.innerHTML = '<span style="font-size:22px;line-height:1;">+</span> Add Field';
+      addBtn.style.cssText = 'pointer-events:auto;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:50px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,0.4);user-select:none;display:flex;align-items:center;gap:6px;transition:transform 0.15s,box-shadow 0.15s;';
+      addBtn.onmouseenter = function() { this.style.transform = 'scale(1.05)'; this.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)'; };
+      addBtn.onmouseleave = function() { this.style.transform = 'scale(1)'; this.style.boxShadow = '0 4px 16px rgba(99,102,241,0.4)'; };
       addBtn.onclick = function(e) {
         e.stopPropagation();
-        // Toggle dropdown
-        var existing = container.querySelector('.add-field-picker');
+        var existing = document.querySelector('.add-field-float-picker');
         if (existing) { existing.remove(); return; }
         var picker = document.createElement('div');
-        picker.className = 'add-field-picker';
-        picker.style.cssText = 'position:absolute;top:38px;right:8px;z-index:50;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.18);padding:6px;';
+        picker.className = 'add-field-float-picker';
+        picker.style.cssText = 'position:absolute;bottom:60px;left:50%;transform:translateX(-50%);background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.22);padding:10px;display:flex;gap:6px;z-index:55;pointer-events:auto;';
         var types = [
           { type: 'signature', label: 'Signature', icon: '\u270d\ufe0f', w: 200, h: 50 },
           { type: 'name', label: 'Name', icon: '\ud83d\udc64', w: 160, h: 30 },
@@ -6998,8 +7011,10 @@
         ];
         types.forEach(function(t) {
           var btn = document.createElement('button');
-          btn.className = 'add-field-picker-item';
-          btn.innerHTML = '<span>' + t.icon + '</span> ' + t.label;
+          btn.style.cssText = 'background:#f8f9fa;border:1px solid #e5e7eb;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;transition:background 0.15s;';
+          btn.innerHTML = '<span style="font-size:20px;">' + t.icon + '</span>' + t.label;
+          btn.onmouseenter = function() { this.style.background = '#ede9fe'; };
+          btn.onmouseleave = function() { this.style.background = '#f8f9fa'; };
           btn.onclick = function(ev) {
             ev.stopPropagation();
             picker.remove();
@@ -7007,9 +7022,10 @@
           };
           picker.appendChild(btn);
         });
-        container.appendChild(picker);
+        floatWrap.appendChild(picker);
       };
-      container.appendChild(addBtn);
+      floatWrap.appendChild(addBtn);
+      viewer.appendChild(floatWrap);
     }
 
     // ===== UPDATE FIELD VALUE (inline edit in sidebar) =====
