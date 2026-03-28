@@ -6875,16 +6875,22 @@
         div.style.height = (field.height * scale) + 'px';
         div.dataset.fieldIdx = idx;
 
-        // Click to select this field
+        // Click to select this field and start drag
         div.onmousedown = (e) => {
           if (e.target.classList.contains('resize-handle')) return;
           if (e.target.classList.contains('field-delete-btn')) return;
           if (e.target.classList.contains('field-confirm-btn')) return;
+          if (e.target.classList.contains('field-inline-edit')) return;
           e.preventDefault();
+          const wasActive = signingState.currentFieldIndex === idx;
           signingState.currentFieldIndex = idx;
+          // Start drag immediately — renderFieldOverlays will be called by onMove
           startFieldDrag(e, idx);
-          renderFieldOverlays(pageNum);
-          renderSigningSidebar();
+          // Only re-render sidebar if selection changed (avoid re-render during drag)
+          if (!wasActive) {
+            renderFieldOverlays(pageNum);
+            renderSigningSidebar();
+          }
         };
 
         if (field.filled) {
@@ -6994,17 +7000,18 @@
       // Remove any previous floating button
       var oldFloat = document.getElementById('signing-add-field-float');
       if (oldFloat) oldFloat.remove();
-      // Create floating button attached to the signing PDF area
-      var viewer = document.getElementById('signing-pdf-preview') || document.getElementById('signing-pdf-area');
-      if (!viewer) return;
+      // Attach to the field overlays container (positioned relative) so button is top-right of PDF
+      var overlayContainer = document.getElementById('signing-field-overlays');
+      if (!overlayContainer) return;
       var floatWrap = document.createElement('div');
       floatWrap.id = 'signing-add-field-float';
-      floatWrap.style.cssText = 'position:sticky;bottom:24px;z-index:45;display:flex;justify-content:center;pointer-events:none;margin-top:-60px;';
+      floatWrap.style.cssText = 'position:absolute;top:12px;right:12px;z-index:45;pointer-events:none;';
       var addBtn = document.createElement('div');
       addBtn.className = 'add-field-page-btn';
-      addBtn.innerHTML = '<span style="font-size:22px;line-height:1;">+</span> Add Field';
-      addBtn.style.cssText = 'pointer-events:auto;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:50px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,0.4);user-select:none;display:flex;align-items:center;gap:6px;transition:transform 0.15s,box-shadow 0.15s;';
-      addBtn.onmouseenter = function() { this.style.transform = 'scale(1.05)'; this.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)'; };
+      addBtn.innerHTML = '<span style="font-size:18px;line-height:1;">+</span>';
+      addBtn.style.cssText = 'pointer-events:auto;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:50%;width:44px;height:44px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,0.4);user-select:none;display:flex;align-items:center;justify-content:center;transition:transform 0.15s,box-shadow 0.15s;';
+      addBtn.title = 'Add Field';
+      addBtn.onmouseenter = function() { this.style.transform = 'scale(1.1)'; this.style.boxShadow = '0 6px 20px rgba(99,102,241,0.5)'; };
       addBtn.onmouseleave = function() { this.style.transform = 'scale(1)'; this.style.boxShadow = '0 4px 16px rgba(99,102,241,0.4)'; };
       addBtn.onclick = function(e) {
         e.stopPropagation();
@@ -7012,7 +7019,7 @@
         if (existing) { existing.remove(); return; }
         var picker = document.createElement('div');
         picker.className = 'add-field-float-picker';
-        picker.style.cssText = 'position:absolute;bottom:60px;left:50%;transform:translateX(-50%);background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.22);padding:10px;display:flex;gap:6px;z-index:55;pointer-events:auto;';
+        picker.style.cssText = 'position:absolute;top:52px;right:0;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.22);padding:10px;display:flex;flex-direction:column;gap:6px;z-index:55;pointer-events:auto;min-width:140px;';
         var types = [
           { type: 'signature', label: 'Signature', icon: '\u270d\ufe0f', w: 200, h: 50 },
           { type: 'name', label: 'Name', icon: '\ud83d\udc64', w: 160, h: 30 },
@@ -7022,21 +7029,21 @@
         ];
         types.forEach(function(t) {
           var btn = document.createElement('button');
-          btn.style.cssText = 'background:#f8f9fa;border:1px solid #e5e7eb;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px;transition:background 0.15s;';
-          btn.innerHTML = '<span style="font-size:20px;">' + t.icon + '</span>' + t.label;
+          btn.style.cssText = 'background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;width:100%;text-align:left;transition:background 0.15s;';
+          btn.innerHTML = '<span style="font-size:18px;">' + t.icon + '</span>' + t.label;
           btn.onmouseenter = function() { this.style.background = '#ede9fe'; };
           btn.onmouseleave = function() { this.style.background = '#f8f9fa'; };
           btn.onclick = function(ev) {
             ev.stopPropagation();
             picker.remove();
-            addNewSigningField(t.type, t.label, undefined, undefined, t.w, t.h);
+            addFieldToCenter(t.type, t.label, t.w, t.h);
           };
           picker.appendChild(btn);
         });
         floatWrap.appendChild(picker);
       };
       floatWrap.appendChild(addBtn);
-      viewer.appendChild(floatWrap);
+      overlayContainer.appendChild(floatWrap);
     }
 
     // ===== UPDATE FIELD VALUE (inline edit in sidebar) =====
@@ -7164,12 +7171,27 @@
     }
 
     function addNewSigningField(fieldType, label, x, y, width, height) {
+      // Default to center of visible area if x/y not provided
+      if (x === undefined || y === undefined) {
+        const wrap = document.getElementById('signing-canvas-wrap');
+        const scale = signingState.pageScale || 1;
+        if (wrap) {
+          const wrapRect = wrap.getBoundingClientRect();
+          const pdfArea = document.getElementById('signing-pdf-area');
+          const scrollTop = pdfArea ? pdfArea.scrollTop : 0;
+          x = x !== undefined ? x : ((wrapRect.width / 2) / scale) - (width / 2);
+          y = y !== undefined ? y : (((wrapRect.height / 2) + scrollTop) / scale) - (height / 2);
+        } else {
+          x = x !== undefined ? x : 200;
+          y = y !== undefined ? y : 300;
+        }
+      }
       const newField = {
         id: 'field-' + signingState.fields.length,
         fieldType: fieldType,
         pageNumber: signingCurrentPage,
-        x: x,
-        y: y,
+        x: Math.max(10, x),
+        y: Math.max(10, y),
         width: width,
         height: height,
         label: label,
@@ -7188,23 +7210,33 @@
     function startFieldDrag(e, idx) {
       const field = signingState.fields[idx];
       const scale = signingState.pageScale;
-      const wrap = document.getElementById('signing-canvas-wrap');
-      const rect = wrap.getBoundingClientRect();
       const startX = e.clientX;
       const startY = e.clientY;
       const origX = field.x;
       const origY = field.y;
+      let moved = false;
+      // Find the DOM element for this field to update directly (avoid full re-render during drag)
+      const overlayEl = document.querySelector('.field-overlay[data-field-idx="' + idx + '"]');
 
       function onMove(ev) {
+        moved = true;
         const dx = (ev.clientX - startX) / scale;
         const dy = (ev.clientY - startY) / scale;
         field.x = Math.max(0, origX + dx);
         field.y = Math.max(0, origY + dy);
-        renderFieldOverlays(field.pageNumber);
+        // Direct DOM update for smooth dragging (no full re-render)
+        if (overlayEl) {
+          overlayEl.style.left = (field.x * scale) + 'px';
+          overlayEl.style.top = (field.y * scale) + 'px';
+        }
       }
       function onUp() {
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
+        // Only do a full re-render on mouseup if we actually moved
+        if (moved) {
+          renderFieldOverlays(field.pageNumber);
+        }
       }
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
@@ -7219,16 +7251,21 @@
       const origW = field.width;
       const origH = field.height;
 
+      const overlayEl = document.querySelector('.field-overlay[data-field-idx="' + idx + '"]');
       function onMove(ev) {
         const dw = (ev.clientX - startX) / scale;
         const dh = (ev.clientY - startY) / scale;
         field.width = Math.max(40, origW + dw);
         field.height = Math.max(20, origH + dh);
-        renderFieldOverlays(field.pageNumber);
+        if (overlayEl) {
+          overlayEl.style.width = (field.width * scale) + 'px';
+          overlayEl.style.height = (field.height * scale) + 'px';
+        }
       }
       function onUp() {
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
+        renderFieldOverlays(field.pageNumber);
       }
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
@@ -7256,7 +7293,10 @@
       const step = signingState.step;
 
       if (step === 2) renderSetupStep(content, actions);
-      else if (step === 3) renderGuidedFieldStep(content, actions);
+      else if (step === 3) {
+        renderFieldOverlays(signingCurrentPage);
+        renderGuidedFieldStep(content, actions);
+      }
       else if (step === 4) renderFinalizeStep(content, actions);
     }
 
@@ -7397,7 +7437,7 @@
       // Mark current field as filled (user has seen it) but NOT confirmed
       // User must explicitly click ✓ to confirm
       field.filled = true;
-      renderFieldOverlays(signingCurrentPage);
+      // Note: Don't call renderFieldOverlays here — it's called by the caller or separately
 
       content.innerHTML = `
         <div class="field-banner">
@@ -7483,8 +7523,24 @@
     function guidedNext() {
       saveCurrentFieldEdit();
       const total = signingState.fields.length;
-      if (signingState.currentFieldIndex < total - 1) {
-        signingState.currentFieldIndex++;
+      const currentIdx = signingState.currentFieldIndex;
+      // Find the next unconfirmed field after the current one (wrap around if needed)
+      let nextIdx = -1;
+      for (let i = currentIdx + 1; i < total; i++) {
+        if (!signingState.fields[i].confirmed) { nextIdx = i; break; }
+      }
+      // If no unconfirmed after current, check from start
+      if (nextIdx === -1) {
+        for (let i = 0; i < currentIdx; i++) {
+          if (!signingState.fields[i].confirmed) { nextIdx = i; break; }
+        }
+      }
+      // If still no unconfirmed, just go to next field sequentially
+      if (nextIdx === -1 && currentIdx < total - 1) {
+        nextIdx = currentIdx + 1;
+      }
+      if (nextIdx >= 0) {
+        signingState.currentFieldIndex = nextIdx;
         scrollToField(signingState.currentFieldIndex);
         renderSigningSidebar();
       }
