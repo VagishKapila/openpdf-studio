@@ -7695,8 +7695,7 @@
             if (!resp.ok) {
               const errText = await resp.text();
               console.error('Payment API error:', resp.status, errText);
-              showToast('Payment server error: ' + resp.status + '. Check console for details.', 'error');
-              throw new Error('Payment API returned ' + resp.status + ': ' + errText);
+              throw new Error('Stripe returned error ' + resp.status + '. Your Stripe API key may be invalid or expired. Check Railway environment variables.');
             }
 
             const data = await resp.json();
@@ -7711,10 +7710,23 @@
             }
           } catch (payErr) {
             console.error('Payment error:', payErr);
-            showToast('Payment failed: ' + payErr.message, 'error');
-            // Still save the document
+            // Show persistent error on the Finalize step — do NOT close the flow
+            var errBox = document.getElementById('signing-payment-error');
+            if (!errBox) {
+              errBox = document.createElement('div');
+              errBox.id = 'signing-payment-error';
+              errBox.style.cssText = 'background:#fef2f2;border:2px solid #ef4444;border-radius:10px;padding:14px;margin-top:12px;color:#991b1b;font-size:13px;';
+              var sidebar = document.getElementById('signing-sidebar');
+              if (sidebar) sidebar.appendChild(errBox);
+            }
+            errBox.innerHTML = '<strong style="font-size:14px;">Payment Failed</strong><br><br>'
+              + 'Could not connect to Stripe. The signed PDF was saved to your device, but no payment was collected.'
+              + '<br><br><em style="color:#b91c1c;font-size:11px;">Error: ' + (payErr.message || 'Unknown') + '</em>'
+              + '<br><br><button onclick="this.parentElement.remove()" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:12px;">Dismiss</button>';
+            // Save the document anyway so user isn't stuck
             saveAs(blob, signedFilename);
-            showToast('Document saved without payment. See console (F12) for error details.', 'info');
+            showToast('Document saved. Payment failed — see error above.', 'error');
+            return; // Do NOT close the flow — let user see the error
           }
         } else {
           saveAs(blob, signedFilename);
