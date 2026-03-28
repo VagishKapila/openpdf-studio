@@ -1,6 +1,6 @@
 {
-  "name": "DocPix Studio",
-  "short_name": "DocPix",
+  "name": "DocuFlow",
+  "short_name": "DocuFlow",
   "description": "Free PDF & Image Editor — Edit PDFs, images, and documents in one place. No subscriptions.",
   "start_url": "./index.html",
   "display": "standalone",

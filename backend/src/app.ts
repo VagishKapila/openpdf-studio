@@ -26,7 +26,7 @@ app.use('*', cors({
 // ===== HEALTH CHECK =====
 app.get('/', (c) => {
   return c.json({
-    name: 'DocPix Studio API',
+    name: 'DocuFlow API',
     version: '1.0.0',
     status: 'healthy',
     environment: env.NODE_ENV,

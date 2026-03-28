@@ -1,5 +1,5 @@
 /**
- * DocPix Studio — API Client
+ * DocuFlow — API Client
  * Handles all backend communication: auth, convert, documents, and future modules.
  * Designed with marketplace/dashboard expansion in mind.
  */

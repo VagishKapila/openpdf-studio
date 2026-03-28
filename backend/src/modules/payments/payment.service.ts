@@ -41,7 +41,7 @@ export async function createCheckoutSession(input: CreateCheckoutInput) {
         currency: input.currency || 'usd',
         product_data: {
           name: input.description || 'Document Signing Payment',
-          description: 'Payment for signed document via DocPix Studio',
+          description: 'Payment for signed document via DocuFlow',
         },
         unit_amount: input.amount,
       },

@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DocPix Studio — Edit PDFs, Images & Documents</title>
+  <title>DocuFlow — Edit PDFs, Images & Documents</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#6B5CE7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="DocPix Studio">
+  <meta name="apple-mobile-web-app-title" content="DocuFlow">
   <link rel="apple-touch-icon" href="../app-icon.png">
 
   <!-- PDF.js for rendering -->
@@ -1804,11 +1804,11 @@
 
   <!-- ===== TOP NAV ===== -->
   <nav class="top-nav">
-    <a href="https://varshyl.com/dpstudio" class="logo" style="text-decoration:none;color:inherit;">
+    <a href="https://varshyl.com/docuflow" class="logo" style="text-decoration:none;color:inherit;">
       <div style="width:28px;height:28px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="white" fill-opacity="0.2"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/></svg>
       </div>
-      <span>DocPix Studio</span>
+      <span>DocuFlow</span>
     </a>
     <div class="user-nav-area" id="user-nav-area">
       <button class="sign-in-btn" id="sign-in-btn" onclick="openAuthModal()">Sign In</button>
@@ -2066,7 +2066,7 @@
         <div style="width:56px;height:56px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="white" fill-opacity="0.2"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/></svg>
         </div>
-        <h1 style="font-size: 36px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -0.5px;">DocPix Studio</h1>
+        <h1 style="font-size: 36px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -0.5px;">DocuFlow</h1>
         <p style="font-size: 16px; color: var(--text-secondary); max-width: 500px; margin: 0 auto 32px; line-height: 1.6;">The free alternative to expensive editing tools.<br>Edit PDFs, images, and documents in one place.<br>No subscriptions. No complexity. Just works.</p>
 
         <div class="drop-zone" id="drop-zone">
@@ -2503,7 +2503,7 @@
   <div class="modal-overlay" id="feedback-modal">
     <div class="modal" style="max-width: 520px;">
       <h2>Feature Request / Feedback</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Help us make DocPix Studio better! Your feedback goes directly to our team.</p>
+      <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Help us make DocuFlow better! Your feedback goes directly to our team.</p>
       <div class="form-group">
         <label>Type</label>
         <select id="feedback-type" style="width:100%; padding:10px; background:var(--bg-tertiary); color:var(--text); border:1px solid var(--border); border-radius:8px;">
@@ -5135,7 +5135,7 @@
         text + '\n\n' +
         '---\n' +
         (email ? 'Submitted by: ' + email + '\n' : '') +
-        'Submitted from: DocPix Studio Web App\n' +
+        'Submitted from: DocuFlow Web App\n' +
         'User Agent: ' + navigator.userAgent.substring(0, 80) + '\n' +
         'Date: ' + new Date().toISOString()
       );
@@ -5985,7 +5985,7 @@
         <div style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="white" fill-opacity="0.2"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/></svg>
         </div>
-        <span style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.3px;">DocPix Studio</span>
+        <span style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.3px;">DocuFlow</span>
       </div>
       <h2 id="auth-modal-title">Welcome back</h2>
       <p class="auth-subtitle" id="auth-modal-subtitle">Sign in to sync documents, access the marketplace, and more.</p>
@@ -6119,7 +6119,7 @@
         document.getElementById('auth-modal-subtitle').textContent = 'Sign in to sync documents, access the marketplace, and more.';
       } else {
         document.getElementById('auth-modal-title').textContent = 'Create your account';
-        document.getElementById('auth-modal-subtitle').textContent = 'Join DocPix Studio to save, share, and sell your work.';
+        document.getElementById('auth-modal-subtitle').textContent = 'Join DocuFlow to save, share, and sell your work.';
       }
     }
 
@@ -6166,7 +6166,7 @@
       try {
         await DPStudioAPI.auth.register(email, password, name);
         closeAuthModal();
-        showToast('Account created! Welcome to DocPix Studio.', 'success');
+        showToast('Account created! Welcome to DocuFlow.', 'success');
       } catch (err) {
         showAuthError(err.message || 'Registration failed. Please try again.');
       } finally {
@@ -7947,7 +7947,7 @@
         <div style="background:#fff;border-radius:20px;padding:40px 36px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(99,102,241,0.15);text-align:center;">
           <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px;">
             <svg width="32" height="32" viewBox="0 0 40 40"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#6366f1"/><stop offset="100%" style="stop-color:#8b5cf6"/></linearGradient></defs><rect width="40" height="40" rx="10" fill="url(#lg)"/><text x="20" y="28" text-anchor="middle" fill="#fff" font-size="22" font-weight="bold">D</text></svg>
-            <span style="font-size:20px;font-weight:700;color:#1e1b4b;">DocPix Studio</span>
+            <span style="font-size:20px;font-weight:700;color:#1e1b4b;">DocuFlow</span>
           </div>
 
           <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;">
