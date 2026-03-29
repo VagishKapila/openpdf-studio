@@ -1,7 +1,7 @@
 /**
- * DocPix Studio — API Client
+ * DocPix Studio â API Client
  * Handles all backend communication: auth, convert, documents, esign, payments, org.
- * Modular design — each backend route group has a corresponding client module.
+ * Modular design â each backend route group has a corresponding client module.
  */
 
 const DPStudioAPI = (() => {
@@ -70,7 +70,7 @@ const DPStudioAPI = (() => {
       if (refreshed) {
         return request(path, { ...options, _retried: true });
       }
-      // Refresh failed — user is logged out
+      // Refresh failed â user is logged out
       clearTokens();
       _dispatchAuthChange(null);
       throw new APIError('Session expired. Please log in again.', 401);
@@ -514,8 +514,7 @@ const DPStudioAPI = (() => {
     admin,
     onAuthChange,
     APIError,
-    // Expose API base URL
-    baseUrl: API_BASE,
+    // Expose for debugging
     _getApiBase: () => API_BASE,
   };
 })();

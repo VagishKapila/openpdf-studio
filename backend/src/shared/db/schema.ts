@@ -40,7 +40,7 @@ export const sessions = pgTable('sessions', {
 export const documents = pgTable('documents', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  orgId: uuid('org_id'), // nullable — personal docs have no org
+  orgId: uuid('org_id'), // nullable â personal docs have no org
   fileName: varchar('file_name', { length: 500 }).notNull(),
   originalFileName: varchar('original_file_name', { length: 500 }),
   mimeType: varchar('mime_type', { length: 100 }),
@@ -116,7 +116,7 @@ export const payments = pgTable('payments', {
   id: uuid('id').defaultRandom().primaryKey(),
   documentId: uuid('document_id').notNull().references(() => documents.id, { onDelete: 'cascade' }),
   creatorId: uuid('creator_id').notNull().references(() => users.id),
-  orgId: uuid('org_id'), // nullable — personal payments have no org
+  orgId: uuid('org_id'), // nullable â personal payments have no org
   amount: integer('amount').notNull(), // in cents
   currency: varchar('currency', { length: 3 }).default('usd').notNull(),
   description: text('description'),
@@ -257,7 +257,7 @@ export const documentPatterns = pgTable('document_patterns', {
   commonEdits: jsonb('common_edits').default([]).notNull(),
   frequency: integer('frequency').default(1).notNull(),
   lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
-  confidence: real('confidence').default(0).notNull(), // 0.0 – 1.0
+  confidence: real('confidence').default(0).notNull(), // 0.0 â 1.0
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('idx_doc_patterns_org_id').on(table.orgId),
@@ -440,9 +440,7 @@ export const subscriptions = pgTable('subscriptions', {
   stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
   stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
   plan: varchar('plan', { length: 50 }).default('free').notNull(),
-  // plan: free | pro ($17/mo)
   status: varchar('status', { length: 50 }).default('active').notNull(),
-  // status: active | past_due | canceled | trialing
   currentPeriodStart: timestamp('current_period_start'),
   currentPeriodEnd: timestamp('current_period_end'),
   canceledAt: timestamp('canceled_at'),
