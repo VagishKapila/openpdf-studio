@@ -454,6 +454,53 @@ const DPStudioAPI = (() => {
     },
   };
 
+  // ===== DASHBOARD MODULE =====
+  const dashboard = {
+    async getStats() {
+      return request('/dashboard/stats');
+    },
+
+    async getDocuments(params = {}) {
+      const qs = new URLSearchParams(params).toString();
+      return request(`/dashboard/documents${qs ? '?' + qs : ''}`);
+    },
+
+    async getPayments(params = {}) {
+      const qs = new URLSearchParams(params).toString();
+      return request(`/dashboard/payments${qs ? '?' + qs : ''}`);
+    },
+
+    async getContacts() {
+      return request('/dashboard/contacts');
+    },
+
+    async getActivity(limit = 20) {
+      return request(`/dashboard/activity?limit=${limit}`);
+    },
+  };
+
+  // ===== ADMIN MODULE =====
+  const admin = {
+    async getBranding() {
+      return request('/admin/branding');
+    },
+
+    async updateBranding(config) {
+      return request('/admin/branding', {
+        method: 'PUT',
+        body: config,
+      });
+    },
+
+    async createBillingPortal() {
+      return request('/admin/billing-portal', { method: 'POST' });
+    },
+
+    async subscribe() {
+      return request('/admin/subscribe', { method: 'POST', body: {} });
+    },
+  };
+
   // ===== PUBLIC API =====
   return {
     auth,
@@ -463,9 +510,12 @@ const DPStudioAPI = (() => {
     esign,
     payments,
     org,
+    dashboard,
+    admin,
     onAuthChange,
     APIError,
-    // Expose for debugging
+    // Expose API base URL
+    baseUrl: API_BASE,
     _getApiBase: () => API_BASE,
   };
 })();

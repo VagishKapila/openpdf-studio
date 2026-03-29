@@ -414,6 +414,45 @@ export const platformSettings = pgTable('platform_settings', {
   index('idx_platform_settings_key').on(table.key),
 ]);
 
+// ===== WHITE-LABEL BRANDING =====
+export const brandingConfigs = pgTable('branding_configs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  companyName: varchar('company_name', { length: 255 }).notNull(),
+  logoUrl: text('logo_url'),
+  primaryColor: varchar('primary_color', { length: 7 }).default('#6366f1').notNull(),
+  secondaryColor: varchar('secondary_color', { length: 7 }).default('#8b5cf6').notNull(),
+  accentColor: varchar('accent_color', { length: 7 }).default('#a78bfa'),
+  customDomain: varchar('custom_domain', { length: 255 }),
+  emailFromName: varchar('email_from_name', { length: 255 }),
+  emailFooterText: text('email_footer_text'),
+  signingPageTitle: varchar('signing_page_title', { length: 255 }),
+  signingPageSubtitle: text('signing_page_subtitle'),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ===== SUBSCRIPTIONS (for $17/mo account fee tracking) =====
+export const subscriptions = pgTable('subscriptions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
+  stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
+  plan: varchar('plan', { length: 50 }).default('free').notNull(),
+  // plan: free | pro ($17/mo)
+  status: varchar('status', { length: 50 }).default('active').notNull(),
+  // status: active | past_due | canceled | trialing
+  currentPeriodStart: timestamp('current_period_start'),
+  currentPeriodEnd: timestamp('current_period_end'),
+  canceledAt: timestamp('canceled_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_subscriptions_user_id').on(table.userId),
+  index('idx_subscriptions_stripe_customer').on(table.stripeCustomerId),
+]);
+
 // ===== TYPE EXPORTS =====
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -435,3 +474,5 @@ export type DocumentProtection = typeof documentProtection.$inferSelect;
 export type NewDocumentProtection = typeof documentProtection.$inferInsert;
 export type ProtectionPreset = typeof protectionPresets.$inferSelect;
 export type NewProtectionPreset = typeof protectionPresets.$inferInsert;
+export type BrandingConfig = typeof brandingConfigs.$inferSelect;
+export type Subscription = typeof subscriptions.$inferSelect;

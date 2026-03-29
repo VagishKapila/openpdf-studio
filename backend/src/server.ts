@@ -3,6 +3,7 @@ import app from './app';
 import { env } from './config/env';
 import { db } from './shared/db';
 import { sql } from 'drizzle-orm';
+import { readFileSync } from 'fs';
 
 const port = env.PORT;
 
@@ -18,6 +19,37 @@ async function ensureDatabase() {
   }
 }
 
+async function runMigrations() {
+  console.log('🔄 Running database migrations...');
+  try {
+    const migrationFiles = ['./drizzle/0000_lovely_leech.sql', './drizzle/0001_add_branding_subscriptions.sql'];
+    const allStatements: string[] = [];
+    for (const file of migrationFiles) {
+      try {
+        const content = readFileSync(file, 'utf-8');
+        allStatements.push(...content.split('--> statement-breakpoint').map(s => s.trim()).filter(Boolean));
+      } catch { /* file may not exist yet */ }
+    }
+    let applied = 0;
+    let skipped = 0;
+    for (const stmt of allStatements) {
+      try {
+        await db.execute(sql.raw(stmt));
+        applied++;
+      } catch (e: any) {
+        if (['42P07', '42710', '42P16'].includes(e.code)) {
+          skipped++;
+        } else {
+          console.error('⚠️  Migration statement error:', e.message);
+        }
+      }
+    }
+    console.log(`✅ Database migrations: ${applied} applied, ${skipped} already existed`);
+  } catch (error) {
+    console.error('⚠️  Migration runner error:', error);
+  }
+}
+
 async function startServer() {
   console.log(`
 ╔══════════════════════════════════════════════╗
@@ -29,7 +61,10 @@ async function startServer() {
 ╚══════════════════════════════════════════════╝
   `);
 
-  await ensureDatabase();
+  const dbOk = await ensureDatabase();
+  if (dbOk) {
+    await runMigrations();
+  }
 
   serve({
     fetch: app.fetch,
@@ -39,7 +74,7 @@ async function startServer() {
     console.log(`🚀 Server running on http://localhost:${info.port}`);
     console.log(`📋 Health check: http://localhost:${info.port}/health`);
     console.log(`🔐 Auth module:  http://localhost:${info.port}/auth`);
-    console.log(`📄 Modules: auth, convert, esign, payments, admin, org`);
+    console.log(`📄 Modules: auth, convert, esign, payments, admin, dashboard, org`);
   });
 }
 

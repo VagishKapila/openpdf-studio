@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireAuth } from '../../shared/middleware/auth';
+import { requireAuth, getUser } from '../../shared/middleware/auth';
 import { requireSuperAdmin } from '../../shared/middleware/admin.middleware';
 import { db } from '../../shared/db';
 import { users, documents, payments, auditLog, signatureRequests, organizations, feedback, orgMembers, platformSettings } from '../../shared/db/schema';
@@ -486,6 +486,109 @@ admin.get('/system/health', async (c) => {
       timestamp: new Date().toISOString(),
     }
   });
+});
+
+// ── Branding Config (per-user white-label) ──
+admin.get('/branding', async (c) => {
+  try {
+    const userId = (c as any).userId;
+    const { brandingConfigs } = await import('../../shared/db/schema');
+    const [config] = await db.select()
+      .from(brandingConfigs)
+      .where(eq(brandingConfigs.userId, userId));
+
+    return c.json(config || {
+      companyName: 'DocuFlow',
+      primaryColor: '#6366f1',
+      secondaryColor: '#8b5cf6',
+      accentColor: '#a78bfa',
+    });
+  } catch (error: any) {
+    return c.json({ error: error.message || 'Failed to load branding' }, 500);
+  }
+});
+
+admin.put('/branding', async (c) => {
+  try {
+    const userId = (c as any).userId;
+    const body = await c.req.json();
+    const { brandingConfigs } = await import('../../shared/db/schema');
+
+    const values = {
+      userId,
+      companyName: body.companyName || 'DocuFlow',
+      logoUrl: body.logoUrl || null,
+      primaryColor: body.primaryColor || '#6366f1',
+      secondaryColor: body.secondaryColor || '#8b5cf6',
+      accentColor: body.accentColor || '#a78bfa',
+      customDomain: body.customDomain || null,
+      emailFromName: body.emailFromName || null,
+      emailFooterText: body.emailFooterText || null,
+      signingPageTitle: body.signingPageTitle || null,
+      signingPageSubtitle: body.signingPageSubtitle || null,
+      updatedAt: new Date(),
+    };
+
+    const [existing] = await db.select()
+      .from(brandingConfigs)
+      .where(eq(brandingConfigs.userId, userId));
+
+    let config;
+    if (existing) {
+      [config] = await db.update(brandingConfigs)
+        .set(values)
+        .where(eq(brandingConfigs.userId, userId))
+        .returning();
+    } else {
+      [config] = await db.insert(brandingConfigs)
+        .values(values)
+        .returning();
+    }
+
+    return c.json({ success: true, branding: config });
+  } catch (error: any) {
+    return c.json({ error: error.message || 'Failed to update branding' }, 500);
+  }
+});
+
+// ── Subscription Checkout ──
+admin.post('/subscribe', async (c) => {
+  try {
+    const { env: appEnv } = await import('../../config/env');
+    if (!appEnv.STRIPE_SECRET_KEY) {
+      return c.json({ error: 'Stripe not configured' }, 503);
+    }
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(appEnv.STRIPE_SECRET_KEY);
+    const userId = (c as any).userId;
+    const user = await db.select().from(users).where(eq(users.id, userId)).then(r => r[0]);
+    const origin = c.req.header('origin') || appEnv.FRONTEND_URL;
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      customer_email: user?.email,
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'DocuFlow Pro',
+            description: 'Monthly account fee — unlimited transactions, branded pages, document signing',
+          },
+          unit_amount: 1700,
+          recurring: { interval: 'month' },
+        },
+        quantity: 1,
+      }],
+      success_url: `${origin}/openpdf-studio/dashboard.html?subscription=success`,
+      cancel_url: `${origin}/openpdf-studio/pricing.html?subscription=cancelled`,
+      metadata: { userId },
+    });
+
+    return c.json({ checkoutUrl: session.url, sessionId: session.id });
+  } catch (error: any) {
+    return c.json({ error: error.message || 'Failed to create subscription' }, 500);
+  }
 });
 
 export default admin;
