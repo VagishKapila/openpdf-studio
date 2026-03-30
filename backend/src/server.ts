@@ -22,7 +22,7 @@ async function ensureDatabase() {
 async function runMigrations() {
   console.log('🔄 Running database migrations...');
   try {
-    const migrationFiles = ['./drizzle/0000_lovely_leech.sql', './drizzle/0001_add_branding_subscriptions.sql'];
+    const migrationFiles = ['./drizzle/0000_lovely_leech.sql', './drizzle/0001_add_orgs_feedback_and_admin.sql', './drizzle/0001_add_branding_subscriptions.sql'];
     const allStatements: string[] = [];
     for (const file of migrationFiles) {
       try {
