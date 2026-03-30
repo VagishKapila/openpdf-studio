@@ -31,6 +31,7 @@ export default function LoginPage() {
       }
 
       localStorage.setItem('dpstudio_admin_token', data.tokens.accessToken);
+            localStorage.setItem('admin_access_token', data.tokens.accessToken);
       localStorage.setItem('dpstudio_admin_refresh', data.tokens.refreshToken);
       localStorage.setItem('dpstudio_admin_user', JSON.stringify(data.user));
       navigate('/overview');
