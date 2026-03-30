@@ -22,21 +22,22 @@ class ApiClient {
   private accessToken: string | null = null;
 
   constructor() {
-        this.accessToken = localStorage.getItem('admin_access_token') || localStorage.getItem('dpstudio_admin_token');
+    // Check both token keys for compatibility
+    this.accessToken = localStorage.getItem('admin_access_token') || localStorage.getItem('dpstudio_admin_token');
   }
 
   setToken(token: string) {
     this.accessToken = token;
     localStorage.setItem('admin_access_token', token);
-        localStorage.setItem('dpstudio_admin_token', token);
+    localStorage.setItem('dpstudio_admin_token', token);
   }
 
   clearToken() {
     this.accessToken = null;
     localStorage.removeItem('admin_access_token');
-        localStorage.removeItem('dpstudio_admin_token');
-        localStorage.removeItem('dpstudio_admin_refresh');
-        localStorage.removeItem('dpstudio_admin_user');
+    localStorage.removeItem('dpstudio_admin_token');
+    localStorage.removeItem('dpstudio_admin_refresh');
+    localStorage.removeItem('dpstudio_admin_user');
   }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
