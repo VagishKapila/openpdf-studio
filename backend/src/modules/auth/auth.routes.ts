@@ -1,7 +1,11 @@
 import { Hono } from 'hono';
-import { registerSchema, loginSchema, googleAuthSchema, refreshTokenSchema, updateProfileSchema, verifyEmailSchema, forgotPasswordSchema, resetPasswordSchema } from './auth.validators';
+import { eq } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
+import { registerSchema, loginSchema, googleAuthSchema, refreshTokenSchema, updateProfileSchema } from './auth.validators';
 import * as authService from './auth.service';
 import { requireAuth, getUser } from '../../shared/middleware/auth';
+import { db } from '../../shared/db';
+import { users } from '../../shared/db/schema';
 
 export const authRoutes = new Hono();
 
@@ -151,71 +155,47 @@ authRoutes.patch('/me', requireAuth, async (c) => {
   }
 });
 
-// POST /auth/verify-email
-authRoutes.post('/verify-email', async (c) => {
-  try {
-    const body = await c.req.json();
-    const { token } = verifyEmailSchema.parse(body);
-    const result = await authService.verifyEmail(token);
-    return c.json(result);
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation failed', details: error.issues }, 400);
-    }
-    if (error.message?.includes('Invalid') || error.message?.includes('expired') || error.message?.includes('already used')) {
-      return c.json({ error: error.message }, 400);
-    }
-    console.error('Verify email error:', error);
-    return c.json({ error: 'Email verification failed' }, 500);
-  }
-});
-
-// POST /auth/resend-verification (requires auth)
-authRoutes.post('/resend-verification', requireAuth, async (c) => {
+// POST /auth/setup-admin — Bootstrap: promote the authenticated user to super admin
+// Requires valid auth token. Promotes the requesting user.
+authRoutes.post('/setup-admin', requireAuth, async (c) => {
   try {
     const user = getUser(c);
-    const result = await authService.resendVerificationEmail(user.id);
-    return c.json(result);
+
+    // Promote the current user to super admin
+    await db.update(users)
+      .set({ isSuperAdmin: true })
+      .where(eq(users.id, user.id));
+
+    return c.json({
+      message: 'You are now a super admin!',
+      user: { id: user.id, email: user.email, isSuperAdmin: true }
+    });
   } catch (error: any) {
-    if (error.message === 'Email already verified') {
-      return c.json({ error: error.message }, 400);
-    }
-    console.error('Resend verification error:', error);
-    return c.json({ error: 'Failed to resend verification email' }, 500);
+    console.error('Setup admin error:', error);
+    return c.json({ error: 'Failed to setup admin' }, 500);
   }
 });
 
-// POST /auth/forgot-password
-authRoutes.post('/forgot-password', async (c) => {
+// POST /auth/set-password — Set a password for an authenticated user (e.g. Google OAuth accounts)
+authRoutes.post('/set-password', requireAuth, async (c) => {
   try {
+    const user = getUser(c);
     const body = await c.req.json();
-    const { email } = forgotPasswordSchema.parse(body);
-    const result = await authService.forgotPassword(email);
-    return c.json(result);
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation failed', details: error.issues }, 400);
-    }
-    console.error('Forgot password error:', error);
-    return c.json({ error: 'Failed to process request' }, 500);
-  }
-});
+    const { password } = body;
 
-// POST /auth/reset-password
-authRoutes.post('/reset-password', async (c) => {
-  try {
-    const body = await c.req.json();
-    const { token, password } = resetPasswordSchema.parse(body);
-    const result = await authService.resetPassword(token, password);
-    return c.json(result);
+    if (!password || password.length < 8) {
+      return c.json({ error: 'Password must be at least 8 characters' }, 400);
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await db.update(users)
+      .set({ passwordHash })
+      .where(eq(users.id, user.id));
+
+    return c.json({ message: 'Password set successfully. You can now log in with email and password.' });
   } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation failed', details: error.issues }, 400);
-    }
-    if (error.message?.includes('Invalid') || error.message?.includes('expired') || error.message?.includes('already used')) {
-      return c.json({ error: error.message }, 400);
-    }
-    console.error('Reset password error:', error);
-    return c.json({ error: 'Password reset failed' }, 500);
+    console.error('Set password error:', error);
+    return c.json({ error: 'Failed to set password' }, 500);
   }
 });

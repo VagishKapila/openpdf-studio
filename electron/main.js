@@ -64,7 +64,7 @@ function createWindow() {
     height: 900,
     minWidth: 800,
     minHeight: 600,
-    title: 'DocuFlow',
+    title: 'DocPix Studio',
     icon: path.join(__dirname, '../assets/icon.png'),
     webPreferences: {
       nodeIntegration: false,
@@ -180,13 +180,13 @@ function createWindow() {
       label: 'Help',
       submenu: [
         {
-          label: 'About DocuFlow',
+          label: 'About DocPix Studio',
           click: () => {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
-              title: 'About DocuFlow',
-              message: 'DocuFlow v0.1.0',
-              detail: 'Free, open-source, AI-powered PDF & Image Editor.\n\nLicense: MIT\nhttps://github.com/your-username/docuflow',
+              title: 'About DocPix Studio',
+              message: 'DocPix Studio v0.1.0',
+              detail: 'AI-powered PDF & Image Editor. Free core features, premium tools available.\n\nLicense: MIT\nhttps://github.com/VagishKapila/openpdf-studio',
             });
           },
         },
