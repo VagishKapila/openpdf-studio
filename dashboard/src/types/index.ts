@@ -70,10 +70,52 @@ export interface SignatureRequest {
   id: string;
   documentId: string;
   senderId: string;
-  status: 'pending' | 'completed' | 'declined' | 'expired';
+  recipientEmail: string;
+  recipientName: string | null;
+  status: 'pending' | 'viewed' | 'completed' | 'declined' | 'expired';
+  accessToken: string;
   message: string | null;
+  deadline: string | null;
+  signedAt: string | null;
+  viewedAt: string | null;
+  signedDocumentS3Key: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SignatureField {
+  id: string;
+  requestId: string;
+  fieldType: 'signature' | 'initials' | 'date' | 'name' | 'text';
+  pageNumber: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  required: boolean;
+  label: string | null;
+  aiDetected: boolean;
+  createdAt: string;
+}
+
+export interface SendDocumentPayload {
+  recipientEmail: string;
+  recipientName: string;
+  message?: string;
+  deadline?: string;
+  paymentEnabled?: boolean;
+  paymentAmount?: number;
+  paymentDescription?: string;
+  fields?: Array<{
+    fieldType: string;
+    pageNumber: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    required?: boolean;
+    label?: string;
+  }>;
 }
 
 // ── Payment ──

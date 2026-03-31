@@ -8,6 +8,7 @@ import type {
   DashboardStats, User, DocumentRecord, AuditLogEntry,
   Organization, Feedback, ChartSeries, ApiResponse,
   OrgDashboardData, OrgMemberDetail, OrgNotification, OrgMembership, DailyReport,
+  SignatureRequest, SendDocumentPayload,
 } from '@/types';
 
 // ── Dashboard ──
@@ -154,6 +155,41 @@ export function useUpdateSettings() {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     },
+  });
+}
+
+// ── Document Workflow ──
+
+export function useUploadDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, metadata }: { file: File; metadata?: Record<string, string> }) =>
+      api.uploadDocument(file, metadata),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+  });
+}
+
+export function useSendDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ documentId, payload }: { documentId: string; payload: SendDocumentPayload }) =>
+      api.sendDocument(documentId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['signature-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+  });
+}
+
+export function useSignatureRequests(params: { page: number; limit: number; status: string }) {
+  return useQuery<ApiResponse<(SignatureRequest & { document?: DocumentRecord })[]>>({
+    queryKey: ['signature-requests', params],
+    queryFn: () => api.getSignatureRequests(params),
+    placeholderData: (prev) => prev,
   });
 }
 

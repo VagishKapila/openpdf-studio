@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { FileText, FileCheck, Clock, Eye, Archive, Send } from 'lucide-react';
+import { FileText, FileCheck, Clock, Eye, Archive, Send, Plus } from 'lucide-react';
 import { useDocuments, useDashboardStats } from '@/lib/hooks';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { Pagination } from '@/components/shared/Pagination';
@@ -9,6 +9,7 @@ import { FilterSelect } from '@/components/shared/FilterSelect';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { TableSkeleton, CardSkeleton } from '@/components/shared/LoadingSkeleton';
 import { ErrorState } from '@/components/shared/ErrorState';
+import { NewDocumentModal } from '@/components/documents/NewDocumentModal';
 import type { DocumentRecord } from '@/types';
 
 const STATUS_OPTIONS = [
@@ -32,6 +33,7 @@ const pipelineStages = [
 export function DocumentsPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [showNewDocModal, setShowNewDocModal] = useState(false);
   const limit = 25;
 
   const { data, isLoading, isError, error, refetch } = useDocuments({ page, limit, status: statusFilter });
@@ -120,7 +122,19 @@ export function DocumentsPage() {
 
   return (
     <div>
-      <PageHeader title="Documents" subtitle={`${meta?.total.toLocaleString() ?? 0} total documents`} onRefresh={() => refetch()} />
+      <PageHeader
+        title="Documents"
+        subtitle={`${meta?.total.toLocaleString() ?? 0} total documents`}
+        onRefresh={() => refetch()}
+        actions={
+          <button
+            onClick={() => setShowNewDocModal(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-all shadow-md"
+          >
+            <Plus className="w-4 h-4" /> New Document
+          </button>
+        }
+      />
 
       {/* Pipeline Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
@@ -163,6 +177,8 @@ export function DocumentsPage() {
       {meta && meta.totalPages > 1 && (
         <Pagination page={page} totalPages={meta.totalPages} total={meta.total} limit={limit} onPageChange={setPage} />
       )}
+
+      <NewDocumentModal open={showNewDocModal} onClose={() => setShowNewDocModal(false)} />
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -8,7 +7,6 @@ export default function LoginPage() {
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'login' | 'forgot'>('login');
-  const navigate = useNavigate();
 
   const apiBase = import.meta.env.VITE_API_URL || '/api';
 
@@ -36,7 +34,8 @@ export default function LoginPage() {
       localStorage.setItem('dpstudio_admin_refresh', data.tokens.refreshToken);
       localStorage.setItem('dpstudio_admin_user', JSON.stringify(data.user));
       localStorage.setItem('admin_access_token', data.tokens.accessToken);
-      navigate('/overview');
+      // Use full page redirect to ensure ProtectedRoute picks up new token
+      window.location.href = '/overview';
     } catch (err: any) {
       setError(err.message);
     } finally {

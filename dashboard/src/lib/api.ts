@@ -14,6 +14,9 @@ import type {
   DocumentRecord,
   DailyReport,
   Feedback,
+  SignatureRequest,
+  SignatureField,
+  SendDocumentPayload,
 } from '@/types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -292,6 +295,70 @@ class ApiClient {
 
   async getOrgAnalytics(slug: string) {
     return this.request<ApiResponse<DailyReport[]>>(`/org/${slug}/analytics`);
+  }
+
+  // ── Document Workflow (Upload, Send, Sign, Track) ──
+
+  async uploadDocument(file: File, metadata?: Record<string, string>) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (metadata) {
+      Object.entries(metadata).forEach(([k, v]) => formData.append(k, v));
+    }
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+    const res = await fetch(`${API_BASE}/documents`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+      throw { message: err.error || err.message || 'Upload failed', status: res.status };
+    }
+    return res.json() as Promise<ApiResponse<DocumentRecord>>;
+  }
+
+  async prepareForSigning(documentId: string) {
+    return this.request<ApiResponse<SignatureRequest>>('/esign/prepare', {
+      method: 'POST',
+      body: JSON.stringify({ documentId }),
+    });
+  }
+
+  async detectFields(documentId: string) {
+    return this.request<ApiResponse<SignatureField[]>>('/esign/detect-fields', {
+      method: 'POST',
+      body: JSON.stringify({ documentId }),
+    });
+  }
+
+  async saveSignatureFields(requestId: string, fields: SendDocumentPayload['fields']) {
+    return this.request<ApiResponse<SignatureField[]>>(`/esign/${requestId}/fields`, {
+      method: 'POST',
+      body: JSON.stringify({ fields }),
+    });
+  }
+
+  async sendDocument(documentId: string, payload: SendDocumentPayload) {
+    return this.request<ApiResponse<SignatureRequest>>(`/documents/${documentId}/send`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getSignatureRequests(params?: { page?: number; limit?: number; status?: string }) {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.status) query.set('status', params.status);
+    return this.request<ApiResponse<(SignatureRequest & { document?: DocumentRecord })[]>>(`/admin/signature-requests?${query}`);
+  }
+
+  async getDocumentDownloadUrl(documentId: string) {
+    return this.request<ApiResponse<{ url: string }>>(`/documents/${documentId}/download-url`);
   }
 
   // ── AI Intelligence ──
