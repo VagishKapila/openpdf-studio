@@ -6,6 +6,7 @@ import { getDownloadUrl, uploadToS3, generateS3Key } from '../../shared/utils/s3
 import { signDocument, saveSignedDocument } from './esign.service';
 import type { SignFieldInput } from './esign.service';
 import { env } from '../../config/env';
+import { createNotification } from '../../shared/services/notification.service';
 
 const publicRoutes = new Hono();
 
@@ -80,6 +81,21 @@ publicRoutes.get('/:accessToken', async (c) => {
       await db.update(signatureRequests)
         .set({ status: 'viewed', viewedAt: new Date() })
         .where(eq(signatureRequests.id, request.id));
+
+      // Create notification for sender
+      try {
+        const docName = document?.fileName || 'Document';
+        await createNotification({
+          userId: request.senderId,
+          orgId: document?.orgId || undefined,
+          type: 'document.viewed',
+          title: 'Document Viewed',
+          message: `${request.recipientName || request.recipientEmail} viewed "${docName}"`,
+          data: { documentId: request.documentId, recipientEmail: request.recipientEmail },
+        });
+      } catch (err) {
+        console.warn('[esign] Failed to create view notification:', err);
+      }
     }
 
     // Log the view
@@ -169,6 +185,25 @@ publicRoutes.post('/:accessToken/submit', async (c) => {
       ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown',
       userAgent: c.req.header('user-agent') || 'unknown',
     });
+
+    // Create notification for sender (non-blocking)
+    try {
+      const [doc] = await db.select()
+        .from(documents)
+        .where(eq(documents.id, request.documentId));
+
+      const docName = doc?.fileName || 'Document';
+      await createNotification({
+        userId: request.senderId,
+        orgId: doc?.orgId || undefined,
+        type: 'document.signed',
+        title: 'Document Signed',
+        message: `${signerName} signed "${docName}"`,
+        data: { documentId: request.documentId, signerEmail, signerName },
+      });
+    } catch (err) {
+      console.warn('[esign] Failed to create signature notification:', err);
+    }
 
     return c.json({
       success: true,
@@ -282,6 +317,25 @@ publicRoutes.post('/:accessToken/decline', async (c) => {
       ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
       metadata: { reason: 'User declined' },
     });
+
+    // Create notification for sender (non-blocking)
+    try {
+      const [doc] = await db.select()
+        .from(documents)
+        .where(eq(documents.id, request.documentId));
+
+      const docName = doc?.fileName || 'Document';
+      await createNotification({
+        userId: request.senderId,
+        orgId: doc?.orgId || undefined,
+        type: 'document.declined',
+        title: 'Document Declined',
+        message: `${request.recipientName || request.recipientEmail} declined to sign "${docName}"`,
+        data: { documentId: request.documentId, recipientEmail: request.recipientEmail },
+      });
+    } catch (err) {
+      console.warn('[esign] Failed to create decline notification:', err);
+    }
 
     return c.json({
       success: true,

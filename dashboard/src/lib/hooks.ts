@@ -193,6 +193,14 @@ export function useSignatureRequests(params: { page: number; limit: number; stat
   });
 }
 
+export function useSignatureRequestsForDocument(documentId: string | null) {
+  return useQuery<ApiResponse<SignatureRequest[]>>({
+    queryKey: ['signature-requests', 'document', documentId],
+    queryFn: () => api.getDocumentSignatureRequests(documentId!),
+    enabled: !!documentId,
+  });
+}
+
 // ── Portal Hooks ──
 
 export function useMyOrgs() {
@@ -229,11 +237,33 @@ export function useOrgMembers(slug: string) {
 }
 
 export function useOrgNotifications(slug: string) {
-  return useQuery<ApiResponse<OrgNotification[]>>({
+  return useQuery<{ data: OrgNotification[]; meta: { unreadCount: number } }>({
     queryKey: ['org', slug, 'notifications'],
-    queryFn: () => api.getOrgNotifications(slug),
+    queryFn: () => api.getOrgNotifications(slug, { limit: 20 }),
     enabled: !!slug,
-    refetchInterval: 30_000,
+    refetchInterval: 15_000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, notifId }: { slug: string; notifId: string }) =>
+      api.markNotificationRead(slug, notifId),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['org', vars.slug, 'notifications'] });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug }: { slug: string }) =>
+      api.markAllNotificationsRead(slug),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['org', vars.slug, 'notifications'] });
+    },
   });
 }
 

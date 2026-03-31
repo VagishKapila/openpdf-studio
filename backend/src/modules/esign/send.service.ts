@@ -4,6 +4,8 @@ import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { sendSigningRequestEmail } from '../../shared/services/email.service';
+import { createNotification } from '../../shared/services/notification.service';
+import { scheduleAutoReminders } from './reminder.service';
 import { env } from '../../config/env';
 
 // ===== TYPES =====
@@ -118,6 +120,33 @@ export async function sendDocumentForSigning(input: SendDocumentForSigningInput)
       deadline,
     },
   });
+
+  // 7. Create notification for sender (non-blocking)
+  try {
+    const docName = document?.fileName || 'Document';
+    await createNotification({
+      userId: senderId,
+      orgId: document?.orgId || undefined,
+      type: 'document.sent',
+      title: 'Document Sent',
+      message: `"${docName}" sent to ${recipientEmail}`,
+      data: { documentId, recipientEmail, recipientName },
+    });
+  } catch (err) {
+    console.warn('[esign] Failed to create send notification:', err);
+  }
+
+  // 8. Schedule auto-reminders (non-blocking)
+  try {
+    await scheduleAutoReminders({
+      requestId: request.id,
+      recipientEmail,
+      orgId: document?.orgId || undefined,
+      deadline,
+    });
+  } catch (err) {
+    console.warn('[esign] Failed to schedule reminders:', err);
+  }
 
   return {
     success: true,

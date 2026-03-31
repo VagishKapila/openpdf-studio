@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Users, FileText, DollarSign,
   ScrollText, Building2, MessageSquare, Brain, Settings, LogOut,
 } from 'lucide-react';
+import { NotificationBell } from './NotificationBell';
 
 const navItems = [
   { to: '/overview', icon: LayoutDashboard, label: 'Overview' },
@@ -20,6 +21,7 @@ const navItems = [
 export function DashboardLayout() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [currentOrgSlug, setCurrentOrgSlug] = useState<string>('');
 
   useEffect(() => {
     const userJson = localStorage.getItem('dpstudio_admin_user');
@@ -30,6 +32,10 @@ export function DashboardLayout() {
         setUser(null);
       }
     }
+
+    // Try to get current org slug from localStorage or URL
+    const slug = localStorage.getItem('current_org_slug') || '';
+    setCurrentOrgSlug(slug);
   }, []);
 
   const handleLogout = () => {
@@ -86,7 +92,8 @@ export function DashboardLayout() {
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
             Super Admin Dashboard
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {currentOrgSlug && <NotificationBell slug={currentOrgSlug} />}
             <div className="flex flex-col items-end">
               <span className="text-sm font-medium text-gray-900 dark:text-white">{user?.name || 'Admin'}</span>
               <span className="text-xs text-gray-500">{user?.email || 'admin@docpixstudio.com'}</span>

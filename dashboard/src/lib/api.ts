@@ -268,13 +268,21 @@ class ApiClient {
     });
   }
 
-  async getOrgNotifications(slug: string, unread?: boolean) {
-    const query = unread ? '?unread=true' : '';
-    return this.request<ApiResponse<OrgNotification[]>>(`/org/${slug}/notifications${query}`);
+  async getOrgNotifications(slug: string, params?: { limit?: number; unread?: boolean }) {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.unread) query.set('unread', 'true');
+    return this.request<{ data: OrgNotification[]; meta: { unreadCount: number } }>(`/org/${slug}/notifications?${query}`);
   }
 
   async markNotificationRead(slug: string, notifId: string) {
     return this.request<ApiResponse<unknown>>(`/org/${slug}/notifications/${notifId}/read`, {
+      method: 'PATCH',
+    });
+  }
+
+  async markAllNotificationsRead(slug: string) {
+    return this.request<ApiResponse<unknown>>(`/org/${slug}/notifications/read-all`, {
       method: 'PATCH',
     });
   }
@@ -355,6 +363,10 @@ class ApiClient {
     if (params?.limit) query.set('limit', String(params.limit));
     if (params?.status) query.set('status', params.status);
     return this.request<ApiResponse<(SignatureRequest & { document?: DocumentRecord })[]>>(`/admin/signature-requests?${query}`);
+  }
+
+  async getDocumentSignatureRequests(documentId: string) {
+    return this.request<ApiResponse<SignatureRequest[]>>(`/admin/documents/${documentId}/signature-requests`);
   }
 
   async getDocumentDownloadUrl(documentId: string) {

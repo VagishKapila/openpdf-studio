@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { FileText, FileCheck, Clock, Eye, Archive, Send, Plus } from 'lucide-react';
+import { FileText, FileCheck, Clock, Eye, Archive, Send, Plus, Grid3x3, List } from 'lucide-react';
 import { useDocuments, useDashboardStats } from '@/lib/hooks';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { Pagination } from '@/components/shared/Pagination';
@@ -10,6 +10,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { TableSkeleton, CardSkeleton } from '@/components/shared/LoadingSkeleton';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { NewDocumentModal } from '@/components/documents/NewDocumentModal';
+import { DocumentPipeline } from '@/components/documents/DocumentPipeline';
+import { DocumentDetailDrawer } from '@/components/documents/DocumentDetailDrawer';
 import type { DocumentRecord } from '@/types';
 
 const STATUS_OPTIONS = [
@@ -34,6 +36,9 @@ export function DocumentsPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [showNewDocModal, setShowNewDocModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'pipeline' | 'table'>('pipeline');
+  const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const limit = 25;
 
   const { data, isLoading, isError, error, refetch } = useDocuments({ page, limit, status: statusFilter });
@@ -54,6 +59,12 @@ export function DocumentsPage() {
       completed: Math.floor(stats.documentsSigned * 0.8),
     };
   }, [stats]);
+
+  // Handler for document selection
+  const handleDocumentClick = (doc: DocumentRecord) => {
+    setSelectedDocument(doc);
+    setDrawerOpen(true);
+  };
 
   const columns: Column<DocumentRecord>[] = [
     {
@@ -127,12 +138,38 @@ export function DocumentsPage() {
         subtitle={`${meta?.total.toLocaleString() ?? 0} total documents`}
         onRefresh={() => refetch()}
         actions={
-          <button
-            onClick={() => setShowNewDocModal(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-all shadow-md"
-          >
-            <Plus className="w-4 h-4" /> New Document
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('pipeline')}
+                className={`p-1.5 rounded transition-colors ${
+                  viewMode === 'pipeline'
+                    ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-gray-800'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+                title="Pipeline View"
+              >
+                <Grid3x3 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-1.5 rounded transition-colors ${
+                  viewMode === 'table'
+                    ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-gray-800'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+                title="Table View"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+            <button
+              onClick={() => setShowNewDocModal(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-all shadow-md"
+            >
+              <Plus className="w-4 h-4" /> New Document
+            </button>
+          </div>
         }
       />
 
@@ -161,22 +198,50 @@ export function DocumentsPage() {
         })}
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3 mb-4">
-        <FilterSelect value={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1); }} options={STATUS_OPTIONS} placeholder="All statuses" />
-        {stats && (
-          <div className="ml-auto flex items-center gap-2 text-sm text-gray-500">
-            <Clock className="w-4 h-4" />
-            <span>{stats.signatureCompletionRate}% completion rate</span>
-          </div>
-        )}
-      </div>
-
-      <DataTable<DocumentRecord> columns={columns} data={docs} keyField="id" />
-
-      {meta && meta.totalPages > 1 && (
-        <Pagination page={page} totalPages={meta.totalPages} total={meta.total} limit={limit} onPageChange={setPage} />
+      {/* Filters (only for table view) */}
+      {viewMode === 'table' && (
+        <div className="flex items-center gap-3 mb-4">
+          <FilterSelect value={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1); }} options={STATUS_OPTIONS} placeholder="All statuses" />
+          {stats && (
+            <div className="ml-auto flex items-center gap-2 text-sm text-gray-500">
+              <Clock className="w-4 h-4" />
+              <span>{stats.signatureCompletionRate}% completion rate</span>
+            </div>
+          )}
+        </div>
       )}
+
+      {/* View Mode Content */}
+      {viewMode === 'pipeline' ? (
+        <DocumentPipeline
+          documents={docs}
+          onDocumentClick={handleDocumentClick}
+          isLoading={isLoading}
+        />
+      ) : (
+        <>
+          <DataTable<DocumentRecord>
+            columns={columns}
+            data={docs}
+            keyField="id"
+            onRowClick={handleDocumentClick}
+          />
+
+          {meta && meta.totalPages > 1 && (
+            <Pagination page={page} totalPages={meta.totalPages} total={meta.total} limit={limit} onPageChange={setPage} />
+          )}
+        </>
+      )}
+
+      {/* Document Detail Drawer */}
+      <DocumentDetailDrawer
+        document={selectedDocument}
+        open={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false);
+          setSelectedDocument(null);
+        }}
+      />
 
       <NewDocumentModal open={showNewDocModal} onClose={() => setShowNewDocModal(false)} />
     </div>
