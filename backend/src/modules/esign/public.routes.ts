@@ -230,6 +230,41 @@ publicRoutes.post('/:accessToken/submit', async (c) => {
       console.warn('[esign] Failed to create signature notification:', err);
     }
 
+    // AI Auto-Learn from signed document (non-blocking)
+    try {
+      const [doc] = await db.select()
+        .from(documents)
+        .where(eq(documents.id, request.documentId));
+
+      if (doc && doc.orgId && resolved.fields.length > 0) {
+        const { learnFromDocument } = await import('../ai/pattern.service');
+
+        // Build field positions for learning
+        const fieldPositions = resolved.fields.map(f => ({
+          fieldType: f.fieldType,
+          pageNumber: f.pageNumber,
+          x: f.x,
+          y: f.y,
+          width: f.width,
+          height: f.height,
+        }));
+
+        // Learn from this signed document
+        await learnFromDocument(
+          doc.orgId,
+          doc.fileName || 'Unknown',
+          doc.fileName || '',
+          fieldPositions,
+          // Note: we don't have full page text here, but pattern.service handles this gracefully
+        );
+
+        console.log('[ai] Auto-learned from signed document:', doc.id);
+      }
+    } catch (err) {
+      console.error('[ai] Auto-learn failed (non-blocking):', err);
+      // Non-blocking — don't fail the signing just because learning failed
+    }
+
     return c.json({
       success: true,
       requestId: result.requestId,
@@ -296,6 +331,42 @@ publicRoutes.post('/:accessToken/finalize', async (c) => {
       ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
       metadata: { fileName: file.name },
     });
+
+    // AI Auto-Learn from finalized document (non-blocking)
+    try {
+      const [doc] = await db.select()
+        .from(documents)
+        .where(eq(documents.id, request.documentId));
+
+      const fieldsData = await db.select()
+        .from(signatureFields)
+        .where(eq(signatureFields.requestId, request.id));
+
+      if (doc && doc.orgId && fieldsData.length > 0) {
+        const { learnFromDocument } = await import('../ai/pattern.service');
+
+        const fieldPositions = fieldsData.map(f => ({
+          fieldType: f.fieldType,
+          pageNumber: f.pageNumber,
+          x: f.x,
+          y: f.y,
+          width: f.width,
+          height: f.height,
+        }));
+
+        // Learn from finalized document
+        await learnFromDocument(
+          doc.orgId,
+          doc.fileName || 'Unknown',
+          doc.fileName || '',
+          fieldPositions,
+        );
+
+        console.log('[ai] Auto-learned from finalized document:', doc.id);
+      }
+    } catch (err) {
+      console.error('[ai] Auto-learn on finalize failed (non-blocking):', err);
+    }
 
     // Gate download behind payment if required
     let downloadUrl = null;

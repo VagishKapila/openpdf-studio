@@ -378,3 +378,11 @@ export function useReminders(orgId?: string) {
     refetchInterval: 30_000,
   });
 }
+
+export function useReminderInsights(orgId?: string) {
+  return useQuery<ApiResponse<import('@/types').ReminderInsight[]>>({
+    queryKey: ['ai', 'reminder-insights', orgId],
+    queryFn: () => api.getReminderInsights(orgId),
+    refetchInterval: 60000,
+  });
+}

@@ -395,6 +395,18 @@ class ApiClient {
     const path = orgId ? `/reminders/org/${orgId}` : '/admin/reminders';
     return this.request<ApiResponse<import('@/types').SigningReminder[]>>(path);
   }
+
+  async getReminderInsights(orgId?: string) {
+    const path = orgId ? `/ai/reminder-insights/${orgId}` : '/ai/reminder-insights';
+    return this.request<ApiResponse<import('@/types').ReminderInsight[]>>(path);
+  }
+
+  async analyzeDocument(pages: { pageNumber: number; text: string }[]) {
+    return this.request<ApiResponse<import('@/types').AIDocumentAnalysis>>('/ai/analyze-document', {
+      method: 'POST',
+      body: JSON.stringify({ pages }),
+    });
+  }
 }
 
 export const api = new ApiClient();

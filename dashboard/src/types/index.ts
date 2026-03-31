@@ -315,3 +315,68 @@ export interface OrgMembership {
   role: 'owner' | 'admin' | 'member' | 'viewer';
   joinedAt: string | null;
 }
+
+// ── AI Intelligence ──
+
+export interface DocumentStructure {
+  pageCount: number;
+  averageWordsPerPage: number;
+  hasSignatureBlocks: boolean;
+  signatureBlockCount: number;
+  documentType: 'contract' | 'agreement' | 'nda' | 'lease' | 'invoice' | 'employment' | 'other';
+  sections: string[];
+  keyTerms: string[];
+}
+
+export interface ClauseAnalysis {
+  clauseText: string;
+  category: string;
+  severity: 'red' | 'yellow' | 'green';
+  explanation: string;
+  suggestion?: string;
+  pageNumber: number;
+}
+
+export interface RiskSummary {
+  overallRisk: 'red' | 'yellow' | 'green';
+  score: number;
+  summary: string;
+  topConcerns: string[];
+  positivePoints: string[];
+}
+
+export interface ReminderInsight {
+  requestId: string;
+  recipientEmail: string;
+  documentName?: string;
+  suggestedSendTime: string;
+  urgencyScore: number;
+  reason: string;
+  channel: 'email' | 'sms';
+}
+
+export interface AIDocumentAnalysis {
+  structure: DocumentStructure;
+  risk: RiskSummary;
+  clauses: ClauseAnalysis[];
+  fieldSuggestions: Array<{
+    fieldType: string;
+    pageNumber: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    confidence: number;
+    matchType: 'structural' | 'heuristic';
+  }>;
+}
+
+export interface FeedbackTriageResult {
+  category: string;
+  priority: string;
+  aiSummary: string;
+  tags: string[];
+  sentiment: 'positive' | 'negative' | 'neutral';
+  actionable: boolean;
+  suggestedAction?: string;
+}
