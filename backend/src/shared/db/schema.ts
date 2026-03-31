@@ -67,18 +67,25 @@ export const signatureRequests = pgTable('signature_requests', {
   recipientName: varchar('recipient_name', { length: 255 }),
   message: text('message'),
   status: varchar('status', { length: 50 }).default('pending').notNull(),
-  // status: pending | viewed | signed | declined | expired
+  // status: pending | viewed | signed | declined | expired | paid | completed
   accessToken: text('access_token').notNull().unique(), // unique link for recipient
   deadline: timestamp('deadline'),
   signedAt: timestamp('signed_at'),
   viewedAt: timestamp('viewed_at'),
   signedDocumentS3Key: text('signed_document_s3_key'),
+  // Payment fields (NEW)
+  paymentRequired: boolean('payment_required').default(false).notNull(),
+  paymentAmount: integer('payment_amount'), // in cents
+  paymentCurrency: varchar('payment_currency', { length: 3 }).default('usd').notNull(),
+  paymentDescription: text('payment_description'),
+  paymentId: uuid('payment_id'), // forward reference to payments table (payments is defined after)
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('idx_sig_requests_document_id').on(table.documentId),
   index('idx_sig_requests_sender_id').on(table.senderId),
   index('idx_sig_requests_access_token').on(table.accessToken),
   index('idx_sig_requests_status').on(table.status),
+  index('idx_sig_requests_payment_id').on(table.paymentId),
 ]);
 
 // ===== SIGNATURE FIELDS (where to sign on the document) =====

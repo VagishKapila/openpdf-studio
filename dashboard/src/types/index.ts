@@ -79,6 +79,10 @@ export interface SignatureRequest {
   signedAt: string | null;
   viewedAt: string | null;
   signedDocumentS3Key: string | null;
+  paymentRequired?: boolean;
+  paymentAmount?: number; // in cents
+  paymentCurrency?: string;
+  paymentDescription?: string | null;
   createdAt: string;
   updatedAt: string;
 }

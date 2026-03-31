@@ -41,6 +41,9 @@ export async function sendDocumentForSigning(input: SendDocumentForSigningInput)
     fields,
     message,
     deadline,
+    paymentRequired,
+    paymentAmount,
+    paymentDescription,
   } = input;
 
   // 1. Verify document exists and belongs to sender
@@ -68,6 +71,10 @@ export async function sendDocumentForSigning(input: SendDocumentForSigningInput)
     status: 'pending',
     accessToken,
     deadline: deadline ? new Date(deadline) : null,
+    paymentRequired: paymentRequired || false,
+    paymentAmount: paymentAmount ? Math.round(paymentAmount * 100) : null, // convert dollars to cents
+    paymentCurrency: 'usd',
+    paymentDescription: paymentDescription || null,
   }).returning();
 
   // 3. Save the fields to the signature request

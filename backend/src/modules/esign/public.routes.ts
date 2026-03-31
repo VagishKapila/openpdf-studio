@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../../shared/db';
-import { signatureRequests, signatureFields, documents, signatures, auditLog } from '../../shared/db/schema';
+import { signatureRequests, signatureFields, documents, signatures, auditLog, payments } from '../../shared/db/schema';
 import { getDownloadUrl, uploadToS3, generateS3Key } from '../../shared/utils/s3';
 import { signDocument, saveSignedDocument } from './esign.service';
 import type { SignFieldInput } from './esign.service';
 import { env } from '../../config/env';
 import { createNotification } from '../../shared/services/notification.service';
+import Stripe from 'stripe';
 
 const publicRoutes = new Hono();
 
@@ -109,6 +110,24 @@ publicRoutes.get('/:accessToken', async (c) => {
       });
     }
 
+    // Get payment info if payment is required
+    let paymentInfo = null;
+    if (request.paymentRequired && request.paymentId) {
+      const [paymentRecord] = await db.select()
+        .from(payments)
+        .where(eq(payments.id, request.paymentId));
+      if (paymentRecord) {
+        paymentInfo = {
+          required: true,
+          amount: paymentRecord.amount,
+          currency: paymentRecord.currency,
+          description: paymentRecord.description,
+          status: paymentRecord.status,
+          checkoutUrl: paymentRecord.paymentLink,
+        };
+      }
+    }
+
     return c.json({
       success: true,
       request: {
@@ -118,6 +137,11 @@ publicRoutes.get('/:accessToken', async (c) => {
         message: request.message,
         deadline: request.deadline,
         status: request.status === 'pending' ? 'viewed' : request.status,
+        paymentRequired: request.paymentRequired,
+        paymentAmount: request.paymentAmount,
+        paymentCurrency: request.paymentCurrency,
+        paymentDescription: request.paymentDescription,
+        paymentStatus: paymentInfo?.status || 'pending',
       },
       fields,
       document: document ? {
@@ -126,6 +150,7 @@ publicRoutes.get('/:accessToken', async (c) => {
         pageCount: document.pageCount,
       } : null,
       downloadUrl,
+      payment: paymentInfo,
     });
   } catch (error: any) {
     console.error('Get signing request error:', error);
@@ -272,12 +297,26 @@ publicRoutes.post('/:accessToken/finalize', async (c) => {
       metadata: { fileName: file.name },
     });
 
-    const downloadUrl = await getDownloadUrl(signedKey);
+    // Gate download behind payment if required
+    let downloadUrl = null;
+    let paymentRequired = false;
+
+    if (request.paymentRequired) {
+      // Payment required - don't provide download URL yet
+      paymentRequired = true;
+    } else {
+      // No payment required - provide download URL immediately
+      downloadUrl = await getDownloadUrl(signedKey);
+    }
 
     return c.json({
       success: true,
       message: 'Signed document finalized successfully',
-      downloadUrl,
+      downloadUrl: downloadUrl || null,
+      paymentRequired,
+      paymentAmount: request.paymentAmount,
+      paymentCurrency: request.paymentCurrency,
+      paymentDescription: request.paymentDescription,
     });
   } catch (error: any) {
     console.error('Finalize error:', error);
@@ -344,6 +383,183 @@ publicRoutes.post('/:accessToken/decline', async (c) => {
   } catch (error: any) {
     console.error('Decline error:', error);
     return c.json({ error: error.message || 'Failed to decline signing request' }, 500);
+  }
+});
+
+// ===== GET PAYMENT STATUS =====
+// GET /sign/:accessToken/payment-status
+// Returns payment status and details (if payment is required)
+publicRoutes.get('/:accessToken/payment-status', async (c) => {
+  try {
+    const accessToken = c.req.param('accessToken');
+
+    if (!accessToken || accessToken.length === 0) {
+      return c.json({ error: 'Invalid access token' }, 400);
+    }
+
+    const resolved = await resolveSigningToken(accessToken);
+    if (!resolved) {
+      return c.json({ error: 'Signing request not found or expired' }, 404);
+    }
+
+    const { request } = resolved;
+
+    // Look up payment if one exists
+    let paymentRecord = null;
+    if (request.paymentId) {
+      const [payment] = await db.select()
+        .from(payments)
+        .where(eq(payments.id, request.paymentId));
+      paymentRecord = payment;
+    }
+
+    return c.json({
+      success: true,
+      required: request.paymentRequired,
+      amount: request.paymentAmount,
+      currency: request.paymentCurrency,
+      description: request.paymentDescription,
+      status: paymentRecord?.status || 'pending',
+      checkoutUrl: paymentRecord?.paymentLink || null,
+    });
+  } catch (error: any) {
+    console.error('Get payment status error:', error);
+    return c.json({ error: error.message || 'Failed to get payment status' }, 500);
+  }
+});
+
+// ===== CREATE PAYMENT FOR SIGNED DOCUMENT =====
+// POST /sign/:accessToken/create-payment
+// Creates a Stripe checkout session for payment after signing
+publicRoutes.post('/:accessToken/create-payment', async (c) => {
+  try {
+    const accessToken = c.req.param('accessToken');
+    const body = await c.req.json();
+
+    if (!accessToken || accessToken.length === 0) {
+      return c.json({ error: 'Invalid access token' }, 400);
+    }
+
+    const resolved = await resolveSigningToken(accessToken);
+    if (!resolved) {
+      return c.json({ error: 'Signing request not found or expired' }, 404);
+    }
+
+    const { request, document } = resolved;
+
+    // Payment only needed if paymentRequired is true
+    if (!request.paymentRequired) {
+      return c.json({ error: 'Payment is not required for this document' }, 400);
+    }
+
+    // Document must be signed first
+    if (request.status !== 'signed') {
+      return c.json({ error: 'Document must be signed before payment' }, 400);
+    }
+
+    // Check if payment already exists
+    let paymentRecord = null;
+    if (request.paymentId) {
+      const [payment] = await db.select()
+        .from(payments)
+        .where(eq(payments.id, request.paymentId));
+      paymentRecord = payment;
+
+      // If payment already exists and is paid, return error
+      if (paymentRecord && paymentRecord.status === 'paid') {
+        return c.json({ error: 'Payment already completed for this document' }, 400);
+      }
+
+      // If payment exists but not paid, return the existing checkout URL
+      if (paymentRecord) {
+        return c.json({
+          success: true,
+          checkoutUrl: paymentRecord.paymentLink,
+          paymentId: paymentRecord.id,
+        });
+      }
+    }
+
+    // Validate payment amount and currency
+    if (!request.paymentAmount || request.paymentAmount < 50) {
+      return c.json({ error: 'Payment amount must be at least $0.50' }, 400);
+    }
+
+    // Initialize Stripe
+    if (!env.STRIPE_SECRET_KEY) {
+      return c.json({ error: 'Stripe is not configured' }, 500);
+    }
+
+    const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+
+    // Create Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: request.paymentCurrency || 'usd',
+          product_data: {
+            name: request.paymentDescription || 'Signed Document Payment',
+            description: `Payment for signed document: ${document?.fileName || 'Document'}`,
+          },
+          unit_amount: request.paymentAmount,
+        },
+        quantity: 1,
+      }],
+      customer_email: request.recipientEmail || body.payerEmail || undefined,
+      success_url: `${env.FRONTEND_URL}/sign/${accessToken}?payment=success`,
+      cancel_url: `${env.FRONTEND_URL}/sign/${accessToken}?payment=cancelled`,
+      metadata: {
+        accessToken,
+        requestId: request.id,
+        documentId: request.documentId,
+        recipientEmail: request.recipientEmail,
+      },
+    });
+
+    // Create payment record
+    const [newPayment] = await db.insert(payments).values({
+      documentId: request.documentId,
+      creatorId: request.senderId,
+      amount: request.paymentAmount,
+      currency: request.paymentCurrency || 'usd',
+      description: request.paymentDescription,
+      provider: 'stripe',
+      providerPaymentId: session.id,
+      paymentLink: session.url,
+      status: 'pending',
+      payerEmail: request.recipientEmail,
+    }).returning();
+
+    // Link payment to signature request
+    await db.update(signatureRequests)
+      .set({ paymentId: newPayment.id })
+      .where(eq(signatureRequests.id, request.id));
+
+    // Audit log
+    await db.insert(auditLog).values({
+      documentId: request.documentId,
+      action: 'payment.created_for_signature',
+      actorEmail: request.recipientEmail,
+      ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
+      metadata: {
+        amount: request.paymentAmount,
+        currency: request.paymentCurrency,
+        sessionId: session.id,
+        requestId: request.id,
+      },
+    });
+
+    return c.json({
+      success: true,
+      checkoutUrl: session.url,
+      paymentId: newPayment.id,
+      sessionId: session.id,
+    });
+  } catch (error: any) {
+    console.error('Create payment error:', error);
+    return c.json({ error: error.message || 'Failed to create payment' }, 500);
   }
 });
 

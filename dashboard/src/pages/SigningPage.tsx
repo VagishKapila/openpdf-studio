@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertCircle, CheckCircle, FileText, Lock, ChevronRight, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, FileText, Lock, ChevronRight, X, CreditCard, ShieldCheck } from 'lucide-react';
 import { SignaturePad } from '@/components/signing/SignaturePad';
 import * as signingApi from '@/lib/signing-api';
 import type { SignatureRequest, SignatureField, DocumentRecord } from '@/types';
 
-type Step = 'loading' | 'error' | 'review' | 'sign' | 'confirm' | 'success';
+type Step = 'loading' | 'error' | 'review' | 'sign' | 'confirm' | 'payment' | 'success';
 
 interface LoadedData {
   request: SignatureRequest;
@@ -15,6 +15,10 @@ interface LoadedData {
     email: string;
   };
   fields: SignatureField[];
+  paymentRequired: boolean;
+  paymentAmount: number; // cents
+  paymentCurrency: string;
+  paymentDescription: string | null;
 }
 
 interface SignedField {
@@ -33,6 +37,9 @@ export default function SigningPage() {
   const [currentFieldIndex, setCurrentFieldIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [paymentCreating, setPaymentCreating] = useState(false);
+  const [paymentCancelled, setPaymentCancelled] = useState(false);
+  const [paymentPolling, setPaymentPolling] = useState(false);
 
   // Load signing request
   useEffect(() => {
@@ -45,8 +52,36 @@ export default function SigningPage() {
     const loadRequest = async () => {
       try {
         const result = await signingApi.getSigningRequest(token);
-        setData(result);
-        setStep('review');
+
+        // Transform result into LoadedData with payment info
+        const loadedData: LoadedData = {
+          request: result.request,
+          document: result.document,
+          sender: result.sender,
+          fields: result.fields,
+          paymentRequired: result.request.paymentRequired || false,
+          paymentAmount: result.request.paymentAmount || 0,
+          paymentCurrency: result.request.paymentCurrency || 'usd',
+          paymentDescription: result.request.paymentDescription || null,
+        };
+
+        setData(loadedData);
+
+        // Check for payment return query params
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('payment')) {
+          const paymentStatus = params.get('payment');
+          if (paymentStatus === 'success') {
+            // Poll payment status and transition to success
+            pollPaymentStatus(token);
+          } else if (paymentStatus === 'cancelled') {
+            setStep('payment');
+            setPaymentCancelled(true);
+          }
+        } else {
+          // Normal flow
+          setStep('review');
+        }
       } catch (err: any) {
         setStep('error');
         const message = err.message || 'Failed to load document';
@@ -67,6 +102,39 @@ export default function SigningPage() {
 
     loadRequest();
   }, [token]);
+
+  // Poll payment status for up to 10 seconds
+  const pollPaymentStatus = async (accessToken: string) => {
+    setPaymentPolling(true);
+    const startTime = Date.now();
+    const maxDuration = 10000; // 10 seconds
+
+    const poll = async () => {
+      try {
+        const status = await signingApi.getPaymentStatus(accessToken);
+        if (status.status === 'paid') {
+          setStep('success');
+          setPaymentPolling(false);
+        } else if (Date.now() - startTime < maxDuration) {
+          setTimeout(poll, 1000);
+        } else {
+          // Timeout, show success anyway (payment likely processed)
+          setStep('success');
+          setPaymentPolling(false);
+        }
+      } catch (err) {
+        console.error('Failed to poll payment status:', err);
+        if (Date.now() - startTime < maxDuration) {
+          setTimeout(poll, 1000);
+        } else {
+          setStep('success');
+          setPaymentPolling(false);
+        }
+      }
+    };
+
+    poll();
+  };
 
   const totalFields = data?.fields.length || 0;
   const requiredFields = data?.fields.filter(f => f.required) || [];
@@ -155,7 +223,14 @@ export default function SigningPage() {
       }));
 
       await signingApi.submitSignatures(token, { fields: payload });
-      setStep('success');
+
+      // After signing, check if payment is required
+      if (data?.paymentRequired) {
+        setStep('payment');
+        setPaymentCancelled(false);
+      } else {
+        setStep('success');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to submit signatures');
       setStep('error');
@@ -199,16 +274,26 @@ export default function SigningPage() {
 
   // SUCCESS STATE
   if (step === 'success') {
+    const messageText = data?.paymentRequired
+      ? 'Document signed and payment complete!'
+      : 'Document Signed Successfully';
+    const descText = data?.paymentRequired
+      ? 'Your signature and payment have been processed. A signed copy has been sent to the sender\'s email.'
+      : 'Your signature has been legally bound to this document. A signed copy has been sent to the sender\'s email.';
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center border-2 border-green-100">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
             <CheckCircle className="text-green-600" size={40} />
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Document Signed Successfully</h1>
-          <p className="text-gray-600 mb-6">
-            Your signature has been legally bound to this document. A signed copy has been sent to the sender's email.
-          </p>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">{messageText}</h1>
+          <p className="text-gray-600 mb-6">{descText}</p>
+          {paymentPolling && (
+            <div className="mb-4 text-sm text-gray-500">
+              Verifying payment...
+            </div>
+          )}
           <button
             onClick={() => window.close()}
             className="w-full px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
@@ -305,9 +390,54 @@ export default function SigningPage() {
     const isFieldSigned = signedFields.has(currentField.id);
     const fieldLabel = currentField.label || `${currentField.fieldType} Field`;
 
+    // Step indicators
+    const stepIndicators = data.paymentRequired
+      ? ['Review', 'Sign', 'Pay', 'Complete']
+      : ['Review', 'Sign', 'Complete'];
+    const currentStepIndex = 1; // We're on "Sign"
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 p-4 sm:p-6">
         <div className="max-w-4xl mx-auto">
+          {/* Step Indicator */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              {stepIndicators.map((label, idx) => (
+                <div key={idx} className="flex items-center flex-1">
+                  <div
+                    className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold ${
+                      idx < currentStepIndex
+                        ? 'bg-green-600 text-white'
+                        : idx === currentStepIndex
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {idx < currentStepIndex ? (
+                      <CheckCircle size={20} />
+                    ) : (
+                      idx + 1
+                    )}
+                  </div>
+                  <span
+                    className={`ml-2 text-sm font-medium ${
+                      idx <= currentStepIndex ? 'text-gray-900' : 'text-gray-500'
+                    }`}
+                  >
+                    {label}
+                  </span>
+                  {idx < stepIndicators.length - 1 && (
+                    <div
+                      className={`flex-1 h-1 mx-2 ${
+                        idx < currentStepIndex ? 'bg-green-600' : 'bg-gray-300'
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Sign Document</h1>
@@ -466,9 +596,54 @@ export default function SigningPage() {
 
   // CONFIRM STATE
   if (step === 'confirm' && data) {
+    // Step indicators
+    const stepIndicators = data.paymentRequired
+      ? ['Review', 'Sign', 'Pay', 'Complete']
+      : ['Review', 'Sign', 'Complete'];
+    const currentStepIndex = 1; // We're on "Sign" (showing the confirm step of signing)
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 p-4 sm:p-6">
         <div className="max-w-2xl mx-auto">
+          {/* Step Indicator */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              {stepIndicators.map((label, idx) => (
+                <div key={idx} className="flex items-center flex-1">
+                  <div
+                    className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold ${
+                      idx < currentStepIndex
+                        ? 'bg-green-600 text-white'
+                        : idx === currentStepIndex
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {idx < currentStepIndex ? (
+                      <CheckCircle size={20} />
+                    ) : (
+                      idx + 1
+                    )}
+                  </div>
+                  <span
+                    className={`ml-2 text-sm font-medium ${
+                      idx <= currentStepIndex ? 'text-gray-900' : 'text-gray-500'
+                    }`}
+                  >
+                    {label}
+                  </span>
+                  {idx < stepIndicators.length - 1 && (
+                    <div
+                      className={`flex-1 h-1 mx-2 ${
+                        idx < currentStepIndex ? 'bg-green-600' : 'bg-gray-300'
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-gray-900">Review & Submit</h1>
@@ -561,6 +736,152 @@ export default function SigningPage() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // PAYMENT STATE
+  if (step === 'payment' && data) {
+    const handlePayNow = async () => {
+      if (!token) return;
+
+      setPaymentCreating(true);
+      try {
+        const session = await signingApi.createPaymentSession(token);
+        // Redirect to Stripe checkout
+        window.location.href = session.checkoutUrl;
+      } catch (err: any) {
+        setError(err.message || 'Failed to create payment session');
+        setStep('error');
+      } finally {
+        setPaymentCreating(false);
+      }
+    };
+
+    // Format currency amount
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: data.paymentCurrency.toUpperCase(),
+    });
+    const displayAmount = formatter.format(data.paymentAmount / 100);
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 p-4 sm:p-6 flex items-center justify-center">
+        <div className="max-w-md w-full">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-indigo-600">DocuFlow</h1>
+            <p className="text-gray-500 text-sm mt-1">Secure Payment</p>
+          </div>
+
+          {/* Payment Card */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+            {/* Icon */}
+            <div className="flex justify-center mb-6">
+              <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
+                <CreditCard className="text-indigo-600" size={32} />
+              </div>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+              Payment Required
+            </h2>
+            <p className="text-center text-gray-600 text-sm mb-8">
+              Your signature has been saved. Complete payment to receive your signed copy.
+            </p>
+
+            {/* Document Info */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <FileText className="text-gray-400 flex-shrink-0 mt-1" size={20} />
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900">
+                    {data.document.fileName || data.document.name}
+                  </p>
+                  {data.paymentDescription && (
+                    <p className="text-sm text-gray-600 mt-1">{data.paymentDescription}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Amount Display */}
+            <div className="text-center mb-8">
+              <p className="text-gray-600 text-sm mb-2">Total Amount</p>
+              <p className="text-4xl font-bold text-indigo-600 tracking-tight">
+                {displayAmount}
+              </p>
+            </div>
+
+            {/* Cancelled Message */}
+            {paymentCancelled && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-yellow-800">
+                  Your payment was cancelled. You can try again below.
+                </p>
+              </div>
+            )}
+
+            {/* Trust Indicators */}
+            <div className="space-y-3 mb-8">
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <Lock className="text-green-600 flex-shrink-0" size={18} />
+                <span>Secured by Stripe</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <ShieldCheck className="text-green-600 flex-shrink-0" size={18} />
+                <span>PCI DSS Level 1 Certified</span>
+              </div>
+            </div>
+
+            {/* Card Icons */}
+            <div className="flex gap-2 justify-center mb-8">
+              <span className="text-xs font-medium text-gray-500 px-2 py-1 bg-gray-100 rounded">Visa</span>
+              <span className="text-xs font-medium text-gray-500 px-2 py-1 bg-gray-100 rounded">Mastercard</span>
+              <span className="text-xs font-medium text-gray-500 px-2 py-1 bg-gray-100 rounded">Amex</span>
+            </div>
+
+            {/* Pay Button */}
+            <button
+              onClick={handlePayNow}
+              disabled={paymentCreating}
+              className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 mb-4"
+            >
+              {paymentCreating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard size={20} />
+                  Pay {displayAmount} Now
+                </>
+              )}
+            </button>
+
+            {/* Back Button */}
+            <button
+              onClick={() => setStep('confirm')}
+              disabled={paymentCreating}
+              className="w-full px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              Back
+            </button>
+
+            {/* Security Note */}
+            <p className="text-xs text-gray-500 text-center mt-6">
+              Your card details are processed securely by Stripe and are never stored on our servers.
+            </p>
+          </div>
+
+          {/* Footer Trust Indicator */}
+          <div className="text-center mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
+            <Lock size={14} />
+            Secured by DocuFlow • Legally Binding
           </div>
         </div>
       </div>
