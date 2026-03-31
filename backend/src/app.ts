@@ -7,7 +7,8 @@ import { env } from './config/env';
 // Module imports — each module is self-contained
 import { authRoutes } from './modules/auth';
 import { convertRoutes } from './modules/convert';
-import { esignRoutes } from './modules/esign';
+import { esignRoutes, publicRoutes } from './modules/esign';
+import { documentRoutes } from './modules/documents';
 import { paymentRoutes } from './modules/payments';
 import { adminRoutes } from './modules/admin';
 import { dashboardRoutes } from './modules/dashboard';
@@ -38,7 +39,7 @@ app.get('/', (c) => {
     version: '1.0.0',
     status: 'healthy',
     environment: env.NODE_ENV,
-    modules: ['auth', 'convert', 'esign', 'payments', 'admin', 'dashboard', 'org', 'notifications', 'reminders', 'ai', 'reports', 'protection'],
+    modules: ['auth', 'convert', 'esign', 'sign', 'documents', 'payments', 'admin', 'dashboard', 'org', 'notifications', 'reminders', 'ai', 'reports', 'protection'],
   });
 });
 
@@ -52,6 +53,8 @@ app.get('/health', (c) => {
 app.route('/auth', authRoutes);
 app.route('/convert', convertRoutes);
 app.route('/esign', esignRoutes);
+app.route('/sign', publicRoutes);  // Public signing routes (no auth required)
+app.route('/documents', documentRoutes);
 app.route('/payments', paymentRoutes);
 app.route('/admin', adminRoutes);
 app.route('/dashboard', dashboardRoutes);
