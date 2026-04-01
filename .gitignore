@@ -44,3 +44,11 @@ pnpm-workspace.yaml
 *.tmp
 *.log
 
+
+# Editor
+editor/node_modules/
+editor/dist/
+
+# Dashboard
+dashboard/node_modules/
+dashboard/dist/
