@@ -1,4 +1,4 @@
-const CACHE_NAME = 'docuflow-v1';
+const CACHE_NAME = 'docpix-v4';
 const ASSETS = [
   './',
   './index.html',
