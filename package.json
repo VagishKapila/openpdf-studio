@@ -3,9 +3,10 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "OpenPDF Studio - PDF and image editor with free and premium features",
-  "author": "VagishKapila",
+  "description": "DocPix Studio - PDF and image editor with free and premium features",
+  "author": "Vagish Kapila <vaakapila@gmail.com>",
   "license": "MIT OR Apache-2.0",
+  "main": "electron/main.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/VagishKapila/openpdf-studio"
@@ -17,11 +18,113 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "tauri:build:release": "tauri build --release"
+    "tauri:build:release": "tauri build --release",
+    "electron:dev": "electron .",
+    "electron:build": "node scripts/build.mjs && electron-builder --mac",
+    "electron:build:all": "node scripts/build.mjs && electron-builder --mac --win --linux",
+    "electron:build:dmg": "node scripts/build.mjs && electron-builder --mac dmg"
   },
   "devDependencies": {
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/cli": "^2.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
     "vite": "^5.0.2"
+  },
+  "build": {
+    "appId": "com.docpixstudio.app",
+    "productName": "DocPix Studio",
+    "copyright": "Copyright © 2026 Vagish Kapila",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "!node_modules/**/*",
+      "node_modules/electron/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["universal"]
+        }
+      ],
+      "darkModeSupport": true,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "fileAssociations": [
+        {
+          "ext": "pdf",
+          "name": "PDF Document",
+          "description": "PDF Document",
+          "role": "Editor",
+          "mimeType": "application/pdf"
+        },
+        {
+          "ext": "png",
+          "name": "PNG Image",
+          "description": "PNG Image",
+          "role": "Editor",
+          "mimeType": "image/png"
+        },
+        {
+          "ext": "jpg",
+          "name": "JPEG Image",
+          "description": "JPEG Image",
+          "role": "Editor",
+          "mimeType": "image/jpeg"
+        },
+        {
+          "ext": "jpeg",
+          "name": "JPEG Image",
+          "description": "JPEG Image",
+          "role": "Editor",
+          "mimeType": "image/jpeg"
+        },
+        {
+          "ext": "webp",
+          "name": "WebP Image",
+          "description": "WebP Image",
+          "role": "Editor",
+          "mimeType": "image/webp"
+        },
+        {
+          "ext": "gif",
+          "name": "GIF Image",
+          "description": "GIF Image",
+          "role": "Editor",
+          "mimeType": "image/gif"
+        }
+      ]
+    },
+    "dmg": {
+      "title": "DocPix Studio ${version}",
+      "backgroundColor": "#0f172a",
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "assets/icon.ico",
+      "fileAssociations": [
+        {
+          "ext": "pdf",
+          "name": "PDF Document",
+          "description": "PDF Document"
+        }
+      ]
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Office",
+      "icon": "assets/icon.png"
+    }
   }
 }
