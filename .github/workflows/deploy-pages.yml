@@ -28,13 +28,13 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Create deployment directory
-        run: mkdir -p _site
+        run: mkdir -p _site _site/app
 
-      - name: Copy landing page
-        run: cp public/index.html _site/index.html
+      - name: Copy public files (landing page, privacy, 404, sitemap)
+        run: cp -r public/* _site/
 
-      - name: Copy src files to deployment
-        run: cp -r src/* _site/
+      - name: Copy editor app to /app/ subdirectory
+        run: cp -r src/* _site/app/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
