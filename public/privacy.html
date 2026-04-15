@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — OpenPDF Studio</title>
+  <meta name="description" content="Privacy Policy for OpenPDF Studio by Vagish Kapila · Varshyl Inc." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #0a0a0f; --paper: #f7f6f2; --accent: #5b4fff;
+      --muted: #6b6b78; --border: #e2e1dc; --card: #ffffff;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); line-height: 1.7; }
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 5vw; border-bottom: 1px solid var(--border);
+      background: var(--paper);
+    }
+    .nav-logo {
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem;
+      color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 8px;
+    }
+    .logo-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
+    .nav-back {
+      font-size: 0.875rem; color: var(--muted); text-decoration: none;
+      display: flex; align-items: center; gap: 6px;
+      transition: color 0.2s;
+    }
+    .nav-back:hover { color: var(--accent); }
+    .wrapper { max-width: 760px; margin: 0 auto; padding: 72px 5vw 96px; }
+    .page-label {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+      display: block;
+    }
+    h1 {
+      font-family: 'Syne', sans-serif; font-size: 2.4rem; font-weight: 800;
+      line-height: 1.15; margin-bottom: 12px; color: var(--ink);
+    }
+    .last-updated {
+      font-size: 0.85rem; color: var(--muted); margin-bottom: 48px;
+      padding-bottom: 32px; border-bottom: 1px solid var(--border);
+    }
+    h2 {
+      font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 700;
+      margin: 40px 0 12px; color: var(--ink);
+    }
+    p { color: var(--muted); margin-bottom: 16px; font-size: 0.95rem; }
+    ul { color: var(--muted); margin: 0 0 16px 20px; font-size: 0.95rem; }
+    ul li { margin-bottom: 8px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .highlight-box {
+      background: #ede9ff; border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 24px 0;
+    }
+    .highlight-box p { color: var(--ink); margin: 0; font-weight: 500; font-size: 0.9rem; }
+    footer {
+      border-top: 1px solid var(--border); padding: 32px 5vw;
+      text-align: center; font-size: 0.82rem; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo"><span class="logo-dot"></span>OpenPDF Studio</a>
+  <a href="/" class="nav-back">← Back to Home</a>
+</nav>
+
+<div class="wrapper">
+  <span class="page-label">Legal</span>
+  <h1>Privacy Policy</h1>
+  <div class="last-updated">Last updated: January 1, 2026 · Effective immediately</div>
+
+  <div class="highlight-box">
+    <p>Short version: OpenPDF Studio's core app runs locally on your device. Your documents are never uploaded to our servers unless you explicitly use a cloud feature. We don't sell your data. Ever.</p>
+  </div>
+
+  <h2>1. Who We Are</h2>
+  <p>OpenPDF Studio ("the App", "we", "us", "our") is developed and maintained by <strong>Vagish Kapila</strong> of <strong>Varshyl Inc</strong>. You can reach us at <a href="mailto:vagishkapila@gmail.com">vagishkapila@gmail.com</a>.</p>
+  <p>The App is available as a desktop application (macOS, Windows, Linux), a web app at <a href="https://snaphw.com">snaphw.com</a>, and via GitHub at <a href="https://github.com/VagishKapila/openpdf-studio">github.com/VagishKapila/openpdf-studio</a>.</p>
+
+  <h2>2. What Data We Collect</h2>
+
+  <p><strong>Desktop App (Free / Open Source tier)</strong></p>
+  <p>When you use the desktop application without a paid account, we collect <strong>no data whatsoever</strong>. All PDF editing, OCR processing, and document operations run entirely on your local machine. No files leave your device. No analytics are sent. No account is required.</p>
+
+  <p><strong>Web App and Paid Tiers</strong></p>
+  <p>When you create an account or use cloud features, we may collect:</p>
+  <ul>
+    <li><strong>Account information</strong> — your name, email address, and password (hashed, never stored in plaintext)</li>
+    <li><strong>Documents you upload</strong> — stored securely in AWS S3 (dpstudio-documents bucket) for the purpose of cloud sync and multi-signer workflows. You can delete your documents at any time.</li>
+    <li><strong>Signing activity</strong> — who signed a document, when, and from what IP address. This is an audit trail required for the legal validity of e-signatures.</li>
+    <li><strong>Payment information</strong> — we use Stripe for payment processing. We never store your credit card details. Stripe's privacy policy applies to payment data: <a href="https://stripe.com/privacy" target="_blank">stripe.com/privacy</a></li>
+    <li><strong>Usage analytics</strong> — basic, anonymized usage data (features used, error logs) to help us improve the product. No personally identifiable information is included.</li>
+  </ul>
+
+  <h2>3. OCR Processing</h2>
+  <p>OpenPDF Studio's OCR feature is powered by Tesseract.js and runs <strong>100% locally on your device</strong> in all tiers, including the web app. Documents scanned with OCR are processed in your browser or on your machine — they are never transmitted to any server for OCR processing.</p>
+
+  <h2>4. How We Use Your Data</h2>
+  <p>We use collected data only for the following purposes:</p>
+  <ul>
+    <li>Providing and operating the App's features (cloud sync, e-signature workflows, payment collection)</li>
+    <li>Sending transactional emails — signing requests, payment confirmations, and signing reminders</li>
+    <li>Maintaining audit logs for signed documents (required for legal enforceability of e-signatures)</li>
+    <li>Improving the product through anonymized usage analytics</li>
+  </ul>
+  <p>We do <strong>not</strong> use your data for advertising. We do <strong>not</strong> sell your data to third parties. We do <strong>not</strong> use your documents to train AI models.</p>
+
+  <h2>5. Data Storage and Security</h2>
+  <p>Documents uploaded via paid tiers are stored in AWS S3 with server-side encryption. All data in transit is encrypted via HTTPS/TLS. Authentication uses JWT tokens with expiration. Passwords are hashed using industry-standard algorithms before storage.</p>
+  <p>Our backend API is hosted on Railway. Our database is PostgreSQL managed by Railway. Both are protected by environment-level access controls.</p>
+
+  <h2>6. Third-Party Services</h2>
+  <p>OpenPDF Studio uses the following third-party services, each governed by their own privacy policies:</p>
+  <ul>
+    <li><strong>Stripe</strong> — payment processing (<a href="https://stripe.com/privacy" target="_blank">stripe.com/privacy</a>)</li>
+    <li><strong>AWS S3</strong> — document storage (<a href="https://aws.amazon.com/privacy/" target="_blank">aws.amazon.com/privacy</a>)</li>
+    <li><strong>Resend</strong> — transactional email (<a href="https://resend.com/privacy" target="_blank">resend.com/privacy</a>)</li>
+    <li><strong>Railway</strong> — backend hosting (<a href="https://railway.app/legal/privacy" target="_blank">railway.app/legal/privacy</a>)</li>
+  </ul>
+
+  <h2>7. Data Retention</h2>
+  <p>You may delete your account and all associated data at any time by emailing <a href="mailto:vagishkapila@gmail.com">vagishkapila@gmail.com</a>. Upon request, we will delete your account, documents, and all personal data within 30 days, except where retention is required by law (e.g., payment records).</p>
+  <p>Signed documents with attached audit trails may be retained for up to 7 years if required by applicable law in your jurisdiction for the legal enforceability of the e-signature.</p>
+
+  <h2>8. Your Rights</h2>
+  <p>Depending on your location, you may have the right to:</p>
+  <ul>
+    <li>Access the personal data we hold about you</li>
+    <li>Correct inaccurate data</li>
+    <li>Request deletion of your data</li>
+    <li>Export your data in a portable format</li>
+    <li>Object to certain processing activities</li>
+  </ul>
+  <p>To exercise any of these rights, email <a href="mailto:vagishkapila@gmail.com">vagishkapila@gmail.com</a>.</p>
+
+  <h2>9. Children's Privacy</h2>
+  <p>OpenPDF Studio is not directed at children under 13. We do not knowingly collect personal information from children. If you believe a child has provided us with personal data, contact us and we will delete it promptly.</p>
+
+  <h2>10. Changes to This Policy</h2>
+  <p>We may update this Privacy Policy from time to time. When we do, we will update the "last updated" date at the top of this page. Continued use of the App after changes constitutes acceptance of the updated policy. Significant changes will be communicated by email to registered users.</p>
+
+  <h2>11. Contact</h2>
+  <p>Questions about this Privacy Policy? Contact us:</p>
+  <ul>
+    <li>Email: <a href="mailto:vagishkapila@gmail.com">vagishkapila@gmail.com</a></li>
+    <li>Website: <a href="https://snaphw.com">snaphw.com</a></li>
+    <li>Company: Varshyl Inc</li>
+  </ul>
+</div>
+
+<footer>
+  © 2026 Vagish Kapila · Varshyl Inc · <a href="/">Back to OpenPDF Studio</a>
+</footer>
+
+</body>
+</html>
