@@ -1,436 +1,142 @@
 # OpenPDF Studio
 
-A PDF and image editor built with Tauri 2.0 and React. Free core features with premium paid tiers.
+> **The free, open-source alternative to Adobe Acrobat Pro.**
+> Edit PDFs, collect e-signatures, run OCR, and get paid — all in one app. No subscription. No cloud. No BS.
 
-**Developer**: VagishKapila
-**Repository**: https://github.com/VagishKapila/openpdf-studio
-**License**: MIT OR Apache-2.0
+[![License: MIT](https://img.shields.io/badge/License-MIT-5b4fff.svg)](LICENSE-MIT)
+[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-brightgreen)](https://github.com/VagishKapila/openpdf-studio/releases)
+[![Version](https://img.shields.io/badge/Version-1.0.0-blue)](https://github.com/VagishKapila/openpdf-studio/releases/tag/v1.0.0)
+[![Website](https://img.shields.io/badge/Website-snaphw.com-5b4fff)](https://snaphw.com)
+
+**[⬇ Download for macOS](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_aarch64.dmg) · [⬇ Windows](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_x64-setup.exe) · [⬇ Linux](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_amd64.AppImage) · [🌐 Try in Browser](https://snaphw.com/app/)**
+
+---
+
+## Why OpenPDF Studio?
+
+Adobe Acrobat costs **$25/month**. DocuSign charges **per envelope**. OpenPDF Studio is **free forever** — and it does more than both combined.
+
+| Feature | OpenPDF Studio | Adobe Acrobat | DocuSign |
+|---------|:--------------:|:-------------:|:--------:|
+| Price | **Free** | $25/mo | $15+/mo |
+| PDF Editing | ✅ | ✅ | ❌ |
+| E-Signatures | ✅ | ✅ | ✅ |
+| Payment Collection | ✅ Built-in | ❌ | ❌ |
+| AI OCR (local) | ✅ | ✅ Cloud | ❌ |
+| Open Source | ✅ MIT | ❌ | ❌ |
+| Privacy (runs locally) | ✅ | ❌ | ❌ |
+| App size | ~2.5 MB | ~4 GB | N/A |
+
+---
 
 ## Features
 
-- PDF editing and manipulation
-- Image editing with canvas-based tools
-- OCR capabilities (Tesseract.js)
-- PDF encryption/decryption
-- Cross-platform desktop application (Windows, macOS, Linux)
-- Dark theme UI
-- Modern, responsive interface
+### 📄 PDF Editing
+- Add text, shapes, images, and annotations to any PDF
+- Merge multiple PDFs into one file
+- Split a PDF into separate documents
+- Rotate, reorder, and delete pages
+- Compress PDF file size
+- Password-protect and encrypt PDFs
+- Fill and save PDF forms
 
-## Technology Stack
+### 🤖 AI-Powered OCR (100% Local)
+- Scan a paper document → instantly editable text
+- Powered by Tesseract.js — same engine as Google
+- 100+ languages supported
+- Runs entirely on your computer — zero cloud upload, full privacy
 
-- **Desktop Framework**: Tauri 2.0 (Rust backend)
-- **UI Framework**: React 18 + TypeScript
-- **Build Tool**: Vite
-- **PDF Libraries**: pdf.js, pdf-lib
-- **Canvas Editing**: Fabric.js
-- **OCR**: Tesseract.js
-- **State Management**: Zustand
-- **HTTP Client**: Axios
+### ✍️ E-Signatures
+- Auto-detect signature fields in any PDF
+- Draw or type your signature
+- Sign all fields with one click
+- Multi-signer support — send to others for signature
+- Flatten signatures permanently into the PDF
 
-## Project Structure
+### 💳 Payment Collection (Unique)
+No other PDF tool does this. After signing, collect payment in the same workflow. Set a custom amount, generate a payment link or QR code, and track payment status per document. Powered by Stripe.
 
-```
-openpdf-studio/
-├── src/                          # Frontend React application
-│   ├── components/               # React components
-│   ├── pages/                    # Page components
-│   ├── utils/                    # Utility functions
-│   ├── types/                    # TypeScript type definitions
-│   ├── assets/                   # Static assets
-│   ├── App.tsx                   # Main app component
-│   └── index.html               # HTML entry point
-├── src-tauri/                    # Rust backend for Tauri
-│   ├── src/
-│   │   ├── main.rs              # Main Tauri application
-│   │   ├── lib.rs               # Library module
-│   │   └── commands.rs          # Command handlers
-│   ├── icons/                    # Application icons
-│   ├── Cargo.toml               # Rust dependencies
-│   ├── build.rs                 # Build script
-│   ├── tauri.conf.json          # Tauri configuration
-│   ├── entitlements.plist       # macOS entitlements
-│   ├── sign.ps1                 # Windows code signing script
-│   └── SIGNING_SETUP.md         # Code signing documentation
-├── vite.config.ts               # Vite configuration
-├── package.json                 # Node dependencies
-├── tsconfig.json               # TypeScript configuration
-└── README.md                    # This file
-```
+### 🖥️ Cross-Platform Native App
+Built with **Tauri 2.0** (Rust) — not Electron. Result: a **2.5MB app** that launches instantly with almost no memory usage, natively on Apple Silicon and Intel Macs.
 
-## Prerequisites
+---
 
-### System Requirements
+## Download
 
-- **Node.js**: v18 or higher
-- **Rust**: Latest stable (install from https://rustup.rs/)
-- **Tauri CLI**: Install via npm
+| Platform | Download | Notes |
+|----------|----------|-------|
+| **macOS (Apple Silicon)** | [.dmg ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_aarch64.dmg) | M1/M2/M3 · Signed + Notarized |
+| **macOS (Intel)** | [.dmg ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_x64.dmg) | Intel Macs · Signed + Notarized |
+| **Windows** | [.exe ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_x64-setup.exe) | Windows 10/11 |
+| **Linux (Ubuntu/Debian)** | [.deb ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_amd64.deb) | |
+| **Linux (Universal)** | [.AppImage ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_amd64.AppImage) | Runs on any distro |
 
-### Platform-Specific Requirements
+**macOS users:** Double-click the .dmg, drag to Applications. No Gatekeeper warnings — the app is signed with an Apple Developer ID and notarized.
 
-#### Windows
-- Visual Studio 2019+ or Visual Studio Build Tools
-- Windows 10/11 SDK
-- Optional: Code signing certificate (for production builds)
+---
 
-#### macOS
-- Xcode 13+ or Command Line Tools
-- Apple Developer Account (for code signing)
-- Optional: Code signing certificate
-
-#### Linux
-- GTK 3.6+ development files
-- WebKitGTK 2.38+ development files
-- Optional: qpdf for PDF encryption features
-
-## Installation
-
-### 1. Clone the Repository
+## Quick Start (Development)
 
 ```bash
 git clone https://github.com/VagishKapila/openpdf-studio.git
 cd openpdf-studio
-```
-
-### 2. Install Dependencies
-
-```bash
-# Install Node/npm dependencies
 npm install
-
-# Install Tauri CLI
-npm install -g @tauri-apps/cli
+npm run tauri:dev    # dev mode with hot reload
+npm run tauri:build  # production build
 ```
 
-### 3. Install Rust (if not already installed)
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source $HOME/.cargo/env
-```
-
-### 4. Platform-Specific Setup
-
-#### Linux
-```bash
-# Ubuntu/Debian
-sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf qpdf
-
-# Fedora
-sudo dnf install -y gtk3-devel webkit2gtk3-devel libappindicator-gtk3-devel librsvg2-devel qpdf
-```
-
-#### macOS
-```bash
-# Install Xcode Command Line Tools (if not already installed)
-xcode-select --install
-
-# Install qpdf for PDF encryption support
-brew install qpdf
-```
-
-#### Windows
-```powershell
-# Install Visual Studio Build Tools or Visual Studio Community
-# Visit: https://visualstudio.microsoft.com/downloads/
-
-# Install qpdf using Chocolatey (optional)
-choco install qpdf
-# Or download from: https://github.com/qpdf/qpdf/releases
-```
-
-## Development
-
-### Running in Development Mode
-
-```bash
-npm run tauri:dev
-```
-
-This will:
-1. Start the Vite dev server (http://localhost:5173)
-2. Launch the Tauri application
-3. Enable hot module reloading (HMR)
-
-### Building for Production
-
-```bash
-# Build everything (frontend + Tauri)
-npm run tauri:build
-
-# Build with release optimizations
-npm run tauri:build:release
-```
-
-The built application will be in `src-tauri/target/release/bundle/`.
-
-### Frontend Development Only
-
-If you only want to work on the UI without the Tauri framework:
-
-```bash
-npm run dev
-```
-
-Then open http://localhost:5173 in your browser.
-
-### Building Frontend Only
-
-```bash
-npm run build
-```
-
-Output will be in the `dist/` directory.
-
-## Code Signing & Distribution
-
-### Important: Windows Code Signing
-
-To prevent Windows SmartScreen warnings and false virus flags:
-
-1. **Obtain a Code Signing Certificate**
-   - Purchase from DigiCert, Sectigo, or Comodo
-   - Or create a self-signed certificate for testing
-
-2. **Configure Signing**
-   - See `src-tauri/SIGNING_SETUP.md` for detailed instructions
-   - Update `tauri.conf.json` with your certificate thumbprint
-   - Or set `CODESIGN_CERT_THUMBPRINT` environment variable
-
-3. **Build Signed Release**
-   ```bash
-   npm run tauri:build:release
-   ```
-
-### macOS Code Signing
-
-1. **Obtain Developer Certificate**
-   - Sign up for Apple Developer Program ($99/year)
-   - Create signing certificate in Xcode
-
-2. **Configure Signing**
-   - See `src-tauri/SIGNING_SETUP.md` for detailed instructions
-   - Update `tauri.conf.json` with your signing identity
-
-3. **Notarize for Distribution**
-   ```bash
-   # After building, notarize the .dmg
-   xcrun altool --notarize-app --file ./OpenPDF\ Studio.dmg \
-     --primary-bundle-id com.openpdfstudio.app \
-     -u appleid@example.com -p app-specific-password
-   ```
-
-### Linux Packaging
-
-Linux automatically packages as:
-- `.deb` for Debian/Ubuntu
-- `.AppImage` for universal distribution
-
-No code signing required on Linux.
-
-## Available Commands
-
-### Frontend Commands
-- `npm run dev` - Start Vite dev server
-- `npm run build` - Build frontend for production
-- `npm run preview` - Preview production build locally
-- `npm run lint` - Run ESLint
-
-### Tauri Commands
-- `npm run tauri:dev` - Run in development mode with hot reload
-- `npm run tauri:build` - Build for production
-- `npm run tauri:build:release` - Build with optimizations
-
-## Tauri Commands (Backend)
-
-The Tauri backend exposes these commands to the frontend:
-
-### File Operations
-- `read_file(path: string)` - Read file contents
-- `write_file(path: string, contents: string)` - Write file contents
-- `list_dir(path: string)` - List directory contents
-- `copy_file(src: string, dest: string)` - Copy a file
-- `delete_file(path: string)` - Delete a file
-- `get_file_info(path: string)` - Get file metadata
-
-### PDF Operations
-- `encrypt_pdf(input_path: string, output_path: string, password: string)` - Encrypt PDF with password
-- `decrypt_pdf(input_path: string, output_path: string, password: string)` - Decrypt PDF
-
-### Usage in React
-
-```typescript
-import { invoke } from '@tauri-apps/api/tauri';
-
-// Read a file
-const contents = await invoke('read_file', { path: '/path/to/file' });
-
-// Encrypt a PDF
-const result = await invoke('encrypt_pdf', {
-  inputPath: '/path/to/input.pdf',
-  outputPath: '/path/to/output.pdf',
-  password: 'secret123'
-});
-```
-
-## Configuration
-
-### Tauri Configuration (tauri.conf.json)
-
-Key configurations:
-
-```json
-{
-  "app": {
-    "windows": [{
-      "title": "OpenPDF Studio",
-      "width": 1400,
-      "height": 900
-    }],
-    "security": {
-      "csp": "..." // Content Security Policy
-    }
-  },
-  "tauri": {
-    "bundle": {
-      "targets": ["msi", "nsis", "dmg", "deb", "appimage"],
-      "windows": {
-        "certificateThumbprint": "YOUR_CERT_THUMBPRINT"
-      }
-    },
-    "updater": {
-      "active": true,
-      "endpoints": ["https://updates.tauri.app/releases/{{target}}/{{arch}}"]
-    }
-  }
-}
-```
-
-### App Icons
-
-Place icon files in `src-tauri/icons/`:
-- `icon.ico` - Windows executable icon
-- `icon.icns` - macOS app icon
-- `32x32.png`, `128x128.png`, `128x128@2x.png` - Linux icons
-
-See `src-tauri/icons/README.md` for icon generation instructions.
-
-## Troubleshooting
-
-### Issue: "command not found: cargo"
-
-**Solution**: Install Rust using rustup
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-### Issue: WebKitGTK not found (Linux)
-
-**Solution**: Install development files
-```bash
-sudo apt-get install libwebkit2gtk-4.0-dev
-```
-
-### Issue: Code signing failures on Windows
-
-**Solution**: See `src-tauri/SIGNING_SETUP.md` for detailed troubleshooting
-
-### Issue: macOS Gatekeeper warning
-
-**Solution**: Notarize the application (see Code Signing section above)
-
-### Issue: PDF encryption command not found
-
-**Solution**: Install qpdf on your system
-```bash
-# macOS
-brew install qpdf
-
-# Linux (Ubuntu/Debian)
-sudo apt-get install qpdf
-
-# Windows
-choco install qpdf
-# Or download: https://github.com/qpdf/qpdf/releases
-```
-
-## Performance Optimization
-
-### Bundle Size
-- The default build uses tree-shaking and code splitting
-- pdf.js and fabric.js are split into separate chunks
-- Vite minification reduces the final bundle by ~70%
-
-### Runtime Performance
-- Tauri uses native WebKit engine (very performant)
-- Large PDF operations run in a background thread
-- OCR processing is offloaded to Tesseract.js workers
-
-## Security Considerations
-
-### Content Security Policy (CSP)
-
-The app includes a strict CSP that allows:
-- Local scripts only (same-origin)
-- Trusted CDNs for libraries (pdf.js, fabric.js, tesseract.js)
-- GitHub API for auto-updates
-
-### File System Access
-
-- All file operations are sandboxed by Tauri
-- The app only reads/writes user-selected files
-- No access to system files outside user's home directory
-
-### Code Integrity
-
-- All builds are code-signed (Windows/macOS)
-- Enable auto-updates to receive security patches
-- Review dependencies regularly with `npm audit`
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-For major changes, please open an issue first to discuss.
-
-## License
-
-OpenPDF Studio is dual-licensed under MIT OR Apache-2.0. See LICENSE files for details.
-
-## Support & Issues
-
-- **Bug Reports**: https://github.com/VagishKapila/openpdf-studio/issues
-- **Feature Requests**: https://github.com/VagishKapila/openpdf-studio/discussions
-- **Documentation**: Check the docs/ directory
-
-## Roadmap
-
-- [ ] Web-based version
-- [ ] Batch processing
-- [ ] Advanced OCR features
-- [ ] Plugin system
-- [ ] Cloud synchronization
-- [ ] Mobile app (React Native)
-
-## Acknowledgments
-
-Built with:
-- [Tauri](https://tauri.app/) - Desktop framework
-- [React](https://react.dev/) - UI library
-- [Vite](https://vitejs.dev/) - Build tool
-- [pdf.js](https://mozilla.github.io/pdf.js/) - PDF rendering
-- [Fabric.js](http://fabricjs.com/) - Canvas editing
-- [Tesseract.js](https://tesseract.projectnaptha.com/) - OCR
-
-## Stay Updated
-
-- Watch the repository for release notifications
-- Enable auto-updates in the app settings
-- Follow releases at: https://github.com/VagishKapila/openpdf-studio/releases
+**Requirements:** Node.js 18+, Rust (stable) — see [SETUP_GUIDE.md](SETUP_GUIDE.md)
 
 ---
 
-**Happy editing! 📄✨**
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Desktop | [Tauri 2.0](https://tauri.app/) — Rust backend, 60x smaller than Electron |
+| UI | React 19 + TypeScript + Vite + Tailwind CSS |
+| PDF Rendering | [PDF.js](https://mozilla.github.io/pdf.js/) (Mozilla) |
+| PDF Editing | [pdf-lib](https://pdf-lib.js.org/) |
+| Canvas | [Fabric.js](http://fabricjs.com/) |
+| OCR | [Tesseract.js 5](https://tesseract.projectnaptha.com/) — 100% local, 100+ languages |
+| Payments | [Stripe Checkout](https://stripe.com/payments/checkout) |
+| Backend | Hono.js + TypeScript on Railway |
+| Database | PostgreSQL + Drizzle ORM |
+| Code Signing | Apple Developer ID — Signed + Notarized (SnapHomework / 58QM83PCDW) |
+
+---
+
+## Pricing
+
+| Tier | Price | What's included |
+|------|-------|-----------------|
+| **Free** | $0 forever | Full PDF editor, OCR, local signing, all desktop features |
+| **Starter** | $29/mo | Cloud sync, 100 sign requests/month, email notifications |
+| **Pro** | $99/mo | Unlimited signing, payment collection, analytics dashboard |
+| **Enterprise** | Custom | White-label, multi-tenant, custom domain, dedicated support |
+
+---
+
+## Contributing
+
+Contributions are welcome! Open an issue first to discuss your idea, then submit a PR.
+
+---
+
+## License
+
+OpenPDF Studio is dual-licensed under **MIT OR Apache-2.0**.
+
+---
+
+## About
+
+Built by **[Vagish Kapila](https://github.com/VagishKapila)** · **[Varshyl Inc](https://varshyl.com)**
+
+Vagish Kapila is a builder and entrepreneur working across construction tech, AI tools, and software development. OpenPDF Studio was built to give professionals — in construction, real estate, and small business — a free, privacy-first alternative to expensive document software.
+
+**Website:** [snaphw.com](https://snaphw.com) · **Issues:** [GitHub Issues](https://github.com/VagishKapila/openpdf-studio/issues)
+
+---
+
+*© 2026 Vagish Kapila · Varshyl Inc*
