@@ -26,50 +26,18 @@ jobs:
       - name: Build frontend
         run: node scripts/build.mjs
 
-      # --- Apple Code Signing Setup ---
-      - name: Import Apple certificate
-        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          # Create a temporary keychain
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-
-          # Create keychain
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
-          # Decode certificate from base64 and import
-          echo "$APPLE_CERTIFICATE" | base64 --decode > $RUNNER_TEMP/certificate.p12
-          security import $RUNNER_TEMP/certificate.p12 \
-            -P "$APPLE_CERTIFICATE_PASSWORD" \
-            -A \
-            -t cert \
-            -f pkcs12 \
-            -k $KEYCHAIN_PATH
-
-          # Set keychain to be used by codesign
-          security list-keychain -d user -s $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
-          # Verify certificate was imported
-          security find-identity -v -p codesigning $KEYCHAIN_PATH
-
-      # --- Build signed + notarized DMG ---
-      - name: Build Mac DMG (signed + notarized)
+      # Build unsigned DMG.
+      # To enable code signing + notarization later, add these repo secrets:
+      #   APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_ID,
+      #   APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID
+      # and switch the mac build config to hardenedRuntime:true, notarize:true,
+      # identity: (unset). See commit history for the signing-ready workflow.
+      - name: Build Mac DMG (unsigned)
         run: npx electron-builder --mac dmg
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Code signing (electron-builder reads these automatically)
-          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
-          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          # Notarization (electron-builder v25+ uses @electron/notarize)
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Skip auto-discovery so local dev certs on runner aren't picked up
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
@@ -85,12 +53,3 @@ jobs:
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # --- Cleanup ---
-      - name: Cleanup keychain
-        if: always()
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          if [ -f "$KEYCHAIN_PATH" ]; then
-            security delete-keychain $KEYCHAIN_PATH
-          fi

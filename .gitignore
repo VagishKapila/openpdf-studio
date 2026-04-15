@@ -44,3 +44,18 @@ pnpm-workspace.yaml
 *.tmp
 *.log
 
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+release/
+out/
+
+# Cert staging
+signing/
+*.p12
+*.cer
+*.certSigningRequest
+private.key
