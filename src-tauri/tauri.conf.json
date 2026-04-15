@@ -7,7 +7,7 @@
   },
   "productName": "OpenPDF Studio",
   "version": "1.0.0",
-  "identifier": "com.openpdfstudio.app",
+  "identifier": "com.varshyl.openpdf-studio",
   "app": {
     "windows": [
       {
