@@ -348,12 +348,44 @@ const DPStudioAPI = (() => {
     },
   };
 
+
+  // ===== SIGNATURE REQUESTS MODULE =====
+  const signatureRequests = {
+    async create({ documentUrl, signers, message, deadline, requirePayment, paymentAmount, paymentDescription }) {
+      return request('/signature-requests', {
+        method: 'POST',
+        body: { documentUrl, signers, message, deadline, requirePayment, paymentAmount, paymentDescription },
+      });
+    },
+
+    async list(params = {}) {
+      const qs = new URLSearchParams(params).toString();
+      return request(`/signature-requests${qs ? '?' + qs : ''}`);
+    },
+
+    async get(id) {
+      return request(`/signature-requests/${id}`);
+    },
+
+    async delete(id) {
+      return request(`/signature-requests/${id}`, { method: 'DELETE' });
+    },
+
+    async remind(id, signerId) {
+      return request(`/signature-requests/${id}/remind`, {
+        method: 'POST',
+        body: { signerId },
+      });
+    },
+  };
+
   // ===== PUBLIC API =====
   return {
     auth,
     convert,
     documents,
     marketplace,
+    signatureRequests,
     onAuthChange,
     APIError,
     // Expose API base URL
