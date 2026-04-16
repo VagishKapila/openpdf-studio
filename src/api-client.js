@@ -352,7 +352,7 @@ const DPStudioAPI = (() => {
   // ===== SIGNATURE REQUESTS MODULE =====
   const signatureRequests = {
     async create({ documentUrl, signers, message, deadline, requirePayment, paymentAmount, paymentDescription }) {
-      return request('/signature-requests', {
+      return request('/api/signature-requests', {
         method: 'POST',
         body: { documentUrl, signers, message, deadline, requirePayment, paymentAmount, paymentDescription },
       });
@@ -360,19 +360,19 @@ const DPStudioAPI = (() => {
 
     async list(params = {}) {
       const qs = new URLSearchParams(params).toString();
-      return request(`/signature-requests${qs ? '?' + qs : ''}`);
+      return request(`/api/signature-requests${qs ? '?' + qs : ''}`);
     },
 
     async get(id) {
-      return request(`/signature-requests/${id}`);
+      return request(`/api/signature-requests/${id}`);
     },
 
     async delete(id) {
-      return request(`/signature-requests/${id}`, { method: 'DELETE' });
+      return request(`/api/signature-requests/${id}`, { method: 'DELETE' });
     },
 
     async remind(id, signerId) {
-      return request(`/signature-requests/${id}/remind`, {
+      return request(`/api/signature-requests/${id}/remind`, {
         method: 'POST',
         body: { signerId },
       });
