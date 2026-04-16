@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Document - OpenPDF Studio</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f9fafb; }
+    .container { max-width: 1024px; margin: 0 auto; }
+
+    /* Header */
+    header {
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 1rem; }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .brand-name { font-weight: 600; color: #111827; }
+    .header-right { font-size: 14px; color: #6b7280; }
+
+    /* Main content */
+    .content { padding: 2rem 1.5rem; }
+    .document-header { margin-bottom: 2rem; }
+    .doc-title { font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem; }
+    .doc-meta { font-size: 14px; color: #6b7280; }
+    .doc-note { background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 1rem; margin-top: 1rem; color: #4c1d95; font-style: italic; }
+
+    /* Document preview */
+    .preview-section { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; }
+    .section-title { font-weight: 600; color: #111827; margin-bottom: 1rem; }
+    .document-frame { width: 100%; height: 400px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; }
+
+    /* Signature section */
+    .signature-section { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; }
+    .signature-tabs { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
+    .tab-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+    .tab-btn:not(.active) { background: #f3f4f6; color: #374151; }
+
+    /* Canvas drawing area */
+    .draw-area { border: 2px dashed #d1d5db; border-radius: 8px; background: #f9fafb; display: block; width: 100%; margin-bottom: 0.75rem; cursor: crosshair; }
+    .clear-btn { font-size: 12px; color: #6b7280; cursor: pointer; }
+    .clear-btn:hover { color: #374151; }
+
+    /* Text input area */
+    .text-input { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 0.75rem; font-size: 1.25rem; font-family: Georgia, serif; font-style: italic; }
+    .text-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+    .text-preview { font-size: 12px; color: #6b7280; margin-top: 0.5rem; }
+    .text-preview span { font-family: Georgia, serif; font-style: italic; font-size: 1.25rem; }
+
+    /* Sign button */
+    .sign-btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-top: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: opacity 0.2s;
+    }
+    .sign-btn:hover:not(:disabled) { opacity: 0.9; }
+    .sign-btn:disabled { background: #d1d5db; cursor: not-allowed; }
+
+    .legal-text { font-size: 12px; color: #9ca3af; text-align: center; margin-top: 0.75rem; }
+
+    /* Loading & error states */
+    .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .loader { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-box { background: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; padding: 1.5rem; color: #7f1d1d; }
+    .error-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .error-title { font-weight: 700; margin-bottom: 0.25rem; }
+
+    /* Success state */
+    .success-box { background: white; border-radius: 12px; padding: 2rem; text-align: center; }
+    .success-icon { font-size: 4rem; margin-bottom: 1rem; }
+    .success-title { font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem; }
+    .success-text { color: #6b7280; margin-bottom: 1.5rem; }
+    .download-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: #059669; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.2s; }
+    .download-btn:hover { background: #047857; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <div class="logo-icon">O</div>
+      <span class="brand-name">OpenPDF Studio</span>
+    </div>
+    <div class="header-right" id="headerStatus">Loading...</div>
+  </header>
+
+  <div class="container">
+    <!-- Loading state -->
+    <div id="loadingState" class="content loading">
+      <div>
+        <svg class="loader" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
+          <circle cx="12" cy="12" r="10" fill="none"></circle>
+          <path d="M12 2a10 10 0 0110 10" fill="none"></path>
+        </svg>
+        <p style="color: #6b7280; margin-top: 1rem;">Loading document...</p>
+      </div>
+    </div>
+
+    <!-- Invalid link state -->
+    <div id="invalidState" style="display: none;" class="content">
+      <div style="text-align: center; max-width: 400px; margin: 4rem auto;">
+        <div class="error-box">
+          <div class="error-icon">!</div>
+          <div class="error-title">Invalid Link</div>
+          <p id="invalidMessage" style="margin: 0;">The signing link is invalid or has expired.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Already signed state -->
+    <div id="alreadySignedState" style="display: none;" class="content">
+      <div style="text-align: center; max-width: 400px; margin: 4rem auto;">
+        <div class="success-box">
+          <div class="success-icon">✓</div>
+          <h2 class="success-title">Already Signed</h2>
+          <p class="success-text">You have already signed this document.</p>
+          <a id="downloadAlreadySignedBtn" href="#" class="download-btn" style="display: none;">Download Document</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main signing form -->
+    <div id="signingForm" style="display: none;">
+      <div class="content">
+        <!-- Document info -->
+        <div class="document-header">
+          <h1 class="doc-title" id="docTitle">Loading...</h1>
+          <p class="doc-meta" id="docMeta"></p>
+          <div id="senderNote" class="doc-note" style="display: none;"></div>
+        </div>
+
+        <!-- Document preview -->
+        <div class="preview-section">
+          <div class="section-title">Document Preview</div>
+          <iframe id="docFrame" class="document-frame" title="Document to sign"></iframe>
+        </div>
+
+        <!-- Signature -->
+        <div class="signature-section">
+          <div class="section-title">Your Signature</div>
+          <div class="signature-tabs">
+            <button class="tab-btn active" data-tab="draw">Draw</button>
+            <button class="tab-btn" data-tab="type">Type</button>
+          </div>
+
+          <!-- Draw tab -->
+          <div id="drawTab">
+            <canvas id="signatureCanvas" class="draw-area" width="500" height="150"></canvas>
+            <button class="clear-btn" onclick="clearCanvas()">Clear</button>
+          </div>
+
+          <!-- Type tab -->
+          <div id="typeTab" style="display: none;">
+            <input type="text" id="typedSignature" class="text-input" placeholder="Type your full name">
+            <div class="text-preview" id="textPreview"></div>
+          </div>
+
+          <button class="sign-btn" id="signBtn" onclick="handleSign()">
+            <span>✍️</span>
+            <span>Sign Document</span>
+          </button>
+
+          <p class="legal-text">By clicking "Sign Document", you agree that your electronic signature is legally binding.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success state -->
+    <div id="successState" style="display: none;" class="content">
+      <div style="text-align: center; max-width: 400px; margin: 4rem auto;">
+        <div class="success-box">
+          <div class="success-icon">✓</div>
+          <h2 class="success-title">Document Signed!</h2>
+          <p class="success-text" id="successMsg"></p>
+          <a id="downloadBtn" href="#" class="download-btn">Download Signed Document</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.hostname === 'localhost'
+      ? 'http://localhost:3001'
+      : 'https://openpdf-studio-production.up.railway.app';
+
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    let signingData = null;
+    let isCanvasEmpty = true;
+
+    // Get signing page data
+    async function loadSigningData() {
+      try {
+        const res = await fetch(`${API_BASE}/api/sign/${token}`);
+        const data = await res.json();
+
+        if (data.error === 'already_signed') {
+          document.getElementById('loadingState').style.display = 'none';
+          document.getElementById('alreadySignedState').style.display = 'block';
+          if (data.downloadUrl) {
+            const btn = document.getElementById('downloadAlreadySignedBtn');
+            btn.href = data.downloadUrl;
+            btn.style.display = 'inline-flex';
+          }
+          return;
+        }
+
+        if (data.error) {
+          document.getElementById('loadingState').style.display = 'none';
+          document.getElementById('invalidState').style.display = 'block';
+          document.getElementById('invalidMessage').textContent = data.error || 'Failed to load document.';
+          return;
+        }
+
+        signingData = data;
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('signingForm').style.display = 'block';
+
+        // Populate form
+        document.getElementById('docTitle').textContent = data.documentTitle;
+        document.getElementById('docMeta').textContent = `Signing as: ${data.signerName} · ${data.signerEmail}`;
+        document.getElementById('headerStatus').textContent = "You've been asked to sign a document";
+
+        if (data.senderMessage) {
+          document.getElementById('senderNote').textContent = `"${data.senderMessage}"`;
+          document.getElementById('senderNote').style.display = 'block';
+        }
+
+        document.getElementById('docFrame').src = data.documentUrl;
+      } catch (err) {
+        console.error('Error loading signing data:', err);
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('invalidState').style.display = 'block';
+      }
+    }
+
+    // Canvas drawing
+    const canvas = document.getElementById('signatureCanvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let lastPos = null;
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      const rect = canvas.getBoundingClientRect();
+      lastPos = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDrawing) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      ctx.beginPath();
+      ctx.moveTo(lastPos.x, lastPos.y);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = '#1a1a2e';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      lastPos = { x, y };
+      isCanvasEmpty = false;
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDrawing = false;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      isDrawing = false;
+    });
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      isCanvasEmpty = true;
+    }
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        if (btn.dataset.tab === 'draw') {
+          document.getElementById('drawTab').style.display = 'block';
+          document.getElementById('typeTab').style.display = 'none';
+        } else {
+          document.getElementById('drawTab').style.display = 'none';
+          document.getElementById('typeTab').style.display = 'block';
+        }
+      });
+    });
+
+    // Type signature preview
+    document.getElementById('typedSignature').addEventListener('input', (e) => {
+      const preview = document.getElementById('textPreview');
+      if (e.target.value) {
+        preview.innerHTML = `Preview: <span>${e.target.value}</span>`;
+      } else {
+        preview.textContent = '';
+      }
+    });
+
+    // Get signature data
+    function getSignatureData() {
+      const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
+      if (activeTab === 'draw') {
+        return isCanvasEmpty ? '' : canvas.toDataURL('image/png');
+      } else {
+        const typed = document.getElementById('typedSignature').value.trim();
+        if (!typed) return '';
+        const c = document.createElement('canvas');
+        c.width = 400; c.height = 100;
+        const ctxTemp = c.getContext('2d');
+        ctxTemp.fillStyle = 'white'; ctxTemp.fillRect(0, 0, 400, 100);
+        ctxTemp.font = 'italic 48px Georgia';
+        ctxTemp.fillStyle = '#1a1a2e';
+        ctxTemp.fillText(typed, 10, 70);
+        return c.toDataURL('image/png');
+      }
+    }
+
+    // Handle signing
+    async function handleSign() {
+      const sig = getSignatureData();
+      if (!sig) {
+        alert('Please provide your signature');
+        return;
+      }
+
+      const btn = document.getElementById('signBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<svg class="loader" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" fill="none"></circle><path d="M12 2a10 10 0 0110 10" fill="none"></path></svg><span>Signing...</span>';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/sign/${token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            signatureDataUrl: sig,
+            signerName: signingData.signerName,
+            fieldValues: {},
+          }),
+        });
+
+        const result = await res.json();
+        if (result.success) {
+          document.getElementById('signingForm').style.display = 'none';
+          document.getElementById('successState').style.display = 'block';
+          document.getElementById('successMsg').textContent = `You've successfully signed "${signingData.documentTitle}". A confirmation email has been sent to you.`;
+          document.getElementById('downloadBtn').href = result.downloadUrl;
+        } else {
+          throw new Error(result.error || 'Signing failed');
+        }
+      } catch (err) {
+        alert(err.message || 'Failed to sign. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<span>✍️</span><span>Sign Document</span>';
+      }
+    }
+
+    // Load data on page load
+    loadSigningData();
+  </script>
+</body>
+</html>
