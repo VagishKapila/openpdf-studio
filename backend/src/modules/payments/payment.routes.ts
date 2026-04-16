@@ -143,7 +143,7 @@ paymentRoutes.post('/quick-checkout', async (c) => {
           currency: body.currency || 'usd',
           product_data: {
             name: body.description || 'Document Signing Payment',
-            description: 'Payment for signed document via DocPix Studio',
+            description: 'Payment for signed document via OpenPDF Studio',
           },
           unit_amount: body.amount,
         },

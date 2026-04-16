@@ -1,5 +1,5 @@
 /**
- * API client for the DocPix Studio Admin Dashboard.
+ * API client for the OpenPDF Studio Admin Dashboard.
  * Handles JWT auth, token refresh, and typed requests.
  */
 

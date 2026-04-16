@@ -1,5 +1,5 @@
 /**
- * DocPix Studio â API Client
+ * OpenPDF Studio â API Client
  * Handles all backend communication: auth, convert, documents, esign, payments, org.
  * Modular design â each backend route group has a corresponding client module.
  */
@@ -303,6 +303,15 @@ const DPStudioAPI = (() => {
     async getDownloadUrl(id) {
       return request(`/documents/${id}/download-url`);
     },
+
+    // Send a document to a recipient for signing
+    // POST /documents/:documentId/send
+    async send(documentId, { recipientEmail, recipientName, fields = [], message, deadline, paymentRequired, paymentAmount, paymentDescription }) {
+      return request(`/documents/${documentId}/send`, {
+        method: 'POST',
+        body: { recipientEmail, recipientName, fields, message, deadline, paymentRequired, paymentAmount, paymentDescription },
+      });
+    },
   };
 
   // ===== MARKETPLACE MODULE (future - scaffolded now) =====
@@ -501,6 +510,58 @@ const DPStudioAPI = (() => {
     },
   };
 
+  // ===== SIGNATURE REQUESTS MODULE =====
+  // Multi-signer document signing workflow:
+  //   1. create() — upload PDF + add signers → sends each signer an email with their signing link
+  //   2. list() / get(id) — track status of all requests
+  //   3. Public signing: sign.getDocument(token) → sign.submit(token, data)
+  const signatureRequests = {
+    // POST /api/signature-requests (multipart)
+    // file: File object, title: string, signers: [{name,email,order}], note?: string
+    async create({ file, title, signers, note = '' }) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', title);
+      formData.append('signers', JSON.stringify(signers));
+      if (note) formData.append('note', note);
+      return request('/api/signature-requests', { method: 'POST', body: formData });
+    },
+
+    async list() {
+      return request('/api/signature-requests');
+    },
+
+    async get(id) {
+      return request(`/api/signature-requests/${id}`);
+    },
+
+    async delete(id) {
+      return request(`/api/signature-requests/${id}`, { method: 'DELETE' });
+    },
+
+    async sendReminders(id) {
+      return request(`/api/signature-requests/${id}/send-reminders`, { method: 'POST' });
+    },
+
+    // Public signing endpoints — no auth required
+    sign: {
+      // GET /api/sign/:token — fetch document and signer info for the signing page
+      async getDocument(token) {
+        return request(`/api/sign/${token}`, { auth: false });
+      },
+
+      // POST /api/sign/:token — submit signature
+      // signatureDataUrl: base64 PNG data URL, signerName: string, fieldValues: object
+      async submit(token, { signatureDataUrl, signerName, fieldValues = {} }) {
+        return request(`/api/sign/${token}`, {
+          method: 'POST',
+          auth: false,
+          body: { signatureDataUrl, signerName, fieldValues },
+        });
+      },
+    },
+  };
+
   // ===== PUBLIC API =====
   return {
     auth,
@@ -512,6 +573,7 @@ const DPStudioAPI = (() => {
     org,
     dashboard,
     admin,
+    signatureRequests,
     onAuthChange,
     APIError,
     // Expose for debugging

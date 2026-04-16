@@ -75,8 +75,8 @@ export function SettingsPage() {
 // ── General Settings ──
 function GeneralSettings({ settings, updateSettings }: { settings: any | null; updateSettings: any }) {
   const [values, setValues] = useState({
-    platformName: settings?.general?.platformName || 'DocPix Studio',
-    supportEmail: settings?.general?.supportEmail || 'support@docpixstudio.com',
+    platformName: settings?.general?.platformName || 'OpenPDF Studio',
+    supportEmail: settings?.general?.supportEmail || 'support@openpdfstudio.com',
     defaultPlan: settings?.general?.defaultPlan || 'free',
     maxUploadSizeMB: settings?.general?.maxUploadSizeMB || 25,
     maintenanceMode: settings?.general?.maintenanceMode || false,
@@ -146,7 +146,7 @@ function BrandingSettings({ settings, updateSettings }: { settings: any | null; 
     primaryColor: settings?.branding?.primaryColor || '#6366F1',
     secondaryColor: settings?.branding?.secondaryColor || '#8B5CF6',
     logoUrl: settings?.branding?.logoUrl || '',
-    footerText: settings?.branding?.footerText || 'Powered by DocPix Studio',
+    footerText: settings?.branding?.footerText || 'Powered by OpenPDF Studio',
   });
 
   const handleSave = async () => {
@@ -216,7 +216,7 @@ function BrandingSettings({ settings, updateSettings }: { settings: any | null; 
             <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
               <span className="text-white text-xs font-bold">DP</span>
             </div>
-            <span className="text-white font-semibold text-sm">DocPix Studio</span>
+            <span className="text-white font-semibold text-sm">OpenPDF Studio</span>
           </div>
           <div className="bg-gray-50 dark:bg-gray-900 p-3 text-center">
             <p className="text-xs text-gray-400">{values.footerText}</p>
@@ -345,7 +345,7 @@ function ApiKeySettings({ settings, updateSettings }: { settings: any | null; up
           type="url"
           value={values.webhookUrl}
           onChange={(e) => setValues({ ...values, webhookUrl: e.target.value })}
-          placeholder="https://your-app.com/webhooks/docpix"
+          placeholder="https://your-app.com/webhooks/openpdf"
           className="settings-input"
         />
       </FieldGroup>

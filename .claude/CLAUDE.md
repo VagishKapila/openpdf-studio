@@ -1,4 +1,4 @@
-# DocuFlow (formerly DocPix Studio) — Project Knowledge Base
+# OpenPDF Studio — Project Knowledge Base
 
 > Last updated: March 29, 2026
 > Owner: Vagish Kapila (VagishKapila on GitHub, vaakapila@gmail.com)
@@ -6,7 +6,7 @@
 
 ## Project Overview
 
-DocPix Studio is a full-featured document platform for editing PDFs, collecting e-signatures, processing payments, and managing document workflows — all in one place. Available as a SaaS with free trial, paid plans (Starter $29/mo, Pro $99/mo, Enterprise custom), and white-label options for businesses. Open-source core with premium features.
+OpenPDF Studio is a full-featured document platform for editing PDFs, collecting e-signatures, processing payments, and managing document workflows — all in one place. Available as a SaaS with free trial, paid plans (Starter $29/mo, Pro $99/mo, Enterprise custom), and white-label options for businesses. Open-source core with premium features.
 
 - **Frontend (Editor)**: Vanilla HTML/CSS/JS served via GitHub Pages from `main` branch — single-file SPA in `src/index.html`
 - **Frontend (Dashboard)**: React 19 + TypeScript + Vite + Tailwind in `dashboard/` — separate app
@@ -247,7 +247,7 @@ Single-file SPA (~6800 lines) with inline HTML, CSS, and JS:
 - Document pipeline (Kanban: Draft → Sent → Signed → Paid → Completed)
 - Client analytics and team management
 - CSS variable theming (logo, colors, domain)
-- "Powered by DocPix Studio" footer
+- "Powered by OpenPDF Studio" footer
 
 ### Phase 4: Communication Layer
 - SMS via Telnyx ($0.004/msg)

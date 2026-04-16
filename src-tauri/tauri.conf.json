@@ -6,8 +6,8 @@
     "frontendDist": "../dist"
   },
   "productName": "OpenPDF Studio",
-  "version": "1.0.0",
-  "identifier": "com.openpdfstudio.app",
+  "version": "1.1.0",
+  "identifier": "com.varshyl.openpdf-studio",
   "app": {
     "windows": [
       {

@@ -14,8 +14,8 @@ interface AuthState {
   hydrate: () => void;
 }
 
-const TOKEN_KEY = 'docpix_access_token';
-const USER_KEY = 'docpix_user';
+const TOKEN_KEY = 'openpdf_access_token';
+const USER_KEY = 'openpdf_user';
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,

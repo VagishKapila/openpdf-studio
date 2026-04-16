@@ -64,7 +64,7 @@ function createWindow() {
     height: 900,
     minWidth: 800,
     minHeight: 600,
-    title: 'DocPix Studio',
+    title: 'OpenPDF Studio',
     icon: path.join(__dirname, '../assets/icon.png'),
     webPreferences: {
       nodeIntegration: false,
@@ -180,12 +180,12 @@ function createWindow() {
       label: 'Help',
       submenu: [
         {
-          label: 'About DocPix Studio',
+          label: 'About OpenPDF Studio',
           click: () => {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
-              title: 'About DocPix Studio',
-              message: 'DocPix Studio v0.1.0',
+              title: 'About OpenPDF Studio',
+              message: 'OpenPDF Studio v0.1.0',
               detail: 'AI-powered PDF & Image Editor. Free core features, premium tools available.\n\nLicense: MIT\nhttps://github.com/VagishKapila/openpdf-studio',
             });
           },

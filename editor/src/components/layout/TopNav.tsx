@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { LogOut, Menu, User, FileText } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 
-const DocuFlowLogo: React.FC<{ className?: string }> = ({ className = '' }) => (
+const OpenPDF StudioLogo: React.FC<{ className?: string }> = ({ className = '' }) => (
   <svg
     className={className}
     viewBox="0 0 24 24"
@@ -43,9 +43,9 @@ export const TopNav: React.FC = () => {
       {/* Left: Logo + Brand */}
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 text-brand-600">
-          <DocuFlowLogo />
+          <OpenPDF StudioLogo />
         </div>
-        <span className="font-semibold text-sm text-[#2D2B2E]">DocuFlow</span>
+        <span className="font-semibold text-sm text-[#2D2B2E]">OpenPDF Studio</span>
       </div>
 
       {/* Right: Auth Area */}

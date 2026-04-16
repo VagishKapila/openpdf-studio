@@ -16,7 +16,7 @@ export async function onDocumentSent(params: {
     // Send email to recipient
     await sendNotificationEmail(
       params.recipientEmail,
-      `${params.senderName} sent you a document to sign — DocPix Studio`,
+      `${params.senderName} sent you a document to sign — OpenPDF Studio`,
       `${params.senderName} sent you a document`,
       `${params.senderName} has sent you "${params.documentName}" for your signature.${params.message ? ` ${params.message}` : ''} Click the button below to review and sign the document.`,
       'Review Document',
@@ -74,7 +74,7 @@ export async function onDocumentSigned(params: {
       // Send email notification to sender
       await sendNotificationEmail(
         params.senderEmail,
-        `${params.signerName} signed your document — DocPix Studio`,
+        `${params.signerName} signed your document — OpenPDF Studio`,
         `Document Signed`,
         `Great news! ${params.signerName} has signed "${params.documentName}". The signed document is ready for download.`,
       );
@@ -191,7 +191,7 @@ export async function onDocumentExpiring(params: {
       // Send email notification to sender
       await sendNotificationEmail(
         params.senderEmail,
-        `Reminder: Signing deadline approaching — DocPix Studio`,
+        `Reminder: Signing deadline approaching — OpenPDF Studio`,
         `Document Expiring Soon`,
         `The signing request for "${params.documentName}" sent to ${params.recipientEmail} will expire on ${params.deadline}. If it's not signed by then, the recipient will no longer be able to access it.`,
       );

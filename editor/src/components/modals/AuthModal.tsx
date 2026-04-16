@@ -85,7 +85,7 @@ export function AuthModal() {
       <div className="flex items-center justify-center mb-6 h-16 -mx-6 -mt-5 mb-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-t-2xl">
         <div className="text-center">
           <div className="text-white text-2xl font-bold">📄</div>
-          <p className="text-white text-sm font-semibold mt-1">DocPix Studio</p>
+          <p className="text-white text-sm font-semibold mt-1">OpenPDF Studio</p>
         </div>
       </div>
 

@@ -148,7 +148,7 @@ export function PortalBranding() {
             type="text"
             value={footerText}
             onChange={(e) => setFooterText(e.target.value)}
-            placeholder="Powered by DocPix Studio"
+            placeholder="Powered by OpenPDF Studio"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
           />
           <p className="text-xs text-gray-500 mt-1">Appears in portal sidebar footer</p>
@@ -193,7 +193,7 @@ export function PortalBranding() {
               <strong>Secondary:</strong> {secondaryColor}
             </p>
             <p className="text-xs text-gray-500">
-              Footer text: {footerText || 'Powered by DocPix Studio'}
+              Footer text: {footerText || 'Powered by OpenPDF Studio'}
             </p>
           </div>
         </div>

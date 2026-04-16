@@ -1,7 +1,7 @@
 {
   "name": "dpstudio-backend",
-  "version": "1.0.0",
-  "description": "DocPix Studio API — document conversion, e-signatures, payments",
+  "version": "1.1.0",
+  "description": "OpenPDF Studio API — document conversion, e-signatures, payments",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",

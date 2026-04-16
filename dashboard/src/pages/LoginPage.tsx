@@ -68,7 +68,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">DocuFlow</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">OpenPDF Studio</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             {mode === 'login' ? 'Admin Dashboard' : 'Reset Password'}
           </p>

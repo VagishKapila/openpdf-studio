@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DocPix Studio — Edit PDFs, Images & Documents</title>
+  <title>OpenPDF Studio — Edit PDFs, Images & Documents</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#6B5CE7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="DocPix Studio">
+  <meta name="apple-mobile-web-app-title" content="OpenPDF Studio">
   <link rel="apple-touch-icon" href="../app-icon.png">
 
   <!-- PDF.js for rendering -->
@@ -1821,8 +1821,8 @@
   <!-- ===== TOP NAV ===== -->
   <nav class="top-nav">
     <a href="https://varshyl.com/dpstudio" class="logo" style="text-decoration:none;color:inherit;">
-      <img src="../app-icon.png" alt="DocPix Studio" style="width:28px;height:28px;border-radius:6px;" onerror="this.style.display='none'">
-      <span>DocPix Studio</span>
+      <img src="../app-icon.png" alt="OpenPDF Studio" style="width:28px;height:28px;border-radius:6px;" onerror="this.style.display='none'">
+      <span>OpenPDF Studio</span>
     </a>
     <div class="user-nav-area" id="user-nav-area">
       <button class="sign-in-btn" id="sign-in-btn" onclick="openAuthModal()">Sign In</button>
@@ -2077,7 +2077,7 @@
         <div style="margin-bottom: 8px;">
           <span style="font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--primary); background: var(--primary-light); padding: 4px 12px; border-radius: 20px;">Free to Start</span>
         </div>
-        <h1 style="font-size: 36px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -0.5px;">DocPix Studio</h1>
+        <h1 style="font-size: 36px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -0.5px;">OpenPDF Studio</h1>
         <p style="font-size: 16px; color: var(--text-secondary); max-width: 500px; margin: 0 auto 32px; line-height: 1.6;">Edit PDFs, images, and documents in one place.<br>Free core features. Premium tools when you need them.<br>No complexity. Just works.</p>
 
         <div class="drop-zone" id="drop-zone">
@@ -2121,6 +2121,11 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1z"/><path d="M8 11.25h8M8 12.75h8"/><path d="M13 7v10M17 9c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4v1.9h4c2.76 0 5-2.24 5-5s-2.24-5-5-5h-4v1.9z"/></svg>
             <h4>Sign &amp; Pay</h4>
             <p>E-sign documents with payment</p>
+          </div>
+          <div class="feature-card" onclick="openRequestSignaturesFlow()" style="cursor: pointer; transition: all 0.2s; border-color: var(--primary);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <h4>Request Signatures</h4>
+            <p>Send to multiple signers with email</p>
           </div>
         </div>
 
@@ -2524,7 +2529,7 @@
   <div class="modal-overlay" id="feedback-modal">
     <div class="modal" style="max-width: 520px;">
       <h2>Feature Request / Feedback</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Help us make DocPix Studio better! Your feedback goes directly to our team.</p>
+      <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Help us make OpenPDF Studio better! Your feedback goes directly to our team.</p>
       <div class="form-group">
         <label>Type</label>
         <select id="feedback-type" style="width:100%; padding:10px; background:var(--bg-tertiary); color:var(--text); border:1px solid var(--border); border-radius:8px;">
@@ -5145,7 +5150,7 @@
         text + '\n\n' +
         '---\n' +
         (email ? 'Submitted by: ' + email + '\n' : '') +
-        'Submitted from: DocPix Studio Web App\n' +
+        'Submitted from: OpenPDF Studio Web App\n' +
         'User Agent: ' + navigator.userAgent.substring(0, 80) + '\n' +
         'Date: ' + new Date().toISOString()
       );
@@ -6690,7 +6695,7 @@
 
       const titles = {
         login: ['Welcome back', 'Sign in to sync documents, access the marketplace, and more.'],
-        register: ['Create your account', 'Join DocPix Studio to save, share, and sell your work.'],
+        register: ['Create your account', 'Join OpenPDF Studio to save, share, and sell your work.'],
         forgot: ['Reset your password', 'We\'ll email you a link to create a new password.'],
         reset: ['Set new password', 'Choose a strong password for your account.'],
       };
@@ -6742,7 +6747,7 @@
       try {
         await DPStudioAPI.auth.register(email, password, name);
         closeAuthModal();
-        showToast('Account created! Welcome to DocPix Studio.', 'success');
+        showToast('Account created! Welcome to OpenPDF Studio.', 'success');
       } catch (err) {
         showAuthError(err.message || 'Registration failed. Please try again.');
       } finally {
@@ -7984,6 +7989,479 @@
         console.error('Finalize error:', err);
         showToast('Failed to finalize: ' + err.message, 'error');
       }
+    }
+  </script>
+
+  <!-- ===== REQUEST SIGNATURES OVERLAY ===== -->
+  <style>
+    .req-sig-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+    }
+    .req-sig-overlay.visible { display: flex; }
+    .req-sig-container {
+      background: var(--bg-secondary, #fff);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: signingSlideIn 0.3s ease-out;
+    }
+    .req-sig-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border, #e5e7eb);
+      background: var(--bg, #f9fafb);
+    }
+    .req-sig-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+    }
+    .req-sig-steps {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .req-sig-step-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--border, #e5e7eb);
+      color: var(--text-secondary, #6b7280);
+      transition: all 0.2s;
+    }
+    .req-sig-step-pill.active {
+      background: var(--primary, #6366f1);
+      color: #fff;
+    }
+    .req-sig-step-pill.done {
+      background: #10b981;
+      color: #fff;
+    }
+    .req-sig-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .req-sig-step { display: none; }
+    .req-sig-step.active { display: block; }
+    .req-sig-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border, #e5e7eb);
+      background: var(--bg, #f9fafb);
+      gap: 12px;
+    }
+    .req-sig-dropzone {
+      border: 2px dashed var(--primary, #6366f1);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--bg, #f9fafb);
+    }
+    .req-sig-dropzone:hover, .req-sig-dropzone.dragover {
+      background: rgba(99,102,241,0.05);
+    }
+    .req-sig-dropzone svg { width: 40px; height: 40px; color: var(--primary, #6366f1); margin-bottom: 12px; }
+    .req-sig-file-info {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--bg, #f9fafb);
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+    .req-sig-file-info.show { display: flex; }
+    .req-sig-signer-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .req-sig-signer-row input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--bg, #fff);
+      color: var(--text, #111);
+    }
+    .req-sig-remove-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #ef4444;
+      font-size: 18px;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .req-sig-remove-btn:hover { background: rgba(239,68,68,0.1); }
+    .req-sig-add-btn {
+      background: none;
+      border: 1px dashed var(--primary, #6366f1);
+      color: var(--primary, #6366f1);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .req-sig-add-btn:hover { background: rgba(99,102,241,0.05); }
+    .req-sig-result-card {
+      background: var(--bg, #f9fafb);
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .req-sig-result-card .signer-info { display: flex; flex-direction: column; gap: 2px; }
+    .req-sig-result-card .signer-name { font-weight: 600; font-size: 14px; }
+    .req-sig-result-card .signer-email { font-size: 12px; color: var(--text-secondary, #6b7280); }
+    .req-sig-result-card .copy-link-btn {
+      font-size: 11px;
+      padding: 5px 10px;
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: 6px;
+      background: none;
+      cursor: pointer;
+      color: var(--text, #111);
+      white-space: nowrap;
+    }
+    .req-sig-result-card .copy-link-btn:hover { background: var(--border, #e5e7eb); }
+    .req-sig-success-banner {
+      text-align: center;
+      padding: 16px;
+      background: rgba(16,185,129,0.1);
+      border: 1px solid #10b981;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      color: #065f46;
+      font-weight: 600;
+    }
+    .req-sig-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary, #6b7280);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .req-sig-input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--bg, #fff);
+      color: var(--text, #111);
+      box-sizing: border-box;
+      margin-bottom: 16px;
+    }
+  </style>
+
+  <div class="req-sig-overlay" id="req-sig-overlay" onclick="if(event.target===this)closeRequestSignaturesFlow()">
+    <div class="req-sig-container">
+      <div class="req-sig-header">
+        <h2>
+          <div style="width:24px;height:24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:6px;display:flex;align-items:center;justify-content:center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          Request Signatures
+        </h2>
+        <div class="req-sig-steps">
+          <div class="req-sig-step-pill active" id="rsp-1">1 Upload</div>
+          <div class="req-sig-step-pill" id="rsp-2">2 Signers</div>
+          <div class="req-sig-step-pill" id="rsp-3">3 Send</div>
+        </div>
+        <button onclick="closeRequestSignaturesFlow()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary,#6b7280);padding:4px 8px;">✕</button>
+      </div>
+
+      <div class="req-sig-body">
+
+        <!-- Step 1: Upload PDF -->
+        <div class="req-sig-step active" id="rs-step-1">
+          <p style="font-size:13px;color:var(--text-secondary,#6b7280);margin:0 0 16px;">Upload the PDF you want others to sign. Each signer will receive an email with their unique signing link.</p>
+          <div class="req-sig-dropzone" id="rs-dropzone"
+               ondrop="rsHandleDrop(event)"
+               ondragover="event.preventDefault();this.classList.add('dragover')"
+               ondragleave="this.classList.remove('dragover')"
+               onclick="document.getElementById('rs-file-input').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--primary,#6366f1)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p style="font-weight:600;margin:0 0 4px;">Drag &amp; drop your PDF here</p>
+            <p style="font-size:12px;color:var(--text-secondary,#6b7280);margin:0 0 12px;">or click to browse</p>
+            <button type="button" style="background:var(--primary,#6366f1);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;">Browse Files</button>
+            <input type="file" id="rs-file-input" accept=".pdf" style="display:none" onchange="if(this.files[0])rsSetFile(this.files[0])">
+          </div>
+          <div class="req-sig-file-info" id="rs-file-info">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--primary,#6366f1)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div>
+              <div style="font-weight:600;font-size:13px;" id="rs-file-name">—</div>
+              <div style="font-size:11px;color:var(--text-secondary,#6b7280);" id="rs-file-size">—</div>
+            </div>
+            <button type="button" onclick="rsClearFile()" style="margin-left:auto;background:none;border:1px solid var(--border,#e5e7eb);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:var(--text-secondary,#6b7280)">Remove</button>
+          </div>
+
+          <div style="margin-top:20px;">
+            <label class="req-sig-label" for="rs-title">Document Title</label>
+            <input class="req-sig-input" id="rs-title" type="text" placeholder="e.g. Service Agreement Q2 2026">
+          </div>
+        </div>
+
+        <!-- Step 2: Add Signers -->
+        <div class="req-sig-step" id="rs-step-2">
+          <p style="font-size:13px;color:var(--text-secondary,#6b7280);margin:0 0 16px;">Add everyone who needs to sign. Each person will receive a unique, private signing link via email.</p>
+
+          <div id="rs-signers-list"></div>
+          <button type="button" class="req-sig-add-btn" onclick="rsAddSignerRow()">+ Add Another Signer</button>
+
+          <div style="margin-top:20px;">
+            <label class="req-sig-label" for="rs-note">Note to Signers <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+            <textarea class="req-sig-input" id="rs-note" rows="3" placeholder="Add a message that will appear in the email..." style="resize:vertical;"></textarea>
+          </div>
+        </div>
+
+        <!-- Step 3: Success / Signing Links -->
+        <div class="req-sig-step" id="rs-step-3">
+          <div class="req-sig-success-banner">
+            ✅ Signing request sent! Each signer has been emailed their private signing link.
+          </div>
+          <p style="font-size:13px;color:var(--text-secondary,#6b7280);margin:0 0 16px;">You can also share these links directly:</p>
+          <div id="rs-results-list"></div>
+          <div style="margin-top:16px;text-align:center;">
+            <button onclick="closeRequestSignaturesFlow()" style="background:var(--primary,#6366f1);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px;">Done</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="req-sig-footer" id="rs-footer">
+        <button id="rs-btn-back" onclick="rsGoBack()" style="background:none;border:1px solid var(--border,#e5e7eb);padding:9px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;display:none;">← Back</button>
+        <div style="flex:1"></div>
+        <button id="rs-btn-next" onclick="rsGoNext()" style="background:var(--primary,#6366f1);color:#fff;border:none;padding:9px 24px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== REQUEST SIGNATURES FLOW =====
+    let _rsFile = null;
+    let _rsCurrentStep = 1;
+
+    function openRequestSignaturesFlow() {
+      if (typeof DPStudioAPI !== 'undefined' && !DPStudioAPI.auth.isLoggedIn()) {
+        showToast('Please sign in to request signatures', 'error');
+        if (typeof openAuthModal === 'function') openAuthModal('login');
+        return;
+      }
+      _rsFile = null;
+      _rsCurrentStep = 1;
+      rsUpdateUI();
+      document.getElementById('req-sig-overlay').classList.add('visible');
+    }
+
+    function closeRequestSignaturesFlow() {
+      document.getElementById('req-sig-overlay').classList.remove('visible');
+      // Reset form
+      _rsFile = null;
+      _rsCurrentStep = 1;
+      document.getElementById('rs-file-info').classList.remove('show');
+      document.getElementById('rs-file-name').textContent = '—';
+      document.getElementById('rs-file-size').textContent = '—';
+      document.getElementById('rs-title').value = '';
+      document.getElementById('rs-note').value = '';
+      document.getElementById('rs-results-list').innerHTML = '';
+      document.getElementById('rs-file-input').value = '';
+      rsRenderSignerRows([{ name: '', email: '' }, { name: '', email: '' }]);
+      rsUpdateUI();
+    }
+
+    function rsHandleDrop(e) {
+      e.preventDefault();
+      document.getElementById('rs-dropzone').classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type === 'application/pdf') rsSetFile(file);
+      else showToast('Please drop a PDF file', 'error');
+    }
+
+    function rsSetFile(file) {
+      _rsFile = file;
+      document.getElementById('rs-file-name').textContent = file.name;
+      document.getElementById('rs-file-size').textContent = (file.size / 1024).toFixed(1) + ' KB';
+      document.getElementById('rs-file-info').classList.add('show');
+      // Auto-fill title from filename
+      if (!document.getElementById('rs-title').value) {
+        document.getElementById('rs-title').value = file.name.replace(/\.pdf$/i, '');
+      }
+    }
+
+    function rsClearFile() {
+      _rsFile = null;
+      document.getElementById('rs-file-info').classList.remove('show');
+      document.getElementById('rs-file-name').textContent = '—';
+      document.getElementById('rs-file-size').textContent = '—';
+      document.getElementById('rs-file-input').value = '';
+    }
+
+    function rsRenderSignerRows(signers) {
+      const list = document.getElementById('rs-signers-list');
+      list.innerHTML = '';
+      signers.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.className = 'req-sig-signer-row';
+        row.dataset.idx = i;
+        row.innerHTML = `
+          <input type="text" placeholder="Name" value="${s.name || ''}" class="rs-signer-name" data-idx="${i}" style="max-width:180px;">
+          <input type="email" placeholder="Email address" value="${s.email || ''}" class="rs-signer-email" data-idx="${i}">
+          ${i > 0 ? `<button class="req-sig-remove-btn" onclick="rsRemoveSignerRow(${i})">×</button>` : '<div style="width:34px;"></div>'}
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function rsAddSignerRow() {
+      const current = rsGetSigners();
+      current.push({ name: '', email: '' });
+      rsRenderSignerRows(current);
+    }
+
+    function rsRemoveSignerRow(idx) {
+      const current = rsGetSigners();
+      current.splice(idx, 1);
+      rsRenderSignerRows(current);
+    }
+
+    function rsGetSigners() {
+      const names = Array.from(document.querySelectorAll('.rs-signer-name')).map(el => el.value.trim());
+      const emails = Array.from(document.querySelectorAll('.rs-signer-email')).map(el => el.value.trim());
+      return names.map((n, i) => ({ name: n, email: emails[i] || '' }));
+    }
+
+    function rsUpdateUI() {
+      [1, 2, 3].forEach(s => {
+        const stepEl = document.getElementById('rs-step-' + s);
+        if (stepEl) stepEl.classList.toggle('active', s === _rsCurrentStep);
+        const pill = document.getElementById('rsp-' + s);
+        if (pill) {
+          pill.classList.toggle('active', s === _rsCurrentStep);
+          pill.classList.toggle('done', s < _rsCurrentStep);
+        }
+      });
+      const footer = document.getElementById('rs-footer');
+      const btnBack = document.getElementById('rs-btn-back');
+      const btnNext = document.getElementById('rs-btn-next');
+      if (footer) footer.style.display = _rsCurrentStep === 3 ? 'none' : 'flex';
+      if (btnBack) btnBack.style.display = _rsCurrentStep > 1 ? '' : 'none';
+      if (btnNext) btnNext.textContent = _rsCurrentStep === 2 ? 'Send Signing Requests →' : 'Next →';
+      // Initialise signers on step 2 if empty
+      if (_rsCurrentStep === 2 && document.getElementById('rs-signers-list').children.length === 0) {
+        rsRenderSignerRows([{ name: '', email: '' }, { name: '', email: '' }]);
+      }
+    }
+
+    function rsGoBack() {
+      if (_rsCurrentStep > 1) { _rsCurrentStep--; rsUpdateUI(); }
+    }
+
+    async function rsGoNext() {
+      if (_rsCurrentStep === 1) {
+        // Validate step 1
+        if (!_rsFile) { showToast('Please select a PDF file', 'error'); return; }
+        const title = document.getElementById('rs-title').value.trim();
+        if (!title) { showToast('Please enter a document title', 'error'); return; }
+        _rsCurrentStep = 2;
+        rsUpdateUI();
+      } else if (_rsCurrentStep === 2) {
+        // Validate signers
+        const signers = rsGetSigners().filter(s => s.name && s.email);
+        if (signers.length === 0) { showToast('Add at least one signer with name and email', 'error'); return; }
+        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        for (const s of signers) {
+          if (!emailRe.test(s.email)) { showToast(`Invalid email: ${s.email}`, 'error'); return; }
+        }
+        // Send request
+        await rsSendRequest(signers);
+      }
+    }
+
+    async function rsSendRequest(signers) {
+      const btnNext = document.getElementById('rs-btn-next');
+      btnNext.disabled = true;
+      btnNext.textContent = 'Sending…';
+      try {
+        const title = document.getElementById('rs-title').value.trim();
+        const note = document.getElementById('rs-note').value.trim();
+        const result = await DPStudioAPI.signatureRequests.create({
+          file: _rsFile,
+          title,
+          signers: signers.map((s, i) => ({ name: s.name, email: s.email, order: i })),
+          note,
+        });
+        // Show success step
+        const resultsList = document.getElementById('rs-results-list');
+        resultsList.innerHTML = '';
+        (result.signers || []).forEach(signer => {
+          const signingUrl = `https://snaphw.com/app/sign.html?token=${signer.signingToken}`;
+          const card = document.createElement('div');
+          card.className = 'req-sig-result-card';
+          card.innerHTML = `
+            <div class="signer-info">
+              <div class="signer-name">${signer.name}</div>
+              <div class="signer-email">${signer.email}</div>
+            </div>
+            <button class="copy-link-btn" onclick="rsCopyLink('${signingUrl}', this)">📋 Copy Link</button>
+          `;
+          resultsList.appendChild(card);
+        });
+        _rsCurrentStep = 3;
+        rsUpdateUI();
+        showToast('Signing requests sent!', 'success');
+      } catch (err) {
+        showToast('Failed to send: ' + (err.message || 'Unknown error'), 'error');
+      } finally {
+        btnNext.disabled = false;
+        btnNext.textContent = 'Send Signing Requests →';
+      }
+    }
+
+    function rsCopyLink(url, btn) {
+      navigator.clipboard.writeText(url).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => { btn.textContent = orig; }, 2000);
+      }).catch(() => {
+        prompt('Copy this signing link:', url);
+      });
     }
   </script>
 </body>

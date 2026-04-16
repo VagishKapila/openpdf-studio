@@ -312,7 +312,7 @@ export default function SigningPage() {
         <div className="max-w-2xl mx-auto">
           {/* Logo/Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-indigo-600">DocuFlow</h1>
+            <h1 className="text-3xl font-bold text-indigo-600">OpenPDF Studio</h1>
             <p className="text-gray-500 text-sm mt-1">Secure Document Signing</p>
           </div>
 
@@ -378,7 +378,7 @@ export default function SigningPage() {
           {/* Footer Trust Indicator */}
           <div className="text-center mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
             <Lock size={14} />
-            Secured by DocuFlow • Legally Binding
+            Secured by OpenPDF Studio • Legally Binding
           </div>
         </div>
       </div>
@@ -707,7 +707,7 @@ export default function SigningPage() {
             {/* Trust Indicator */}
             <div className="flex items-center justify-center gap-2 p-3 bg-gray-50 rounded-lg">
               <Lock className="text-gray-600" size={18} />
-              <span className="text-sm font-medium text-gray-700">Secured by DocuFlow</span>
+              <span className="text-sm font-medium text-gray-700">Secured by OpenPDF Studio</span>
             </div>
 
             {/* Action Buttons */}
@@ -772,7 +772,7 @@ export default function SigningPage() {
         <div className="max-w-md w-full">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-indigo-600">DocuFlow</h1>
+            <h1 className="text-3xl font-bold text-indigo-600">OpenPDF Studio</h1>
             <p className="text-gray-500 text-sm mt-1">Secure Payment</p>
           </div>
 
@@ -881,7 +881,7 @@ export default function SigningPage() {
           {/* Footer Trust Indicator */}
           <div className="text-center mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
             <Lock size={14} />
-            Secured by DocuFlow • Legally Binding
+            Secured by OpenPDF Studio • Legally Binding
           </div>
         </div>
       </div>

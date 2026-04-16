@@ -392,8 +392,8 @@ admin.get('/settings', async (c) => {
     // Merge with defaults
     const defaults = {
       general: {
-        platformName: 'DocPix Studio',
-        supportEmail: 'support@docpixstudio.com',
+        platformName: 'OpenPDF Studio',
+        supportEmail: 'support@openpdfstudio.com',
         defaultPlan: 'free',
         maxUploadSizeMB: 25,
         maintenanceMode: false,
@@ -402,7 +402,7 @@ admin.get('/settings', async (c) => {
         primaryColor: '#6366F1',
         secondaryColor: '#8B5CF6',
         logoUrl: '',
-        footerText: 'Powered by DocPix Studio',
+        footerText: 'Powered by OpenPDF Studio',
       },
       notifications: {
         emailEnabled: true,
@@ -498,7 +498,7 @@ admin.get('/branding', async (c) => {
       .where(eq(brandingConfigs.userId, userId));
 
     return c.json(config || {
-      companyName: 'DocuFlow',
+      companyName: 'OpenPDF Studio',
       primaryColor: '#6366f1',
       secondaryColor: '#8b5cf6',
       accentColor: '#a78bfa',
@@ -516,7 +516,7 @@ admin.put('/branding', async (c) => {
 
     const values = {
       userId,
-      companyName: body.companyName || 'DocuFlow',
+      companyName: body.companyName || 'OpenPDF Studio',
       logoUrl: body.logoUrl || null,
       primaryColor: body.primaryColor || '#6366f1',
       secondaryColor: body.secondaryColor || '#8b5cf6',
@@ -572,7 +572,7 @@ admin.post('/subscribe', async (c) => {
         price_data: {
           currency: 'usd',
           product_data: {
-            name: 'DocuFlow Pro',
+            name: 'OpenPDF Studio Pro',
             description: 'Monthly account fee — unlimited transactions, branded pages, document signing',
           },
           unit_amount: 1700,

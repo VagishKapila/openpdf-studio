@@ -1,4 +1,4 @@
-const CACHE_NAME = 'docpix-v1';
+const CACHE_NAME = 'openpdf-studio-v1';
 const ASSETS = [
   './',
   './index.html',

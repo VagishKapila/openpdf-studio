@@ -55,7 +55,7 @@ export function DashboardLayout() {
             <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">DP</span>
             </div>
-            <span className="font-semibold text-gray-900 dark:text-white">DocPix Admin</span>
+            <span className="font-semibold text-gray-900 dark:text-white">OpenPDF Admin</span>
           </div>
         </div>
 
@@ -81,7 +81,7 @@ export function DashboardLayout() {
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-gray-400">DocPix Studio v0.1.0</p>
+          <p className="text-xs text-gray-400">OpenPDF Studio v1.1.0</p>
         </div>
       </aside>
 
@@ -96,7 +96,7 @@ export function DashboardLayout() {
             {currentOrgSlug && <NotificationBell slug={currentOrgSlug} />}
             <div className="flex flex-col items-end">
               <span className="text-sm font-medium text-gray-900 dark:text-white">{user?.name || 'Admin'}</span>
-              <span className="text-xs text-gray-500">{user?.email || 'admin@docpixstudio.com'}</span>
+              <span className="text-xs text-gray-500">{user?.email || 'support@openpdfstudio.com'}</span>
             </div>
             <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center">
               <span className="text-white text-xs font-medium">

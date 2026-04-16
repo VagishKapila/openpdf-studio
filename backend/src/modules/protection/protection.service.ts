@@ -176,13 +176,13 @@ async function applyMetadataProtection(
 
   // Set PDF metadata for protection information
   pdfDoc.setTitle(pdfDoc.getTitle() || 'Protected Document');
-  pdfDoc.setCreator('DocPix Studio');
-  pdfDoc.setProducer('DocPix Studio PDF Protection Engine');
+  pdfDoc.setCreator('OpenPDF Studio');
+  pdfDoc.setProducer('OpenPDF Studio PDF Protection Engine');
 
   // Add custom metadata indicating protection level
   const info: Record<string, string> = {
     'Protected': 'true',
-    'ProtectedBy': 'DocPix Studio',
+    'ProtectedBy': 'OpenPDF Studio',
     'ProtectedAt': new Date().toISOString(),
   };
 
@@ -194,7 +194,7 @@ async function applyMetadataProtection(
   // The actual PDF encryption requires external tools
   pdfDoc.setKeywords([
     'protected',
-    'docpix-studio',
+    'openpdf-studio',
     `method:${options.protectionMethod || 'aes-256'}`,
   ]);
 
@@ -242,9 +242,9 @@ async function applyPdfEncryption(
   // These are enforced by compliant PDF readers (Adobe Acrobat, etc.)
   const catalog = pdfDoc.catalog;
 
-  // Add DocPix protection info dictionary
+  // Add OpenPDF protection info dictionary
   const protectionDict = pdfDoc.context.obj({
-    Type: PDFName.of('DocPixProtection'),
+    Type: PDFName.of('OpenPDFProtection'),
     Version: PDFString.of('1.0'),
     Permissions: PDFNumber.of(permissionFlags),
     Method: PDFString.of('AES256'),
@@ -253,7 +253,7 @@ async function applyPdfEncryption(
     HasOwnerPassword: PDFString.of(ownerPassword ? 'true' : 'false'),
   });
 
-  catalog.set(PDFName.of('DocPixProtection'), pdfDoc.context.register(protectionDict));
+  catalog.set(PDFName.of('OpenPDFProtection'), pdfDoc.context.register(protectionDict));
 
   // Set document to read-only if editing is disabled
   if (!permissions.editing) {

@@ -53,7 +53,7 @@ async function runMigrations() {
 async function startServer() {
   console.log(`
 ╔══════════════════════════════════════════════╗
-║          DocPix Studio API Server            ║
+║          OpenPDF Studio API Server            ║
 ╠══════════════════════════════════════════════╣
 ║  Environment : ${env.NODE_ENV.padEnd(28)}║
 ║  Port        : ${String(port).padEnd(28)}║

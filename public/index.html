@@ -1,443 +1,912 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenPDF Studio - PDF Editor & Tools</title>
-    <meta name="description" content="Alternative to Adobe Acrobat Pro. Edit PDFs, perform OCR, and edit images online. Free core features, premium tools available.">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenPDF Studio — Free PDF Editor, E-Signatures & Payment Collection</title>
+  <meta name="description" content="The free, open-source alternative to Adobe Acrobat Pro. Edit PDFs, collect e-signatures, run OCR, and get paid — all in one app. No subscription. No cloud. Built by Vagish Kapila." />
+  <meta name="keywords" content="free PDF editor, Adobe Acrobat alternative, open source PDF, e-signature, DocuSign alternative, PDF OCR, sign PDF free, merge PDF" />
+  <meta property="og:title" content="OpenPDF Studio — The PDF Editor Adobe Should Have Made" />
+  <meta property="og:description" content="Free, open-source PDF editor with e-signatures and built-in payment collection. No subscription." />
+  <meta property="og:url" content="https://snaphw.com" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta property="og:image" content="https://snaphw.com/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="twitter:image" content="https://snaphw.com/assets/og-image.png" />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="Vagish Kapila" />
+  <link rel="canonical" href="https://snaphw.com" />
+  <link rel="icon" href="/assets/favicon.ico" />
+  <link rel="apple-touch-icon" href="/assets/favicon.ico" />
+  <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
-            color: #e0e0e0;
-            line-height: 1.6;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 
-        /* Navigation */
-        nav {
-            background: rgba(15, 15, 15, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(220, 20, 60, 0.2);
-            padding: 1rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "OpenPDF Studio",
+    "operatingSystem": "Windows, macOS, Linux",
+    "applicationCategory": "BusinessApplication",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "author": { "@type": "Person", "name": "Vagish Kapila", "url": "https://github.com/VagishKapila" },
+    "description": "Free, open-source alternative to Adobe Acrobat Pro. Edit PDFs, collect e-signatures, and process payments.",
+    "downloadUrl": "https://github.com/VagishKapila/openpdf-studio/releases",
+    "softwareVersion": "1.0.0"
+  }
+  </script>
 
-        nav .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #DC143C, #ff6b9d);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+    :root {
+      --ink: #0a0a0f;
+      --paper: #f7f6f2;
+      --accent: #5b4fff;
+      --accent-light: #ede9ff;
+      --accent-glow: rgba(91, 79, 255, 0.18);
+      --muted: #6b6b78;
+      --border: #e2e1dc;
+      --card: #ffffff;
+      --green: #1aab6d;
+      --red: #ff4545;
+    }
 
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            list-style: none;
-        }
+    html { scroll-behavior: smooth; }
 
-        .nav-links a {
-            color: #e0e0e0;
-            text-decoration: none;
-            transition: color 0.3s ease;
-            font-size: 0.95rem;
-        }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
 
-        .nav-links a:hover {
-            color: #DC143C;
-        }
+    /* ─── NAV ─── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 5vw;
+      background: rgba(247, 246, 242, 0.88);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: 1.15rem;
+      color: var(--ink); text-decoration: none;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .logo-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; display: inline-block; }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a {
+      font-size: 0.875rem; font-weight: 500;
+      color: var(--muted); text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta {
+      background: var(--ink); color: var(--paper) !important;
+      padding: 8px 20px; border-radius: 6px;
+      font-weight: 600 !important; font-size: 0.85rem !important;
+      transition: background 0.2s !important;
+    }
+    .nav-cta:hover { background: var(--accent) !important; color: #fff !important; }
 
-        /* Main Content */
-        main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 4rem 2rem;
-        }
+    /* ─── HERO ─── */
+    .hero {
+      padding: 160px 5vw 100px;
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent-light); color: var(--accent);
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em;
+      padding: 5px 14px; border-radius: 99px; margin-bottom: 24px;
+      text-transform: uppercase;
+    }
+    .hero-badge::before { content: ''; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.4rem, 4vw, 3.6rem);
+      font-weight: 800; line-height: 1.1;
+      color: var(--ink); margin-bottom: 20px;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub {
+      font-size: 1.1rem; color: var(--muted);
+      max-width: 480px; margin-bottom: 36px; line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: #fff;
+      font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.95rem;
+      padding: 14px 28px; border-radius: 8px; text-decoration: none;
+      border: none; cursor: pointer;
+      box-shadow: 0 4px 24px var(--accent-glow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px var(--accent-glow); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: var(--ink);
+      font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 0.95rem;
+      padding: 14px 24px; border-radius: 8px; text-decoration: none;
+      border: 1.5px solid var(--border);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--accent); background: var(--accent-light); }
+    .hero-trust {
+      margin-top: 28px;
+      display: flex; align-items: center; gap: 20px;
+      font-size: 0.82rem; color: var(--muted);
+    }
+    .trust-item { display: flex; align-items: center; gap: 6px; }
+    .trust-item svg { color: var(--green); }
 
-        .container {
-            max-width: 1200px;
-            width: 100%;
-            margin: 0 auto;
-        }
+    /* Hero visual */
+    .hero-visual {
+      position: relative;
+    }
+    .app-window {
+      background: var(--card);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.6) inset;
+      overflow: hidden;
+    }
+    .window-bar {
+      background: #f0efeb; padding: 12px 16px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .window-title {
+      margin-left: 8px; font-size: 0.8rem; color: var(--muted); font-weight: 500;
+    }
+    .app-body { padding: 24px; }
+    .pdf-preview {
+      background: linear-gradient(135deg, #f8f8fc 0%, #eff0f7 100%);
+      border-radius: 8px; height: 280px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; border: 1.5px dashed var(--border);
+      position: relative; overflow: hidden;
+    }
+    .pdf-icon {
+      width: 56px; height: 72px;
+      background: var(--card); border-radius: 6px;
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: 0.7rem; color: var(--accent); letter-spacing: 0.05em;
+    }
+    .pdf-lines { display: flex; flex-direction: column; gap: 6px; width: 120px; }
+    .pdf-line {
+      height: 8px; border-radius: 4px; background: var(--border);
+      animation: shimmer 2s ease-in-out infinite;
+    }
+    .pdf-line:nth-child(1) { width: 100%; animation-delay: 0s; }
+    .pdf-line:nth-child(2) { width: 78%; animation-delay: 0.15s; }
+    .pdf-line:nth-child(3) { width: 90%; animation-delay: 0.3s; }
+    .pdf-line:nth-child(4) { width: 65%; animation-delay: 0.45s; }
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+    .sig-badge {
+      position: absolute; bottom: 20px; right: 20px;
+      background: var(--card); border-radius: 8px;
+      padding: 10px 14px; font-size: 0.78rem; font-weight: 600;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      display: flex; align-items: center; gap: 6px;
+      color: var(--green);
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .pay-badge {
+      position: absolute; top: 20px; left: 20px;
+      background: var(--accent); border-radius: 8px;
+      padding: 8px 12px; font-size: 0.75rem; font-weight: 600; color: #fff;
+      box-shadow: 0 4px 16px var(--accent-glow);
+      animation: float 3.5s ease-in-out infinite 0.5s;
+    }
+    .app-toolbar {
+      display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .tool-btn {
+      background: var(--paper); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 12px;
+      font-size: 0.75rem; font-weight: 500; color: var(--muted);
+    }
 
-        /* Hero Section */
-        .hero {
-            text-align: center;
-            margin-bottom: 4rem;
-            animation: fadeInDown 0.8s ease;
-        }
+    /* ─── STATS BAR ─── */
+    .stats-bar {
+      background: var(--ink); color: var(--paper);
+      padding: 28px 5vw;
+    }
+    .stats-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; justify-content: space-around; align-items: center;
+      gap: 40px; flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem; font-weight: 800;
+      color: #fff;
+    }
+    .stat-num span { color: var(--accent); }
+    .stat-label { font-size: 0.82rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
 
-        .hero h1 {
-            font-size: clamp(2.5rem, 8vw, 4rem);
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #ffffff, #e0e0e0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: 700;
-        }
+    /* ─── SECTIONS ─── */
+    section { padding: 96px 5vw; }
+    .section-inner { max-width: 1200px; margin: 0 auto; }
+    .section-label {
+      display: inline-block;
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      font-weight: 800; line-height: 1.15;
+      color: var(--ink); margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 1.05rem; color: var(--muted);
+      max-width: 560px; line-height: 1.7; margin-bottom: 56px;
+    }
 
-        .tagline {
-            font-size: 1.3rem;
-            color: #DC143C;
-            margin-bottom: 1rem;
-            font-weight: 500;
-        }
+    /* ─── FEATURES ─── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 8px 32px var(--accent-glow);
+      transform: translateY(-3px);
+    }
+    .feature-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--accent-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; margin-bottom: 16px;
+    }
+    .feature-card h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.05rem; font-weight: 700;
+      margin-bottom: 8px; color: var(--ink);
+    }
+    .feature-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.65; }
+    .feature-tag {
+      display: inline-block; margin-top: 12px;
+      font-size: 0.72rem; font-weight: 600; color: var(--accent);
+      background: var(--accent-light); padding: 3px 10px; border-radius: 99px;
+    }
 
-        .tagline-subtitle {
-            font-size: 1.1rem;
-            color: #a0a0a0;
-            margin-bottom: 2rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
+    /* ─── COMPARISON ─── */
+    .compare-section { background: var(--ink); }
+    .compare-section h2, .compare-section .section-label { color: #fff; }
+    .compare-section .section-sub { color: rgba(255,255,255,0.5); }
+    .compare-table {
+      width: 100%; border-collapse: collapse;
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .compare-table th {
+      padding: 18px 20px; text-align: left;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.85rem; font-weight: 700;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.8);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .compare-table th.highlight { color: var(--accent); background: rgba(91,79,255,0.15); }
+    .compare-table td {
+      padding: 14px 20px;
+      font-size: 0.875rem; color: rgba(255,255,255,0.7);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .compare-table td.highlight { background: rgba(91,79,255,0.08); color: #fff; font-weight: 600; }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table tr:hover td { background: rgba(255,255,255,0.03); }
+    .check { color: var(--green); font-size: 1rem; }
+    .cross { color: rgba(255,255,255,0.25); font-size: 1rem; }
+    .price-green { color: var(--green); font-weight: 700; font-family: 'Syne', sans-serif; }
+    .price-red { color: var(--red); font-weight: 600; }
 
-        /* Cards Grid */
-        .tools-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-bottom: 4rem;
-            animation: fadeInUp 0.8s ease 0.2s backwards;
-        }
+    /* ─── PRICING ─── */
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 24px; margin-top: 48px;
+    }
+    .pricing-card {
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 14px; padding: 32px 28px;
+      position: relative;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .pricing-card:hover { transform: translateY(-4px); }
+    .pricing-card.featured {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-glow);
+    }
+    .featured-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em;
+      padding: 4px 14px; border-radius: 99px; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .pricing-tier {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+    }
+    .pricing-price {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.4rem; font-weight: 800; color: var(--ink);
+      line-height: 1; margin-bottom: 4px;
+    }
+    .pricing-price sup { font-size: 1rem; vertical-align: super; }
+    .pricing-period { font-size: 0.82rem; color: var(--muted); margin-bottom: 24px; }
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .pricing-features li {
+      font-size: 0.875rem; color: var(--muted);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .pricing-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .pricing-btn {
+      display: block; text-align: center;
+      padding: 12px; border-radius: 8px;
+      font-weight: 600; font-size: 0.9rem; text-decoration: none;
+      border: 1.5px solid var(--border); color: var(--ink);
+      transition: all 0.2s;
+    }
+    .pricing-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .pricing-btn.featured-btn {
+      background: var(--accent); color: #fff; border-color: var(--accent);
+    }
+    .pricing-btn.featured-btn:hover { background: #4b3fe0; }
 
-        .tool-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-            border: 1px solid rgba(220, 20, 60, 0.3);
-            border-radius: 12px;
-            padding: 2rem;
-            text-decoration: none;
-            color: #e0e0e0;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
+    /* ─── DOWNLOAD ─── */
+    .download-section { background: linear-gradient(135deg, #0a0a0f 0%, #1a1730 100%); }
+    .download-section h2 { color: #fff; }
+    .download-section .section-sub { color: rgba(255,255,255,0.5); }
+    .download-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px; margin-top: 48px;
+    }
+    .dl-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 24px;
+      text-decoration: none; color: #fff;
+      transition: background 0.2s, border-color 0.2s, transform 0.2s;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .dl-card:hover {
+      background: rgba(91,79,255,0.15);
+      border-color: var(--accent); transform: translateY(-3px);
+    }
+    .dl-icon { font-size: 1.8rem; }
+    .dl-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; }
+    .dl-desc { font-size: 0.8rem; color: rgba(255,255,255,0.45); }
+    .dl-btn-label {
+      margin-top: 6px; font-size: 0.78rem; font-weight: 600;
+      color: var(--accent); display: flex; align-items: center; gap: 4px;
+    }
 
-        .tool-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(220, 20, 60, 0.1), transparent);
-            transition: left 0.5s ease;
-        }
+    /* ─── ABOUT ─── */
+    .about-inner {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+    }
+    .about-text p {
+      color: var(--muted); line-height: 1.75; margin-bottom: 16px; font-size: 0.95rem;
+    }
+    .about-links { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+    .about-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.85rem; font-weight: 600; color: var(--accent);
+      text-decoration: none;
+      border-bottom: 2px solid var(--accent-light);
+      transition: border-color 0.2s;
+    }
+    .about-link:hover { border-color: var(--accent); }
+    .about-card-grid { display: flex; flex-direction: column; gap: 16px; }
+    .about-product-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px 20px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .about-product-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--accent-light); display: flex; align-items: center;
+      justify-content: center; font-size: 1rem; flex-shrink: 0;
+    }
+    .about-product-name {
+      font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700;
+    }
+    .about-product-desc { font-size: 0.78rem; color: var(--muted); }
 
-        .tool-card:hover::before {
-            left: 100%;
-        }
+    /* ─── FOOTER ─── */
+    footer {
+      background: var(--ink); color: rgba(255,255,255,0.4);
+      padding: 48px 5vw; font-size: 0.82rem;
+    }
+    .footer-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .footer-logo {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      color: #fff; font-size: 1rem;
+    }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a {
+      color: rgba(255,255,255,0.4); text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: #fff; }
 
-        .tool-card:hover {
-            border-color: #DC143C;
-            box-shadow: 0 8px 32px rgba(220, 20, 60, 0.2);
-            transform: translateY(-5px);
-        }
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      .hero { grid-template-columns: 1fr; gap: 48px; padding: 120px 5vw 60px; }
+      .hero-visual { display: none; }
+      .about-inner { grid-template-columns: 1fr; gap: 40px; }
+      .nav-links { display: none; }
+      .stats-inner { gap: 24px; }
+      .footer-inner { flex-direction: column; text-align: center; }
+    }
 
-        .tool-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .tool-card h3 {
-            font-size: 1.3rem;
-            margin-bottom: 0.75rem;
-            color: #ffffff;
-        }
-
-        .tool-card p {
-            color: #b0b0b0;
-            margin-bottom: 1.5rem;
-            font-size: 0.95rem;
-        }
-
-        .tool-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #DC143C;
-            font-weight: 600;
-            transition: gap 0.3s ease;
-        }
-
-        .tool-card:hover .tool-link {
-            gap: 1rem;
-        }
-
-        /* Download Section */
-        .download-section {
-            background: linear-gradient(135deg, rgba(220, 20, 60, 0.1) 0%, rgba(220, 20, 60, 0.05) 100%);
-            border: 1px solid rgba(220, 20, 60, 0.3);
-            border-radius: 12px;
-            padding: 3rem 2rem;
-            text-align: center;
-            margin-bottom: 4rem;
-            animation: fadeInUp 0.8s ease 0.4s backwards;
-        }
-
-        .download-section h2 {
-            font-size: 1.8rem;
-            margin-bottom: 1rem;
-            color: #ffffff;
-        }
-
-        .download-section p {
-            color: #b0b0b0;
-            margin-bottom: 2rem;
-            font-size: 1rem;
-        }
-
-        .download-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.875rem 1.5rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #DC143C, #ff6b9d);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(220, 20, 60, 0.4);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            border: 2px solid rgba(220, 20, 60, 0.5);
-            color: #DC143C;
-        }
-
-        .btn-secondary:hover {
-            border-color: #DC143C;
-            background: rgba(220, 20, 60, 0.1);
-        }
-
-        /* Footer */
-        footer {
-            background: rgba(15, 15, 15, 0.95);
-            border-top: 1px solid rgba(220, 20, 60, 0.2);
-            padding: 2rem;
-            text-align: center;
-            color: #808080;
-            font-size: 0.9rem;
-        }
-
-        footer a {
-            color: #DC143C;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        footer a:hover {
-            color: #ff6b9d;
-        }
-
-        /* Animations */
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            nav .container {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .nav-links {
-                gap: 1rem;
-                font-size: 0.85rem;
-            }
-
-            main {
-                padding: 2rem 1rem;
-            }
-
-            .hero h1 {
-                font-size: 2rem;
-            }
-
-            .tagline {
-                font-size: 1.1rem;
-            }
-
-            .tagline-subtitle {
-                font-size: 0.95rem;
-            }
-
-            .tools-grid {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
-
-            .download-section {
-                padding: 2rem 1rem;
-            }
-
-            .download-buttons {
-                gap: 0.75rem;
-            }
-
-            .btn {
-                padding: 0.75rem 1.25rem;
-                font-size: 0.9rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .hero h1 {
-                font-size: 1.5rem;
-            }
-
-            .tagline {
-                font-size: 0.95rem;
-            }
-
-            .tool-card {
-                padding: 1.5rem;
-            }
-
-            .tool-card h3 {
-                font-size: 1.1rem;
-            }
-
-            .download-section {
-                padding: 1.5rem 1rem;
-            }
-
-            .download-buttons {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-    </style>
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .hero-badge, .hero h1, .hero-sub, .hero-actions { animation: fadeUp 0.6s ease both; }
+    .hero h1 { animation-delay: 0.1s; }
+    .hero-sub { animation-delay: 0.2s; }
+    .hero-actions { animation-delay: 0.3s; }
+    .hero-trust { animation-delay: 0.4s; animation: fadeUp 0.6s ease 0.4s both; }
+  </style>
 </head>
 <body>
-    <nav>
-        <div class="container">
-            <div class="logo">OpenPDF Studio</div>
-            <ul class="nav-links">
-                <li><a href="#tools">Tools</a></li>
-                <li><a href="#download">Desktop App</a></li>
-                <li><a href="https://github.com/openpdf-studio/openpdf-studio" target="_blank">GitHub</a></li>
-            </ul>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo"><span class="logo-dot"></span>OpenPDF Studio</a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#compare">Compare</a>
+    <a href="#pricing">Pricing</a>
+    <a href="https://github.com/VagishKapila/openpdf-studio" target="_blank">GitHub</a>
+    <a href="#download" class="nav-cta">Download Free</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section style="padding:0">
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">Open Source · MIT License</div>
+      <h1>The PDF editor<br><em>Adobe should have<br>made.</em></h1>
+      <p class="hero-sub">Edit PDFs, collect e-signatures, run local AI OCR, and get paid — all in one free app. No subscription. No cloud. No Gatekeeper warnings.</p>
+      <div class="hero-actions">
+        <a href="#download" class="btn-primary">
+          ⬇ Download Free
+        </a>
+        <a href="/app/" target="_blank" class="btn-secondary">
+          Try in Browser →
+        </a>
+      </div>
+      <div class="hero-trust">
+        <div class="trust-item">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
+          Signed & Notarized for macOS
         </div>
-    </nav>
-
-    <main>
-        <div class="container">
-            <section class="hero">
-                <h1>OpenPDF Studio</h1>
-                <p class="tagline">The smarter alternative to Adobe Acrobat Pro</p>
-                <p class="tagline-subtitle">Powerful PDF editing, OCR, and image processing tools. Free core features, no watermarks, premium tools when you need them.</p>
-            </section>
-
-            <section class="tools-grid" id="tools">
-                <a href="src/index.html" class="tool-card">
-                    <div class="tool-icon">📄</div>
-                    <h3>PDF Editor</h3>
-                    <p>Edit, annotate, and manipulate PDF documents. Add text, shapes, highlights, and more.</p>
-                    <span class="tool-link">Open Editor →</span>
-                </a>
-
-                <a href="src/smart-ocr-editor.html" class="tool-card">
-                    <div class="tool-icon">🔍</div>
-                    <h3>Smart OCR Editor</h3>
-                    <p>Extract and convert text from images and scanned documents with intelligent optical character recognition.</p>
-                    <span class="tool-link">Open Editor →</span>
-                </a>
-
-                <a href="src/image-editor.html" class="tool-card">
-                    <div class="tool-icon">🎨</div>
-                    <h3>Image Editor</h3>
-                    <p>Edit and enhance images with cropping, filters, adjustments, and creative tools.</p>
-                    <span class="tool-link">Open Editor →</span>
-                </a>
-            </section>
-
-            <section class="download-section" id="download">
-                <h2>Desktop Application</h2>
-                <p>Want OpenPDF Studio on your desktop? Download our native application for Windows, macOS, and Linux.</p>
-                <div class="download-buttons">
-                    <a href="https://github.com/openpdf-studio/openpdf-studio/releases" class="btn btn-primary" target="_blank">
-                        ⬇️ Download Latest Release
-                    </a>
-                    <a href="https://github.com/openpdf-studio/openpdf-studio" class="btn btn-secondary" target="_blank">
-                        ⭐ View on GitHub
-                    </a>
-                </div>
-            </section>
+        <div class="trust-item">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
+          2.5MB App Size
         </div>
-    </main>
+        <div class="trust-item">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
+          100% Local OCR
+        </div>
+      </div>
+    </div>
 
-    <footer>
-        <p>&copy; 2024 OpenPDF Studio. Licensed under MIT and Apache 2.0.</p>
-        <p><a href="https://github.com/openpdf-studio/openpdf-studio">GitHub Repository</a> • <a href="https://github.com/openpdf-studio/openpdf-studio/issues">Report Issues</a></p>
-    </footer>
+    <div class="hero-visual">
+      <div class="app-window">
+        <div class="window-bar">
+          <div class="dot dot-r"></div>
+          <div class="dot dot-y"></div>
+          <div class="dot dot-g"></div>
+          <span class="window-title">OpenPDF Studio — Contract_v2.pdf</span>
+        </div>
+        <div class="app-body">
+          <div class="app-toolbar">
+            <div class="tool-btn">✏️ Edit</div>
+            <div class="tool-btn">✍️ Sign</div>
+            <div class="tool-btn">📄 Merge</div>
+            <div class="tool-btn">🔍 OCR</div>
+            <div class="tool-btn">💳 Pay</div>
+          </div>
+          <div class="pdf-preview">
+            <div class="pay-badge">💳 Collect Payment</div>
+            <div class="pdf-icon">PDF</div>
+            <div class="pdf-lines">
+              <div class="pdf-line"></div>
+              <div class="pdf-line"></div>
+              <div class="pdf-line"></div>
+              <div class="pdf-line"></div>
+            </div>
+            <div class="sig-badge">✅ Document Signed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat">
+      <div class="stat-num">$0<span>/mo</span></div>
+      <div class="stat-label">Forever free, open source</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">2.5<span>MB</span></div>
+      <div class="stat-label">App size — 60× smaller than Adobe</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">100<span>+</span></div>
+      <div class="stat-label">Languages supported by OCR</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">4<span>×</span></div>
+      <div class="stat-label">Platforms — Mac, Windows, Linux, Web</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <span class="section-label">What It Does</span>
+    <h2>Everything you need.<br>Nothing you don't.</h2>
+    <p class="section-sub">OpenPDF Studio packs full PDF editing, AI OCR, e-signatures, and payment collection into a single free app. No upsells. No feature gates on the basics.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>Full PDF Editing</h3>
+        <p>Add text, images, shapes, and annotations. Merge, split, compress, rotate, reorder pages. Password-protect and encrypt. Fill and save any PDF form.</p>
+        <span class="feature-tag">Free</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>AI OCR — Runs Locally</h3>
+        <p>Scan any paper document and make it fully editable. Supports 100+ languages. Powered by Tesseract.js 5 — runs 100% on your device, zero cloud upload.</p>
+        <span class="feature-tag">Privacy-First</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✍️</div>
+        <h3>E-Signatures</h3>
+        <p>Auto-detect signature fields, draw or type your signature, sign all fields in one click. Send to others for signature. Track every signer. Flatten signatures permanently.</p>
+        <span class="feature-tag">No Per-Envelope Fees</span>
+      </div>
+      <div class="feature-card" style="border-color: var(--accent); box-shadow: 0 8px 32px var(--accent-glow);">
+        <div class="feature-icon">💳</div>
+        <h3>Payment Collection</h3>
+        <p>The only PDF tool that collects payment after signing. Set a custom amount, generate a Stripe payment link or QR code, and track payment status per document.</p>
+        <span class="feature-tag" style="background:#fff0f0;color:#c00;">Only Us</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Admin Dashboard</h3>
+        <p>78 KPIs. Document pipeline Kanban. User management, audit log, revenue breakdown. Multi-tenant architecture for teams and white-label deployments.</p>
+        <span class="feature-tag">Pro & Enterprise</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Signed & Notarized</h3>
+        <p>The macOS app is properly code-signed with an Apple Developer ID and notarized. Opens instantly — no Gatekeeper warnings, no "unidentified developer" prompts.</p>
+        <span class="feature-tag">macOS Ready</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section id="compare" class="compare-section">
+  <div class="section-inner">
+    <span class="section-label" style="color: rgba(255,255,255,0.5);">Comparison</span>
+    <h2>Stop paying for less.</h2>
+    <p class="section-sub">OpenPDF Studio matches or beats every paid competitor — and it's the only one that collects payment after signing.</p>
+
+    <div style="overflow-x:auto; margin-top: 40px;">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="highlight">OpenPDF Studio</th>
+            <th>Adobe Acrobat</th>
+            <th>DocuSign</th>
+            <th>HelloSign</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Price</td>
+            <td class="highlight price-green">FREE</td>
+            <td class="price-red">$25/mo</td>
+            <td class="price-red">$15+/mo</td>
+            <td class="price-red">$15+/mo</td>
+          </tr>
+          <tr>
+            <td>Full PDF Editing</td>
+            <td class="highlight"><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>E-Signatures</td>
+            <td class="highlight"><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+          </tr>
+          <tr>
+            <td>Payment Collection</td>
+            <td class="highlight"><span class="check">✓</span> Built-in</td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>Local AI OCR</td>
+            <td class="highlight"><span class="check">✓</span> 100+ langs</td>
+            <td>Cloud only</td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>Open Source</td>
+            <td class="highlight"><span class="check">✓</span> MIT</td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>Your Docs Stay Local</td>
+            <td class="highlight"><span class="check">✓</span></td>
+            <td><span class="cross">✗</span> Cloud</td>
+            <td><span class="cross">✗</span> Cloud</td>
+            <td><span class="cross">✗</span> Cloud</td>
+          </tr>
+          <tr>
+            <td>White-Label</td>
+            <td class="highlight"><span class="check">✓</span> Enterprise</td>
+            <td><span class="cross">✗</span></td>
+            <td>Expensive</td>
+            <td>Expensive</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-inner">
+    <span class="section-label">Pricing</span>
+    <h2>Start free.<br>Scale when ready.</h2>
+    <p class="section-sub">The core editor is free forever. Upgrade for cloud sync, team workflows, and payment collection.</p>
+
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-tier">Free / Open Source</div>
+        <div class="pricing-price">$0</div>
+        <div class="pricing-period">Forever free</div>
+        <ul class="pricing-features">
+          <li>Full PDF editing suite</li>
+          <li>Local AI OCR</li>
+          <li>Basic e-signatures</li>
+          <li>Merge, split, compress</li>
+          <li>Password protection</li>
+          <li>Windows, Mac, Linux</li>
+        </ul>
+        <a href="#download" class="pricing-btn">Download Free</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="featured-badge">Most Popular</div>
+        <div class="pricing-tier">Starter</div>
+        <div class="pricing-price"><sup>$</sup>29</div>
+        <div class="pricing-period">per month</div>
+        <ul class="pricing-features">
+          <li>Everything in Free</li>
+          <li>Cloud sync</li>
+          <li>100 sign requests/mo</li>
+          <li>Email notifications</li>
+          <li>Signing tracking</li>
+        </ul>
+        <a href="mailto:vagishkapila@gmail.com" class="pricing-btn featured-btn">Get Started</a>
+      </div>
+
+      <div class="pricing-card">
+        <div class="pricing-tier">Pro</div>
+        <div class="pricing-price"><sup>$</sup>99</div>
+        <div class="pricing-period">per month</div>
+        <ul class="pricing-features">
+          <li>Everything in Starter</li>
+          <li>Unlimited signing</li>
+          <li>Payment collection</li>
+          <li>Analytics dashboard</li>
+          <li>Admin KPI dashboard</li>
+        </ul>
+        <a href="mailto:vagishkapila@gmail.com" class="pricing-btn">Get Started</a>
+      </div>
+
+      <div class="pricing-card">
+        <div class="pricing-tier">Enterprise</div>
+        <div class="pricing-price">Custom</div>
+        <div class="pricing-period">Talk to us</div>
+        <ul class="pricing-features">
+          <li>Everything in Pro</li>
+          <li>White-label branding</li>
+          <li>Multi-tenant setup</li>
+          <li>Custom domain</li>
+          <li>Dedicated support</li>
+        </ul>
+        <a href="mailto:vagishkapila@gmail.com" class="pricing-btn">Contact Us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download" class="download-section">
+  <div class="section-inner">
+    <span class="section-label" style="color: rgba(255,255,255,0.5);">Download</span>
+    <h2 style="color:#fff">Get OpenPDF Studio</h2>
+    <p class="section-sub">Available on every major platform. The macOS build is signed and notarized — no warnings, no friction.</p>
+
+    <div class="download-grid">
+      <a href="https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_aarch64.dmg" class="dl-card">
+        <div class="dl-icon">🍎</div>
+        <div class="dl-name">macOS</div>
+        <div class="dl-desc">Apple Silicon (M1/M2/M3)</div>
+        <div class="dl-btn-label">↓ Download .dmg</div>
+      </a>
+      <a href="https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_x64.dmg" class="dl-card">
+        <div class="dl-icon">💻</div>
+        <div class="dl-name">macOS</div>
+        <div class="dl-desc">Intel Mac</div>
+        <div class="dl-btn-label">↓ Download .dmg</div>
+      </a>
+      <a href="https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_x64-setup.exe" class="dl-card">
+        <div class="dl-icon">🪟</div>
+        <div class="dl-name">Windows</div>
+        <div class="dl-desc">Windows 10 / 11</div>
+        <div class="dl-btn-label">↓ Download .exe</div>
+      </a>
+      <a href="https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_amd64.deb" class="dl-card">
+        <div class="dl-icon">🐧</div>
+        <div class="dl-name">Linux</div>
+        <div class="dl-desc">Ubuntu / Debian</div>
+        <div class="dl-btn-label">↓ Download .deb</div>
+      </a>
+      <a href="https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_amd64.AppImage" class="dl-card">
+        <div class="dl-icon">🐧</div>
+        <div class="dl-name">Linux</div>
+        <div class="dl-desc">Universal AppImage</div>
+        <div class="dl-btn-label">↓ Download .AppImage</div>
+      </a>
+      <a href="https://vagishkapila.github.io/openpdf-studio/" target="_blank" class="dl-card">
+        <div class="dl-icon">🌐</div>
+        <div class="dl-name">Web App</div>
+        <div class="dl-desc">No install required</div>
+        <div class="dl-btn-label">→ Open in Browser</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="section-inner">
+    <div class="about-inner">
+      <div class="about-text">
+        <span class="section-label">About</span>
+        <h2>Built by a contractor<br>tired of paying Adobe.</h2>
+        <p>I'm Vagish Kapila — I run Sentio Development Inc, a general contracting company, and Varshyl Inc, where I build software for construction and AI workflows.</p>
+        <p>OpenPDF Studio started because I was paying $300/year for Adobe Acrobat just to sign and edit change orders. I was also paying for DocuSign separately. And chasing deposits with a third tool. It was absurd.</p>
+        <p>So I built one app that does all three things — and made it free and open source, because this is a problem everyone has.</p>
+        <div class="about-links">
+          <a href="https://github.com/VagishKapila" target="_blank" class="about-link">GitHub →</a>
+          <a href="https://github.com/VagishKapila/openpdf-studio" target="_blank" class="about-link">View Source →</a>
+          <a href="mailto:vagishkapila@gmail.com" class="about-link">Contact →</a>
+        </div>
+      </div>
+      <div class="about-card-grid">
+        <div class="about-product-card">
+          <div class="about-product-icon">🏗️</div>
+          <div>
+            <div class="about-product-name">ConstructionAI Billing</div>
+            <div class="about-product-desc">AI-powered G702/G703 invoicing for contractors</div>
+          </div>
+        </div>
+        <div class="about-product-card">
+          <div class="about-product-icon">✈️</div>
+          <div>
+            <div class="about-product-name">SnapClaps</div>
+            <div class="about-product-desc">Travel deals, points concierge & luxury escapes</div>
+          </div>
+        </div>
+        <div class="about-product-card">
+          <div class="about-product-icon">⭐</div>
+          <div>
+            <div class="about-product-name">BrandOS</div>
+            <div class="about-product-desc">Personal brand scoring and AI content generation</div>
+          </div>
+        </div>
+        <div class="about-product-card">
+          <div class="about-product-icon">📄</div>
+          <div>
+            <div class="about-product-name">OpenPDF Studio</div>
+            <div class="about-product-desc">Free PDF editor, e-signatures & payments — this app</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">OpenPDF Studio</div>
+      <div style="margin-top:4px">© 2026 Vagish Kapila · Varshyl Inc</div>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/VagishKapila/openpdf-studio" target="_blank">GitHub</a>
+      <a href="https://snaphw.com/privacy">Privacy</a>
+      <a href="mailto:vagishkapila@gmail.com">Contact</a>
+      <a href="https://snaphw.com/app" target="_blank">Admin</a>
+    </div>
+  </div>
+</footer>
+
 </body>
 </html>

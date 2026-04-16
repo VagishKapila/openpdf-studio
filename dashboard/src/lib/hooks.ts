@@ -1,5 +1,5 @@
 /**
- * React Query hooks for the DocPix Studio Admin Dashboard.
+ * React Query hooks for the OpenPDF Studio Admin Dashboard.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

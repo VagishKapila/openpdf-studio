@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileText, Combine, BarChart3, Sparkles } from 'lucide-react';
 
-const DocuFlowLogo: React.FC<{ className?: string }> = ({ className = '' }) => (
+const OpenPDF StudioLogo: React.FC<{ className?: string }> = ({ className = '' }) => (
   <svg
     className={className}
     viewBox="0 0 24 24"
@@ -89,11 +89,11 @@ export const WelcomeScreen: React.FC = () => {
     >
       {/* Logo */}
       <div className="w-16 h-16 text-brand-600 mb-6">
-        <DocuFlowLogo />
+        <OpenPDF StudioLogo />
       </div>
 
       {/* Title */}
-      <h1 className="text-3xl font-bold text-[#2D2B2E] mb-2">Welcome to DocuFlow</h1>
+      <h1 className="text-3xl font-bold text-[#2D2B2E] mb-2">Welcome to OpenPDF Studio</h1>
 
       {/* Subtitle */}
       <p className="text-[#6B6A6D] text-center mb-8 max-w-lg">

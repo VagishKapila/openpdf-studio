@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-// Core types for the DocPix Studio Admin Dashboard
+// Core types for the OpenPDF Studio Admin Dashboard
 // ═══════════════════════════════════════════════
 
 // ── User ──

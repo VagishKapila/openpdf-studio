@@ -188,7 +188,7 @@ export const organizations = pgTable('organizations', {
   secondaryColor: varchar('secondary_color', { length: 20 }).default('#8B5CF6').notNull(),
   customDomain: varchar('custom_domain', { length: 255 }),
   emailFromName: varchar('email_from_name', { length: 255 }),
-  footerText: varchar('footer_text', { length: 500 }).default('Powered by DocPix Studio').notNull(),
+  footerText: varchar('footer_text', { length: 500 }).default('Powered by OpenPDF Studio').notNull(),
   settings: jsonb('settings').default({}).notNull(),
   stripeCustomerId: text('stripe_customer_id'),
   isActive: boolean('is_active').default(true).notNull(),

@@ -22,9 +22,9 @@ export async function sendVerificationEmail(to: string, name: string, token: str
   const client = getEmailClient();
 
   await client.emails.send({
-    from: `DocPix Studio <${env.EMAIL_FROM}>`,
+    from: `OpenPDF Studio <${env.EMAIL_FROM}>`,
     to,
-    subject: 'Verify your email — DocPix Studio',
+    subject: 'Verify your email — OpenPDF Studio',
     html: `
 <!DOCTYPE html>
 <html>
@@ -41,7 +41,7 @@ export async function sendVerificationEmail(to: string, name: string, token: str
           <path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
           <circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/>
         </svg>
-        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">DocPix Studio</span>
+        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">OpenPDF Studio</span>
       </div>
     </div>
     <div style="padding:32px 24px;">
@@ -53,7 +53,7 @@ export async function sendVerificationEmail(to: string, name: string, token: str
         Verify Email Address
       </a>
       <p style="margin:24px 0 0;color:#a1a1aa;font-size:13px;line-height:1.5;">
-        This link expires in 24 hours. If you didn't create a DocPix Studio account, you can safely ignore this email.
+        This link expires in 24 hours. If you didn't create a OpenPDF Studio account, you can safely ignore this email.
       </p>
       <hr style="margin:24px 0;border:none;border-top:1px solid #e4e4e7;">
       <p style="margin:0;color:#d4d4d8;font-size:12px;">
@@ -73,9 +73,9 @@ export async function sendPasswordResetEmail(to: string, name: string, token: st
   const client = getEmailClient();
 
   await client.emails.send({
-    from: `DocPix Studio <${env.EMAIL_FROM}>`,
+    from: `OpenPDF Studio <${env.EMAIL_FROM}>`,
     to,
-    subject: 'Reset your password — DocPix Studio',
+    subject: 'Reset your password — OpenPDF Studio',
     html: `
 <!DOCTYPE html>
 <html>
@@ -92,7 +92,7 @@ export async function sendPasswordResetEmail(to: string, name: string, token: st
           <path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
           <circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/>
         </svg>
-        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">DocPix Studio</span>
+        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">OpenPDF Studio</span>
       </div>
     </div>
     <div style="padding:32px 24px;">
@@ -128,7 +128,7 @@ export async function sendNotificationEmail(to: string, subject: string, heading
     </a>` : '';
 
   await client.emails.send({
-    from: `DocPix Studio <${env.EMAIL_FROM}>`,
+    from: `OpenPDF Studio <${env.EMAIL_FROM}>`,
     to,
     subject,
     html: `
@@ -147,7 +147,7 @@ export async function sendNotificationEmail(to: string, subject: string, heading
           <path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
           <circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/>
         </svg>
-        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">DocPix Studio</span>
+        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">OpenPDF Studio</span>
       </div>
     </div>
     <div style="padding:32px 24px;">
@@ -175,7 +175,7 @@ export async function sendSigningRequestEmail(input: {
   const client = getEmailClient();
 
   await client.emails.send({
-    from: `DocPix Studio <${env.EMAIL_FROM}>`,
+    from: `OpenPDF Studio <${env.EMAIL_FROM}>`,
     to: recipientEmail,
     subject: `Document for signature: ${documentName}`,
     html: `
@@ -194,7 +194,7 @@ export async function sendSigningRequestEmail(input: {
           <path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
           <circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/>
         </svg>
-        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">DocPix Studio</span>
+        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">OpenPDF Studio</span>
       </div>
     </div>
     <div style="padding:32px 24px;">
