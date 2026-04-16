@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-// Core types for the DocPix Studio Admin Dashboard
+// Core types for the OpenPDF Studio Admin Dashboard
 // ═══════════════════════════════════════════════
 
 // ── User ──
@@ -70,10 +70,56 @@ export interface SignatureRequest {
   id: string;
   documentId: string;
   senderId: string;
-  status: 'pending' | 'completed' | 'declined' | 'expired';
+  recipientEmail: string;
+  recipientName: string | null;
+  status: 'pending' | 'viewed' | 'completed' | 'declined' | 'expired';
+  accessToken: string;
   message: string | null;
+  deadline: string | null;
+  signedAt: string | null;
+  viewedAt: string | null;
+  signedDocumentS3Key: string | null;
+  paymentRequired?: boolean;
+  paymentAmount?: number; // in cents
+  paymentCurrency?: string;
+  paymentDescription?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SignatureField {
+  id: string;
+  requestId: string;
+  fieldType: 'signature' | 'initials' | 'date' | 'name' | 'text';
+  pageNumber: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  required: boolean;
+  label: string | null;
+  aiDetected: boolean;
+  createdAt: string;
+}
+
+export interface SendDocumentPayload {
+  recipientEmail: string;
+  recipientName: string;
+  message?: string;
+  deadline?: string;
+  paymentEnabled?: boolean;
+  paymentAmount?: number;
+  paymentDescription?: string;
+  fields?: Array<{
+    fieldType: string;
+    pageNumber: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    required?: boolean;
+    label?: string;
+  }>;
 }
 
 // ── Payment ──
@@ -268,4 +314,69 @@ export interface OrgMembership {
   org: Organization;
   role: 'owner' | 'admin' | 'member' | 'viewer';
   joinedAt: string | null;
+}
+
+// ── AI Intelligence ──
+
+export interface DocumentStructure {
+  pageCount: number;
+  averageWordsPerPage: number;
+  hasSignatureBlocks: boolean;
+  signatureBlockCount: number;
+  documentType: 'contract' | 'agreement' | 'nda' | 'lease' | 'invoice' | 'employment' | 'other';
+  sections: string[];
+  keyTerms: string[];
+}
+
+export interface ClauseAnalysis {
+  clauseText: string;
+  category: string;
+  severity: 'red' | 'yellow' | 'green';
+  explanation: string;
+  suggestion?: string;
+  pageNumber: number;
+}
+
+export interface RiskSummary {
+  overallRisk: 'red' | 'yellow' | 'green';
+  score: number;
+  summary: string;
+  topConcerns: string[];
+  positivePoints: string[];
+}
+
+export interface ReminderInsight {
+  requestId: string;
+  recipientEmail: string;
+  documentName?: string;
+  suggestedSendTime: string;
+  urgencyScore: number;
+  reason: string;
+  channel: 'email' | 'sms';
+}
+
+export interface AIDocumentAnalysis {
+  structure: DocumentStructure;
+  risk: RiskSummary;
+  clauses: ClauseAnalysis[];
+  fieldSuggestions: Array<{
+    fieldType: string;
+    pageNumber: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    confidence: number;
+    matchType: 'structural' | 'heuristic';
+  }>;
+}
+
+export interface FeedbackTriageResult {
+  category: string;
+  priority: string;
+  aiSummary: string;
+  tags: string[];
+  sentiment: 'positive' | 'negative' | 'neutral';
+  actionable: boolean;
+  suggestedAction?: string;
 }

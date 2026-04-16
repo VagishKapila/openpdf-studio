@@ -116,7 +116,7 @@ export function PortalFeedback() {
           <div>
             <h3 className="font-medium text-indigo-900">We value your feedback</h3>
             <p className="text-sm text-indigo-700 mt-1">
-              Your feedback helps us improve DocPix Studio. Every message is reviewed by our team
+              Your feedback helps us improve OpenPDF Studio. Every message is reviewed by our team
               and you may receive a response via email.
             </p>
           </div>

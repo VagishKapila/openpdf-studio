@@ -1,5 +1,5 @@
 /**
- * React Query hooks for the DocPix Studio Admin Dashboard.
+ * React Query hooks for the OpenPDF Studio Admin Dashboard.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +8,7 @@ import type {
   DashboardStats, User, DocumentRecord, AuditLogEntry,
   Organization, Feedback, ChartSeries, ApiResponse,
   OrgDashboardData, OrgMemberDetail, OrgNotification, OrgMembership, DailyReport,
+  SignatureRequest, SendDocumentPayload,
 } from '@/types';
 
 // ── Dashboard ──
@@ -157,6 +158,49 @@ export function useUpdateSettings() {
   });
 }
 
+// ── Document Workflow ──
+
+export function useUploadDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, metadata }: { file: File; metadata?: Record<string, string> }) =>
+      api.uploadDocument(file, metadata),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+  });
+}
+
+export function useSendDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ documentId, payload }: { documentId: string; payload: SendDocumentPayload }) =>
+      api.sendDocument(documentId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['signature-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    },
+  });
+}
+
+export function useSignatureRequests(params: { page: number; limit: number; status: string }) {
+  return useQuery<ApiResponse<(SignatureRequest & { document?: DocumentRecord })[]>>({
+    queryKey: ['signature-requests', params],
+    queryFn: () => api.getSignatureRequests(params),
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function useSignatureRequestsForDocument(documentId: string | null) {
+  return useQuery<ApiResponse<SignatureRequest[]>>({
+    queryKey: ['signature-requests', 'document', documentId],
+    queryFn: () => api.getDocumentSignatureRequests(documentId!),
+    enabled: !!documentId,
+  });
+}
+
 // ── Portal Hooks ──
 
 export function useMyOrgs() {
@@ -193,11 +237,33 @@ export function useOrgMembers(slug: string) {
 }
 
 export function useOrgNotifications(slug: string) {
-  return useQuery<ApiResponse<OrgNotification[]>>({
+  return useQuery<{ data: OrgNotification[]; meta: { unreadCount: number } }>({
     queryKey: ['org', slug, 'notifications'],
-    queryFn: () => api.getOrgNotifications(slug),
+    queryFn: () => api.getOrgNotifications(slug, { limit: 20 }),
     enabled: !!slug,
-    refetchInterval: 30_000,
+    refetchInterval: 15_000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, notifId }: { slug: string; notifId: string }) =>
+      api.markNotificationRead(slug, notifId),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['org', vars.slug, 'notifications'] });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug }: { slug: string }) =>
+      api.markAllNotificationsRead(slug),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['org', vars.slug, 'notifications'] });
+    },
   });
 }
 
@@ -310,5 +376,13 @@ export function useReminders(orgId?: string) {
     queryKey: ['reminders', orgId],
     queryFn: () => api.getReminders(orgId),
     refetchInterval: 30_000,
+  });
+}
+
+export function useReminderInsights(orgId?: string) {
+  return useQuery<ApiResponse<import('@/types').ReminderInsight[]>>({
+    queryKey: ['ai', 'reminder-insights', orgId],
+    queryFn: () => api.getReminderInsights(orgId),
+    refetchInterval: 60000,
   });
 }

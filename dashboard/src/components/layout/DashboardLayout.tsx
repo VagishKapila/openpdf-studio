@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Users, FileText, DollarSign,
   ScrollText, Building2, MessageSquare, Brain, Settings, LogOut,
 } from 'lucide-react';
+import { NotificationBell } from './NotificationBell';
 
 const navItems = [
   { to: '/overview', icon: LayoutDashboard, label: 'Overview' },
@@ -20,6 +21,7 @@ const navItems = [
 export function DashboardLayout() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [currentOrgSlug, setCurrentOrgSlug] = useState<string>('');
 
   useEffect(() => {
     const userJson = localStorage.getItem('dpstudio_admin_user');
@@ -30,6 +32,10 @@ export function DashboardLayout() {
         setUser(null);
       }
     }
+
+    // Try to get current org slug from localStorage or URL
+    const slug = localStorage.getItem('current_org_slug') || '';
+    setCurrentOrgSlug(slug);
   }, []);
 
   const handleLogout = () => {
@@ -49,7 +55,7 @@ export function DashboardLayout() {
             <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">DP</span>
             </div>
-            <span className="font-semibold text-gray-900 dark:text-white">DocPix Admin</span>
+            <span className="font-semibold text-gray-900 dark:text-white">OpenPDF Admin</span>
           </div>
         </div>
 
@@ -75,7 +81,7 @@ export function DashboardLayout() {
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-gray-400">DocPix Studio v0.1.0</p>
+          <p className="text-xs text-gray-400">OpenPDF Studio v1.1.0</p>
         </div>
       </aside>
 
@@ -86,10 +92,11 @@ export function DashboardLayout() {
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
             Super Admin Dashboard
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {currentOrgSlug && <NotificationBell slug={currentOrgSlug} />}
             <div className="flex flex-col items-end">
               <span className="text-sm font-medium text-gray-900 dark:text-white">{user?.name || 'Admin'}</span>
-              <span className="text-xs text-gray-500">{user?.email || 'admin@docpixstudio.com'}</span>
+              <span className="text-xs text-gray-500">{user?.email || 'support@openpdfstudio.com'}</span>
             </div>
             <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center">
               <span className="text-white text-xs font-medium">

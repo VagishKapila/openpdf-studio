@@ -129,7 +129,7 @@ export function PortalLayout() {
             <LogOut className="w-4 h-4" />
             Sign Out
           </button>
-          <p className="text-xs text-gray-400 text-center">{org?.footerText || 'Powered by DocPix Studio'}</p>
+          <p className="text-xs text-gray-400 text-center">{org?.footerText || 'Powered by OpenPDF Studio'}</p>
         </div>
       </aside>
 

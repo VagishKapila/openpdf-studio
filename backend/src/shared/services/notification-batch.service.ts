@@ -94,7 +94,7 @@ async function deliverSingleNotification(userId: string, notification: QueuedNot
       if (user && user.length > 0) {
         await sendNotificationEmail(
           user[0].email,
-          `${notification.title} — DocPix Studio`,
+          `${notification.title} — OpenPDF Studio`,
           notification.title,
           notification.message,
         ).catch(err => {
@@ -142,7 +142,7 @@ async function deliverBatchedNotifications(userId: string, notifications: Queued
     // Send digest email
     await sendNotificationEmail(
       user.email,
-      `You have ${notifications.length} new notifications — DocPix Studio`,
+      `You have ${notifications.length} new notifications — OpenPDF Studio`,
       'Notification Digest',
       digestHtml,
     ).catch(err => {
@@ -198,13 +198,13 @@ function buildNotificationDigestHtml(userName: string, notifications: QueuedNoti
           <path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
           <circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/>
         </svg>
-        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">DocPix Studio</span>
+        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">OpenPDF Studio</span>
       </div>
     </div>
     <div style="padding:32px 24px;">
       <h1 style="margin:0 0 8px;font-size:22px;color:#18181b;">You have ${notifications.length} new notifications</h1>
       <p style="margin:0 0 24px;color:#71717a;font-size:15px;line-height:1.5;">
-        Hi ${userName}, here's a summary of what happened in your DocPix Studio account.
+        Hi ${userName}, here's a summary of what happened in your OpenPDF Studio account.
       </p>
 
       <ul style="margin:0;padding:0;list-style:none;">

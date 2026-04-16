@@ -1,5 +1,4 @@
 import { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -8,7 +7,6 @@ export default function LoginPage() {
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'login' | 'forgot'>('login');
-  const navigate = useNavigate();
 
   const apiBase = import.meta.env.VITE_API_URL || '/api';
 
@@ -30,10 +28,14 @@ export default function LoginPage() {
         throw new Error('Access denied. Admin privileges required.');
       }
 
+      // Store tokens — use both keys for compatibility with ApiClient (admin_access_token)
       localStorage.setItem('dpstudio_admin_token', data.tokens.accessToken);
+            localStorage.setItem('admin_access_token', data.tokens.accessToken);
       localStorage.setItem('dpstudio_admin_refresh', data.tokens.refreshToken);
       localStorage.setItem('dpstudio_admin_user', JSON.stringify(data.user));
-      navigate('/overview');
+      localStorage.setItem('admin_access_token', data.tokens.accessToken);
+      // Use full page redirect to ensure ProtectedRoute picks up new token
+      window.location.href = '/overview';
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -66,7 +68,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">DocuFlow</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">OpenPDF Studio</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             {mode === 'login' ? 'Admin Dashboard' : 'Reset Password'}
           </p>

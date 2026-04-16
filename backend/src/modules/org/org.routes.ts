@@ -453,7 +453,17 @@ org.get('/:slug/notifications', requireOrgMember('viewer'), async (c) => {
       .orderBy(desc(notificationInbox.createdAt))
       .limit(limit);
 
-    return c.json({ data: rows });
+    // Get total unread count
+    const [{ unreadCount }] = await db
+      .select({ unreadCount: count() })
+      .from(notificationInbox)
+      .where(and(
+        eq(notificationInbox.userId, userId),
+        eq(notificationInbox.orgId, orgRow.id),
+        eq(notificationInbox.read, false)
+      ));
+
+    return c.json({ data: rows, meta: { unreadCount } });
   } catch (err: any) {
     console.error('[org] Get notifications error:', err.message);
     return c.json({ error: 'Failed to fetch notifications' }, 500);
@@ -475,6 +485,28 @@ org.patch('/:slug/notifications/:notifId/read', requireOrgMember('viewer'), asyn
   } catch (err: any) {
     console.error('[org] Mark notification error:', err.message);
     return c.json({ error: 'Failed to mark notification' }, 500);
+  }
+});
+
+// ── Mark All Notifications Read ──
+org.patch('/:slug/notifications/read-all', requireOrgMember('viewer'), async (c) => {
+  const orgRow = getOrg(c);
+  const userId = getUser(c).id;
+
+  try {
+    await db
+      .update(notificationInbox)
+      .set({ read: true })
+      .where(and(
+        eq(notificationInbox.userId, userId),
+        eq(notificationInbox.orgId, orgRow.id),
+        eq(notificationInbox.read, false)
+      ));
+
+    return c.json({ message: 'All notifications marked as read' });
+  } catch (err: any) {
+    console.error('[org] Mark all notifications error:', err.message);
+    return c.json({ error: 'Failed to mark all notifications' }, 500);
   }
 });
 

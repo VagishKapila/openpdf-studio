@@ -259,7 +259,7 @@ export async function sendDailyDigestEmail(orgId: string, reportDate: Date = new
     const emailPromises = adminMembers.map(member =>
       sendNotificationEmail(
         member.email,
-        `DocPix Studio — Daily Digest for ${dateStr}`,
+        `OpenPDF Studio — Daily Digest for ${dateStr}`,
         `Your Daily Digest`,
         buildDailyDigestHtml(org.name, dateStr, {
           docsSent: report.docsSent,
@@ -380,7 +380,7 @@ export async function sendWeeklyDigestEmail(orgId: string, endDate: Date = new D
     const emailPromises = adminMembers.map(member =>
       sendNotificationEmail(
         member.email,
-        `DocPix Studio — Weekly Report ${startDateStr} - ${endDateStr}`,
+        `OpenPDF Studio — Weekly Report ${startDateStr} - ${endDateStr}`,
         `Your Weekly Report`,
         buildWeeklyDigestHtml(org.name, startDateStr, endDateStr, {
           docsSent: aggregated.docsSent,
@@ -452,7 +452,7 @@ function buildDailyDigestHtml(
           <path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
           <circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/>
         </svg>
-        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">DocPix Studio</span>
+        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">OpenPDF Studio</span>
       </div>
     </div>
     <div style="padding:32px 24px;">
@@ -527,7 +527,7 @@ function buildWeeklyDigestHtml(
           <path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
           <circle cx="17" cy="15" r="3" fill="white" fill-opacity="0.3" stroke="white" stroke-width="1.5"/>
         </svg>
-        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">DocPix Studio</span>
+        <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.5px;">OpenPDF Studio</span>
       </div>
     </div>
     <div style="padding:32px 24px;">

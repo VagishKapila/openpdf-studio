@@ -1,5 +1,5 @@
 /**
- * API client for the DocPix Studio Admin Dashboard.
+ * API client for the OpenPDF Studio Admin Dashboard.
  * Handles JWT auth, token refresh, and typed requests.
  */
 
@@ -14,6 +14,9 @@ import type {
   DocumentRecord,
   DailyReport,
   Feedback,
+  SignatureRequest,
+  SignatureField,
+  SendDocumentPayload,
 } from '@/types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -22,17 +25,22 @@ class ApiClient {
   private accessToken: string | null = null;
 
   constructor() {
-    this.accessToken = localStorage.getItem('admin_access_token');
+    // Check both token keys for compatibility
+    this.accessToken = localStorage.getItem('admin_access_token') || localStorage.getItem('dpstudio_admin_token');
   }
 
   setToken(token: string) {
     this.accessToken = token;
     localStorage.setItem('admin_access_token', token);
+    localStorage.setItem('dpstudio_admin_token', token);
   }
 
   clearToken() {
     this.accessToken = null;
     localStorage.removeItem('admin_access_token');
+    localStorage.removeItem('dpstudio_admin_token');
+    localStorage.removeItem('dpstudio_admin_refresh');
+    localStorage.removeItem('dpstudio_admin_user');
   }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -260,13 +268,21 @@ class ApiClient {
     });
   }
 
-  async getOrgNotifications(slug: string, unread?: boolean) {
-    const query = unread ? '?unread=true' : '';
-    return this.request<ApiResponse<OrgNotification[]>>(`/org/${slug}/notifications${query}`);
+  async getOrgNotifications(slug: string, params?: { limit?: number; unread?: boolean }) {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.unread) query.set('unread', 'true');
+    return this.request<{ data: OrgNotification[]; meta: { unreadCount: number } }>(`/org/${slug}/notifications?${query}`);
   }
 
   async markNotificationRead(slug: string, notifId: string) {
     return this.request<ApiResponse<unknown>>(`/org/${slug}/notifications/${notifId}/read`, {
+      method: 'PATCH',
+    });
+  }
+
+  async markAllNotificationsRead(slug: string) {
+    return this.request<ApiResponse<unknown>>(`/org/${slug}/notifications/read-all`, {
       method: 'PATCH',
     });
   }
@@ -287,6 +303,74 @@ class ApiClient {
 
   async getOrgAnalytics(slug: string) {
     return this.request<ApiResponse<DailyReport[]>>(`/org/${slug}/analytics`);
+  }
+
+  // ── Document Workflow (Upload, Send, Sign, Track) ──
+
+  async uploadDocument(file: File, metadata?: Record<string, string>) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (metadata) {
+      Object.entries(metadata).forEach(([k, v]) => formData.append(k, v));
+    }
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+    const res = await fetch(`${API_BASE}/documents`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+      throw { message: err.error || err.message || 'Upload failed', status: res.status };
+    }
+    return res.json() as Promise<ApiResponse<DocumentRecord>>;
+  }
+
+  async prepareForSigning(documentId: string) {
+    return this.request<ApiResponse<SignatureRequest>>('/esign/prepare', {
+      method: 'POST',
+      body: JSON.stringify({ documentId }),
+    });
+  }
+
+  async detectFields(documentId: string) {
+    return this.request<ApiResponse<SignatureField[]>>('/esign/detect-fields', {
+      method: 'POST',
+      body: JSON.stringify({ documentId }),
+    });
+  }
+
+  async saveSignatureFields(requestId: string, fields: SendDocumentPayload['fields']) {
+    return this.request<ApiResponse<SignatureField[]>>(`/esign/${requestId}/fields`, {
+      method: 'POST',
+      body: JSON.stringify({ fields }),
+    });
+  }
+
+  async sendDocument(documentId: string, payload: SendDocumentPayload) {
+    return this.request<ApiResponse<SignatureRequest>>(`/documents/${documentId}/send`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getSignatureRequests(params?: { page?: number; limit?: number; status?: string }) {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.status) query.set('status', params.status);
+    return this.request<ApiResponse<(SignatureRequest & { document?: DocumentRecord })[]>>(`/admin/signature-requests?${query}`);
+  }
+
+  async getDocumentSignatureRequests(documentId: string) {
+    return this.request<ApiResponse<SignatureRequest[]>>(`/admin/documents/${documentId}/signature-requests`);
+  }
+
+  async getDocumentDownloadUrl(documentId: string) {
+    return this.request<ApiResponse<{ url: string }>>(`/documents/${documentId}/download-url`);
   }
 
   // ── AI Intelligence ──
@@ -310,6 +394,18 @@ class ApiClient {
   async getReminders(orgId?: string) {
     const path = orgId ? `/reminders/org/${orgId}` : '/admin/reminders';
     return this.request<ApiResponse<import('@/types').SigningReminder[]>>(path);
+  }
+
+  async getReminderInsights(orgId?: string) {
+    const path = orgId ? `/ai/reminder-insights/${orgId}` : '/ai/reminder-insights';
+    return this.request<ApiResponse<import('@/types').ReminderInsight[]>>(path);
+  }
+
+  async analyzeDocument(pages: { pageNumber: number; text: string }[]) {
+    return this.request<ApiResponse<import('@/types').AIDocumentAnalysis>>('/ai/analyze-document', {
+      method: 'POST',
+      body: JSON.stringify({ pages }),
+    });
   }
 }
 

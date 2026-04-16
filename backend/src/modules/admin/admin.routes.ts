@@ -1,20 +1,16 @@
 import { Hono } from 'hono';
-import { requireAuth } from '../../shared/middleware/auth';
+import { requireAuth, getUser } from '../../shared/middleware/auth';
 import { requireSuperAdmin } from '../../shared/middleware/admin.middleware';
 import { db } from '../../shared/db';
-import { users, documents, payments, auditLog, signatureRequests, organizations, feedback, orgMembers, platformSettings, brandingConfigs, subscriptions } from '../../shared/db/schema';
+import { users, documents, payments, auditLog, signatureRequests, organizations, feedback, orgMembers, platformSettings } from '../../shared/db/schema';
 import { eq, sql, desc, ilike, and, gte, lte, count } from 'drizzle-orm';
-import { env } from '../../config/env';
-import Stripe from 'stripe';
-import { getUser } from '../../shared/middleware/auth';
-import bcrypt from 'bcryptjs';
 
 const admin = new Hono();
 
 // All admin routes require authentication + super admin
 admin.use('/*', requireAuth, requireSuperAdmin);
 
-// ââ Dashboard Stats ââ
+// ── Dashboard Stats ──
 admin.get('/dashboard/stats', async (c) => {
   try {
     const [userStats] = await db.select({
@@ -68,7 +64,7 @@ admin.get('/dashboard/stats', async (c) => {
   }
 });
 
-// ââ Users List ââ
+// ── Users List ──
 admin.get('/users', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const limit = parseInt(c.req.query('limit') || '25');
@@ -103,7 +99,7 @@ admin.get('/users', async (c) => {
   }
 });
 
-// ââ User Detail ââ
+// ── User Detail ──
 admin.get('/users/:id', async (c) => {
   const userId = c.req.param('id');
   try {
@@ -115,26 +111,19 @@ admin.get('/users/:id', async (c) => {
   }
 });
 
-// ââ Update User (active/plan/superadmin) ââ
+// ── Update User (active/plan/superadmin) ──
 admin.patch('/users/:id', async (c) => {
   const userId = c.req.param('id');
   const body = await c.req.json();
   try {
-    const updateData: Record<string, any> = {
-      isActive: body.isActive ?? undefined,
-      plan: body.plan ?? undefined,
-      isSuperAdmin: body.isSuperAdmin ?? undefined,
-      updatedAt: new Date(),
-    };
-
-    // Support admin password reset
-    if (body.password) {
-      updateData.passwordHash = await bcrypt.hash(body.password, 12);
-    }
-
     const [updated] = await db
       .update(users)
-      .set(updateData)
+      .set({
+        isActive: body.isActive ?? undefined,
+        plan: body.plan ?? undefined,
+        isSuperAdmin: body.isSuperAdmin ?? undefined,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, userId))
       .returning();
     return c.json({ data: updated });
@@ -144,7 +133,7 @@ admin.patch('/users/:id', async (c) => {
   }
 });
 
-// ââ Audit Log ââ
+// ── Audit Log ──
 admin.get('/audit-log', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const limit = parseInt(c.req.query('limit') || '50');
@@ -172,7 +161,7 @@ admin.get('/audit-log', async (c) => {
   }
 });
 
-// ââ Revenue ââ
+// ── Revenue ──
 admin.get('/revenue', async (c) => {
   try {
     const rows = await db
@@ -192,7 +181,7 @@ admin.get('/revenue', async (c) => {
   }
 });
 
-// ââ Organizations ââ
+// ── Organizations ──
 admin.get('/organizations', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const limit = parseInt(c.req.query('limit') || '25');
@@ -216,7 +205,7 @@ admin.get('/organizations', async (c) => {
   }
 });
 
-// ââ Documents List ââ
+// ── Documents List ──
 admin.get('/documents', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const limit = parseInt(c.req.query('limit') || '25');
@@ -245,7 +234,7 @@ admin.get('/documents', async (c) => {
   }
 });
 
-// ââ Feedback ââ
+// ── Feedback ──
 admin.get('/feedback', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const limit = parseInt(c.req.query('limit') || '25');
@@ -274,7 +263,7 @@ admin.get('/feedback', async (c) => {
   }
 });
 
-// ââ Update Feedback Status/Priority ââ
+// ── Update Feedback Status/Priority ──
 admin.patch('/feedback/:id', async (c) => {
   const feedbackId = c.req.param('id');
   const body = await c.req.json();
@@ -304,7 +293,7 @@ admin.patch('/feedback/:id', async (c) => {
   }
 });
 
-// ââ Create Organization (admin override) ââ
+// ── Create Organization (admin override) ──
 admin.post('/organizations', async (c) => {
   const body = await c.req.json();
 
@@ -357,7 +346,7 @@ admin.post('/organizations', async (c) => {
   }
 });
 
-// ââ Update Organization (admin override) ââ
+// ── Update Organization (admin override) ──
 admin.patch('/organizations/:id', async (c) => {
   const orgId = c.req.param('id');
   const body = await c.req.json();
@@ -392,7 +381,7 @@ admin.patch('/organizations/:id', async (c) => {
   }
 });
 
-// ââ Platform Settings (GET/PUT) ââ
+// ── Platform Settings (GET/PUT) ──
 admin.get('/settings', async (c) => {
   try {
     const rows = await db.select().from(platformSettings);
@@ -403,8 +392,8 @@ admin.get('/settings', async (c) => {
     // Merge with defaults
     const defaults = {
       general: {
-        platformName: 'DocPix Studio',
-        supportEmail: 'support@docpixstudio.com',
+        platformName: 'OpenPDF Studio',
+        supportEmail: 'support@openpdfstudio.com',
         defaultPlan: 'free',
         maxUploadSizeMB: 25,
         maintenanceMode: false,
@@ -413,7 +402,7 @@ admin.get('/settings', async (c) => {
         primaryColor: '#6366F1',
         secondaryColor: '#8B5CF6',
         logoUrl: '',
-        footerText: 'Powered by DocPix Studio',
+        footerText: 'Powered by OpenPDF Studio',
       },
       notifications: {
         emailEnabled: true,
@@ -487,7 +476,7 @@ admin.put('/settings', async (c) => {
   }
 });
 
-// ââ System Health ââ
+// ── System Health ──
 admin.get('/system/health', async (c) => {
   return c.json({
     data: {
@@ -499,16 +488,17 @@ admin.get('/system/health', async (c) => {
   });
 });
 
-// ââ Branding Config (from user-level, non-admin) ââ
+// ── Branding Config (per-user white-label) ──
 admin.get('/branding', async (c) => {
   try {
-    const userId = getUser(c).id;
+    const userId = (c as any).userId;
+    const { brandingConfigs } = await import('../../shared/db/schema');
     const [config] = await db.select()
       .from(brandingConfigs)
       .where(eq(brandingConfigs.userId, userId));
 
     return c.json(config || {
-      companyName: 'DocuFlow',
+      companyName: 'OpenPDF Studio',
       primaryColor: '#6366f1',
       secondaryColor: '#8b5cf6',
       accentColor: '#a78bfa',
@@ -520,12 +510,13 @@ admin.get('/branding', async (c) => {
 
 admin.put('/branding', async (c) => {
   try {
-    const userId = getUser(c).id;
+    const userId = (c as any).userId;
     const body = await c.req.json();
+    const { brandingConfigs } = await import('../../shared/db/schema');
 
     const values = {
       userId,
-      companyName: body.companyName || 'DocuFlow',
+      companyName: body.companyName || 'OpenPDF Studio',
       logoUrl: body.logoUrl || null,
       primaryColor: body.primaryColor || '#6366f1',
       secondaryColor: body.secondaryColor || '#8b5cf6',
@@ -560,58 +551,29 @@ admin.put('/branding', async (c) => {
   }
 });
 
-// ââ Stripe Billing Portal ââ
-admin.post('/billing-portal', async (c) => {
-  try {
-    if (!env.STRIPE_SECRET_KEY) {
-      return c.json({ error: 'Stripe not configured' }, 503);
-    }
-
-    const userId = getUser(c).id;
-    const stripe = new Stripe(env.STRIPE_SECRET_KEY);
-
-    const [sub] = await db.select()
-      .from(subscriptions)
-      .where(eq(subscriptions.userId, userId));
-
-    if (!sub?.stripeCustomerId) {
-      return c.json({ error: 'No billing account found. Subscribe first.' }, 404);
-    }
-
-    const session = await stripe.billingPortal.sessions.create({
-      customer: sub.stripeCustomerId,
-      return_url: `${env.FRONTEND_URL}/openpdf-studio/dashboard.html`,
-    });
-
-    return c.json({ url: session.url });
-  } catch (error: any) {
-    return c.json({ error: error.message || 'Failed to create billing portal' }, 500);
-  }
-});
-
-// ââ Create Subscription Checkout ($17/mo) ââ
+// ── Subscription Checkout ──
 admin.post('/subscribe', async (c) => {
   try {
-    if (!env.STRIPE_SECRET_KEY) {
+    const { env: appEnv } = await import('../../config/env');
+    if (!appEnv.STRIPE_SECRET_KEY) {
       return c.json({ error: 'Stripe not configured' }, 503);
     }
-
-    const user = getUser(c);
-    const stripe = new Stripe(env.STRIPE_SECRET_KEY);
-    const body = await c.req.json();
-
-    const origin = c.req.header('origin') || env.FRONTEND_URL;
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(appEnv.STRIPE_SECRET_KEY);
+    const userId = (c as any).userId;
+    const user = await db.select().from(users).where(eq(users.id, userId)).then(r => r[0]);
+    const origin = c.req.header('origin') || appEnv.FRONTEND_URL;
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
-      customer_email: user.email,
+      customer_email: user?.email,
       line_items: [{
         price_data: {
           currency: 'usd',
           product_data: {
-            name: 'DocuFlow Pro',
-            description: 'Monthly account fee â unlimited transactions, branded pages, document signing',
+            name: 'OpenPDF Studio Pro',
+            description: 'Monthly account fee — unlimited transactions, branded pages, document signing',
           },
           unit_amount: 1700,
           recurring: { interval: 'month' },
@@ -620,7 +582,7 @@ admin.post('/subscribe', async (c) => {
       }],
       success_url: `${origin}/openpdf-studio/dashboard.html?subscription=success`,
       cancel_url: `${origin}/openpdf-studio/pricing.html?subscription=cancelled`,
-      metadata: { userId: user.id },
+      metadata: { userId },
     });
 
     return c.json({ checkoutUrl: session.url, sessionId: session.id });

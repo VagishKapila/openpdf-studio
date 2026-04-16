@@ -1,6 +1,6 @@
 {
-  "name": "DocPix Studio",
-  "short_name": "DocPix",
+  "name": "OpenPDF Studio",
+  "short_name": "OpenPDF Studio",
   "description": "PDF & Image Editor — Edit PDFs, images, and documents in one place. Free core features, premium tools available.",
   "start_url": "./index.html",
   "display": "standalone",

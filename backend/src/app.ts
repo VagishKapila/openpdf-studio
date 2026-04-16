@@ -7,9 +7,17 @@ import { env } from './config/env';
 // Module imports — each module is self-contained
 import { authRoutes } from './modules/auth';
 import { convertRoutes } from './modules/convert';
-import { esignRoutes } from './modules/esign';
+import { esignRoutes, publicRoutes } from './modules/esign';
+import { documentRoutes } from './modules/documents';
 import { paymentRoutes } from './modules/payments';
-import { signatureRequestRoutes, publicSignRoutes } from './modules/signature-requests';
+import { adminRoutes } from './modules/admin';
+import { dashboardRoutes } from './modules/dashboard';
+import { orgRoutes } from './modules/org';
+import { notificationRoutes } from './modules/notifications';
+import { reminderRoutes } from './modules/reminders';
+import { aiRoutes } from './modules/ai';
+import { reportRoutes } from './modules/reports';
+import { protectionRoutes } from './modules/protection';
 
 const app = new Hono();
 
@@ -31,7 +39,7 @@ app.get('/', (c) => {
     version: '1.0.0',
     status: 'healthy',
     environment: env.NODE_ENV,
-    modules: ['auth', 'convert', 'esign', 'payments', 'signature-requests'],
+    modules: ['auth', 'convert', 'esign', 'sign', 'documents', 'payments', 'admin', 'dashboard', 'org', 'notifications', 'reminders', 'ai', 'reports', 'protection'],
   });
 });
 
@@ -45,12 +53,17 @@ app.get('/health', (c) => {
 app.route('/auth', authRoutes);
 app.route('/convert', convertRoutes);
 app.route('/esign', esignRoutes);
+app.route('/sign', publicRoutes);  // Public signing routes (no auth required)
+app.route('/documents', documentRoutes);
 app.route('/payments', paymentRoutes);
-app.route('/api/signature-requests', signatureRequestRoutes);
-app.route('/api/sign', publicSignRoutes);
-
-// Future modules:
-// app.route('/dashboard', dashboardRoutes);
+app.route('/admin', adminRoutes);
+app.route('/dashboard', dashboardRoutes);
+app.route('/org', orgRoutes);
+app.route('/notifications', notificationRoutes);
+app.route('/reminders', reminderRoutes);
+app.route('/ai', aiRoutes);
+app.route('/reports', reportRoutes);
+app.route('/protection', protectionRoutes);
 
 // ===== 404 HANDLER =====
 app.notFound((c) => {

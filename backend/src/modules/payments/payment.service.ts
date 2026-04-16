@@ -3,6 +3,7 @@ import { payments, documents, signatureRequests, auditLog } from '../../shared/d
 import { eq } from 'drizzle-orm';
 import { env } from '../../config/env';
 import Stripe from 'stripe';
+import { createNotification } from '../../shared/services/notification.service';
 
 // Initialize Stripe (lazy — only when keys are available)
 let stripe: Stripe | null = null;
@@ -41,7 +42,7 @@ export async function createCheckoutSession(input: CreateCheckoutInput) {
         currency: input.currency || 'usd',
         product_data: {
           name: input.description || 'Document Signing Payment',
-          description: 'Payment for signed document via DocuFlow',
+          description: 'Payment for signed document via OpenPDF Studio',
         },
         unit_amount: input.amount,
       },
@@ -114,21 +115,63 @@ export async function handleStripeWebhook(event: Stripe.Event) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
       const documentId = session.metadata?.documentId;
+      const requestId = session.metadata?.requestId;
 
       if (documentId) {
         // Update payment status
-        await db.update(payments)
+        const [payment] = await db.update(payments)
           .set({
             status: 'paid',
             paidAt: new Date(),
             payerEmail: session.customer_email || undefined,
           })
-          .where(eq(payments.providerPaymentId, session.id));
+          .where(eq(payments.providerPaymentId, session.id))
+          .returning();
 
         // Update document status to completed
         await db.update(documents)
           .set({ status: 'completed', updatedAt: new Date() })
           .where(eq(documents.id, documentId));
+
+        // If this is a signing-flow payment, update signature request status
+        if (requestId) {
+          const [request] = await db.select()
+            .from(signatureRequests)
+            .where(eq(signatureRequests.id, requestId));
+
+          if (request) {
+            await db.update(signatureRequests)
+              .set({ status: 'paid' })
+              .where(eq(signatureRequests.id, requestId));
+
+            // Create notification for sender - payment received
+            try {
+              const [doc] = await db.select()
+                .from(documents)
+                .where(eq(documents.id, documentId));
+
+              const amount = payment.amount ? (payment.amount / 100).toFixed(2) : '0.00';
+              const docName = doc?.fileName || 'Document';
+
+              await createNotification({
+                userId: request.senderId,
+                orgId: doc?.orgId || undefined,
+                type: 'payment.received',
+                title: 'Payment Received',
+                message: `$${amount} ${request.paymentCurrency?.toUpperCase() || 'USD'} received for "${docName}"`,
+                data: {
+                  documentId,
+                  requestId,
+                  paymentId: payment.id,
+                  amount,
+                  recipientEmail: request.recipientEmail,
+                },
+              });
+            } catch (err) {
+              console.warn('[payment] Failed to create payment received notification:', err);
+            }
+          }
+        }
 
         // Audit log
         await db.insert(auditLog).values({
@@ -138,6 +181,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
             sessionId: session.id,
             amount: session.amount_total,
             payerEmail: session.customer_email,
+            requestId,
           },
         });
       }

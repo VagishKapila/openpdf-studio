@@ -1,8 +1,14 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../shared/middleware/auth';
-import { suggestFieldsForDocument, getOrgPatterns, learnFromDocument } from './pattern.service';
-import { analyzeContractRisk } from './risk.service';
-import { triageFeedback } from './feedback.service';
+import {
+  suggestFieldsForDocument,
+  getOrgPatterns,
+  learnFromDocument,
+  analyzeDocumentStructure,
+} from './pattern.service';
+import { analyzeContractRisk, analyzeClausesInDepth, generateRiskSummary } from './risk.service';
+import { triageFeedback, triageFeedbackAdvanced } from './feedback.service';
+import { analyzeReminderTiming } from './smart-reminder.service';
 
 const ai = new Hono();
 ai.use('/*', requireAuth);
@@ -66,7 +72,7 @@ ai.post('/risk-analysis', async (c) => {
   }
 });
 
-// ── Triage Feedback ──
+// ── Triage Feedback (Basic) ──
 ai.post('/triage-feedback', async (c) => {
   const body = await c.req.json();
 
@@ -76,6 +82,22 @@ ai.post('/triage-feedback', async (c) => {
 
   try {
     const result = triageFeedback(body.message);
+    return c.json({ data: result });
+  } catch (err: any) {
+    return c.json({ error: 'Failed to triage feedback' }, 500);
+  }
+});
+
+// ── Triage Feedback (Advanced with tags, sentiment, actionability) ──
+ai.post('/triage-feedback-advanced', async (c) => {
+  const body = await c.req.json();
+
+  if (!body.message) {
+    return c.json({ error: 'message is required' }, 400);
+  }
+
+  try {
+    const result = triageFeedbackAdvanced(body.message);
     return c.json({ data: result });
   } catch (err: any) {
     return c.json({ error: 'Failed to triage feedback' }, 500);
@@ -144,6 +166,8 @@ ai.get('/feedback-stats', async (c) => {
       feature_request: 0,
       general: 0,
       security: 0,
+      performance: 0,
+      ux: 0,
     };
 
     const byPriorityMap: Record<string, number> = {
@@ -163,7 +187,9 @@ ai.get('/feedback-stats', async (c) => {
       { name: 'Bugs', value: byCategoryMap.bug, color: '#ef4444' },
       { name: 'Features', value: byCategoryMap.feature_request, color: '#f59e0b' },
       { name: 'Security', value: byCategoryMap.security, color: '#dc2626' },
-      { name: 'General', value: byCategoryMap.general, color: '#3b82f6' },
+      { name: 'Performance', value: byCategoryMap.performance, color: '#8b5cf6' },
+      { name: 'UX', value: byCategoryMap.ux, color: '#3b82f6' },
+      { name: 'General', value: byCategoryMap.general, color: '#6b7280' },
     ];
 
     const byPriority = [
@@ -183,6 +209,80 @@ ai.get('/feedback-stats', async (c) => {
   } catch (err: any) {
     console.error('[ai:feedback-stats] Error:', err);
     return c.json({ error: 'Failed to fetch feedback stats' }, 500);
+  }
+});
+
+// ── Analyze Document (Comprehensive AI Analysis) ──
+// POST /ai/analyze-document
+// Comprehensive one-call AI analysis: structure + risk + field suggestions
+ai.post('/analyze-document', async (c) => {
+  const body = await c.req.json();
+
+  if (!body.pages || !Array.isArray(body.pages)) {
+    return c.json({ error: 'pages array is required' }, 400);
+  }
+
+  try {
+    const pages = body.pages as { pageNumber: number; text: string }[];
+    const orgId = body.orgId as string | undefined;
+    const allText = pages.map(p => p.text).join('\n\n');
+
+    // 1. Structure analysis
+    const structure = analyzeDocumentStructure(pages);
+
+    // 2. Risk analysis
+    const riskAnalysis = analyzeContractRisk(allText);
+    const clauses = analyzeClausesInDepth(pages);
+    const riskSummary = generateRiskSummary(clauses);
+
+    // 3. Field suggestions (if orgId provided)
+    let fieldSuggestions = null;
+    if (orgId) {
+      fieldSuggestions = await suggestFieldsForDocument(orgId, allText, pages);
+    }
+
+    return c.json({
+      data: {
+        structure,
+        risk: {
+          analysis: riskAnalysis,
+          clauses: clauses.slice(0, 10), // top 10 clauses
+          summary: riskSummary,
+        },
+        fieldSuggestions,
+      },
+    });
+  } catch (err: any) {
+    console.error('[ai:analyze-document] Error:', err);
+    return c.json({ error: 'Failed to analyze document' }, 500);
+  }
+});
+
+// ── Get Reminder Insights ──
+// GET /ai/reminder-insights/:orgId
+// Returns high-priority signing requests that need reminders, sorted by urgency
+ai.get('/reminder-insights/:orgId', async (c) => {
+  const orgId = c.req.param('orgId');
+
+  if (!orgId) {
+    return c.json({ error: 'orgId is required' }, 400);
+  }
+
+  try {
+    const insights = await analyzeReminderTiming(orgId);
+
+    // Filter to only high-urgency items (score > 20)
+    const filteredInsights = insights.filter(i => i.urgencyScore > 20).slice(0, 50);
+
+    return c.json({
+      data: {
+        totalInsights: insights.length,
+        highPriority: filteredInsights,
+      },
+    });
+  } catch (err: any) {
+    console.error('[ai:reminder-insights] Error:', err);
+    return c.json({ error: 'Failed to fetch reminder insights' }, 500);
   }
 });
 

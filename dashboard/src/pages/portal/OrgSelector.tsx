@@ -63,7 +63,7 @@ export function OrgSelector() {
             <div className="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center text-white font-bold">
               D
             </div>
-            <h1 className="text-xl font-bold text-gray-900">DocPix Studio</h1>
+            <h1 className="text-xl font-bold text-gray-900">OpenPDF Studio</h1>
           </div>
           <button
             onClick={() => {

@@ -45,17 +45,10 @@ pnpm-workspace.yaml
 *.log
 
 
-# Dependencies
-node_modules/
+# Editor
+editor/node_modules/
+editor/dist/
 
-# Build output
-dist/
-release/
-out/
-
-# Cert staging
-signing/
-*.p12
-*.cer
-*.certSigningRequest
-private.key
+# Dashboard
+dashboard/node_modules/
+dashboard/dist/

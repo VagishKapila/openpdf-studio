@@ -12,6 +12,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { AIPage } from './pages/AIPage';
 import LoginPage from './pages/LoginPage';
+import SigningPage from './pages/SigningPage';
 import { PortalLayout } from './pages/portal/PortalLayout';
 import { PortalDashboard } from './pages/portal/PortalDashboard';
 import { PortalDocuments } from './pages/portal/PortalDocuments';
@@ -27,7 +28,9 @@ export default function App() {
   return (
     <>
       <Routes>
+        {/* Public Routes (no auth required) */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/sign/:token" element={<SigningPage />} />
 
         {/* Super Admin Dashboard */}
         <Route

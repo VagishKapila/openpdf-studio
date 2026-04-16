@@ -1,12 +1,12 @@
-# DocPix Studio — Project Knowledge Base
+# OpenPDF Studio — Project Knowledge Base
 
-> Last updated: March 26, 2026
+> Last updated: March 29, 2026
 > Owner: Vagish Kapila (VagishKapila on GitHub, vaakapila@gmail.com)
 > Repo: https://github.com/VagishKapila/openpdf-studio
 
 ## Project Overview
 
-DocPix Studio is a full-featured document platform for editing PDFs, collecting e-signatures, processing payments, and managing document workflows — all in one place. Available as a SaaS with free trial, paid plans (Starter $29/mo, Pro $99/mo, Enterprise custom), and white-label options for businesses. Open-source core with premium features.
+OpenPDF Studio is a full-featured document platform for editing PDFs, collecting e-signatures, processing payments, and managing document workflows — all in one place. Available as a SaaS with free trial, paid plans (Starter $29/mo, Pro $99/mo, Enterprise custom), and white-label options for businesses. Open-source core with premium features.
 
 - **Frontend (Editor)**: Vanilla HTML/CSS/JS served via GitHub Pages from `main` branch — single-file SPA in `src/index.html`
 - **Frontend (Dashboard)**: React 19 + TypeScript + Vite + Tailwind in `dashboard/` — separate app
@@ -22,21 +22,28 @@ DocPix Studio is a full-featured document platform for editing PDFs, collecting 
 - **DO NOT merge staging to main** until full testing is complete
 - **DO NOT merge feature/dashboard to staging** until dashboard is functional
 
-## Staging Infrastructure (lotuspuffs.com)
+## Staging Infrastructure
 
-- **Netlify**: Deploys frontend from `staging` branch, publish dir = `src/`
-- **Netlify site**: `incandescent-druid-a238c2.netlify.app`
-- **Custom domain**: `lotuspuffs.com` (IONOS) — DNS pending (needs A record → 75.2.60.5)
-- **DNS records needed**: A record `@` → 75.2.60.5, CNAME `www` → incandescent-druid-a238c2.netlify.app
-- **Purpose**: Testing/staging URL for testers. Production stays at vagishkapila.github.io/openpdf-studio
+### Dashboard (Vercel)
+- **Vercel project**: `docpix-dashboard`
+- **Vercel URL**: `docpix-dashboard.vercel.app` (working)
+- **Custom domains**: `docpix.varshyl.com` (working), `appdocuflow.varshyl.com` (needs IONOS CNAME)
+- **DNS needed at IONOS**: CNAME `appdocuflow` → `99fdebd4cb15fd44.vercel-dns-017.com.`
+- **Deploys from**: `feature/dashboard` branch, root = `dashboard/`
+
+### Editor Staging (Netlify — PAUSED)
+- **Netlify**: Paused due to credit limit. Was deploying from `staging`, publish dir = `src/`
+- **Netlify site**: `incandescent-druid-a238c2.netlify.app` (not available)
+- **Old domain**: `lotuspuffs.com` (IONOS) — DNS setup incomplete
+- **Purpose**: Editor staging was here but moved to GitHub Pages production for now
 
 ## Infrastructure & Credentials
 
 ### Railway (Backend Hosting)
 - Project: `dpstudio-backend`
 - Service: `openpdf-studio` (openpdf-studio-production)
-- URL: https://dpstudio-backend-production.up.railway.app
-- Deploys from: `main` branch (currently set to `staging` for testing)
+- URL: https://openpdf-studio-production.up.railway.app
+- Deploys from: `staging` branch (auto-deploys on push)
 - 18 environment variables configured
 
 ### Railway Environment Variables
@@ -45,9 +52,9 @@ DocPix Studio is a full-featured document platform for editing PDFs, collecting 
 3. DATABASE_URL (internal Railway Postgres URL)
 4. JWT_SECRET
 5. JWT_REFRESH_SECRET
-6. FRONTEND_URL="https://incandescent-druid-a238c2.netlify.app"
-7. CORS_ORIGINS="https://vagishkapila.github.io,http://localhost:5173,https://incandescent-druid-a238c2.netlify.app"
-8. API_BASE_URL="https://dpstudio-backend-production.up.railway.app"
+6. FRONTEND_URL="https://appdocuflow.varshyl.com"
+7. CORS_ORIGINS="https://vagishkapila.github.io,http://localhost:5173,https://incandescent-druid-a238c2.netlify.app,https://lotuspuffs.com,https://www.lotuspuffs.com,http://localhost:5174,https://docpix-dashboard.netlify.app,https://appdocuflow.varshyl.com,https://docpix-dashboard.vercel.app,https://docpix.varshyl.com"
+8. API_BASE_URL="https://openpdf-studio-production.up.railway.app"
 9. AWS_REGION="us-east-1"
 10. AWS_S3_BUCKET="dpstudio-documents"
 11. EMAIL_FROM="noreply@varshyl.com" (CORRECTED — was barshyrvirtual.com, now uses verified Resend domain)
@@ -71,8 +78,8 @@ DocPix Studio is a full-featured document platform for editing PDFs, collecting 
 - Authorized redirect URIs include the backend callback
 
 ### Stripe
-- Account: Varshyltech (from ConstructINV project, reused)
-- Mode: TEST (pk_test_ / sk_test_ keys)
+- Account: DocuFlowAI (new dedicated account, replaces old Varshyltech)
+- Mode: TEST (pk_test_51TG786AsCE0yP645... / sk_test_51TG786AsCE0yP645...)
 - Test card: 4242 4242 4242 4242, any future expiry, any CVC
 - Declined test card: 4000 0000 0000 9995
 
@@ -240,7 +247,7 @@ Single-file SPA (~6800 lines) with inline HTML, CSS, and JS:
 - Document pipeline (Kanban: Draft → Sent → Signed → Paid → Completed)
 - Client analytics and team management
 - CSS variable theming (logo, colors, domain)
-- "Powered by DocPix Studio" footer
+- "Powered by OpenPDF Studio" footer
 
 ### Phase 4: Communication Layer
 - SMS via Telnyx ($0.004/msg)
