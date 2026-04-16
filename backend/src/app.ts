@@ -9,14 +9,7 @@ import { authRoutes } from './modules/auth';
 import { convertRoutes } from './modules/convert';
 import { esignRoutes } from './modules/esign';
 import { paymentRoutes } from './modules/payments';
-import { dashboardRoutes } from './modules/dashboard';
-import { adminRoutes } from './modules/admin';
-import { orgRoutes } from './modules/org';
-import { notificationRoutes } from './modules/notifications';
-import { reminderRoutes } from './modules/reminders';
-import { aiRoutes } from './modules/ai';
-import { reportRoutes } from './modules/reports';
-import { protectionRoutes } from './modules/protection';
+import { signatureRequestRoutes, publicSignRoutes } from './modules/signature-requests';
 
 const app = new Hono();
 
@@ -34,11 +27,11 @@ app.use('*', cors({
 // ===== HEALTH CHECK =====
 app.get('/', (c) => {
   return c.json({
-    name: 'DocuFlow API',
+    name: 'OpenPDF Studio API',
     version: '1.0.0',
     status: 'healthy',
     environment: env.NODE_ENV,
-    modules: ['auth', 'convert', 'esign', 'payments', 'dashboard', 'admin', 'org', 'notifications', 'reminders', 'ai', 'reports', 'protection'],
+    modules: ['auth', 'convert', 'esign', 'payments', 'signature-requests'],
   });
 });
 
@@ -53,14 +46,11 @@ app.route('/auth', authRoutes);
 app.route('/convert', convertRoutes);
 app.route('/esign', esignRoutes);
 app.route('/payments', paymentRoutes);
-app.route('/dashboard', dashboardRoutes);
-app.route('/admin', adminRoutes);
-app.route('/org', orgRoutes);
-app.route('/notifications', notificationRoutes);
-app.route('/reminders', reminderRoutes);
-app.route('/ai', aiRoutes);
-app.route('/reports', reportRoutes);
-app.route('/protection', protectionRoutes);
+app.route('/api/signature-requests', signatureRequestRoutes);
+app.route('/api/sign', publicSignRoutes);
+
+// Future modules:
+// app.route('/dashboard', dashboardRoutes);
 
 // ===== 404 HANDLER =====
 app.notFound((c) => {
