@@ -1,5 +1,5 @@
 /**
- * DocPix Studio â API Client
+ * OpenPDF Studio â API Client
  * Handles all backend communication: auth, convert, documents, esign, payments, org.
  * Modular design â each backend route group has a corresponding client module.
  */
