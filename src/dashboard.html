@@ -478,105 +478,37 @@
     let filterTime = 'all';
     let paymentTab = 'all';
 
-    // ===== DATA (loaded from API, falls back to empty) =====
-    let contacts = [];
-    let documents = [];
-    let payments = [];
-    let dashboardStats = null;
-    let isLoading = true;
-    let loadError = null;
+    // ===== MOCK DATA (will be replaced with real API calls) =====
+    const contacts = [
+      { id: 'c1', name: 'Mike Johnson', company: 'Johnson & Co', email: 'mike@johnson.co', avatar: 'MJ', totalPaid: 14250, totalDocs: 8, lastActive: 'Mar 27, 2026' },
+      { id: 'c2', name: 'Sarah Chen', company: 'BuildRight Construction', email: 'sarah@buildright.com', avatar: 'SC', totalPaid: 42800, totalDocs: 23, lastActive: 'Mar 26, 2026' },
+      { id: 'c3', name: 'David Park', company: 'Acme Corp', email: 'legal@acmecorp.com', avatar: 'DP', totalPaid: 0, totalDocs: 3, lastActive: 'Mar 25, 2026' },
+      { id: 'c4', name: 'Lisa Tran', company: 'TechStart.io', email: 'cfo@techstart.io', avatar: 'LT', totalPaid: 5000, totalDocs: 2, lastActive: 'Mar 23, 2026' },
+      { id: 'c5', name: 'James Rivera', company: 'Rivera Legal Group', email: 'jrivera@riveralaw.com', avatar: 'JR', totalPaid: 28500, totalDocs: 15, lastActive: 'Mar 22, 2026' },
+    ];
 
-    // ===== API DATA LOADING =====
-    async function loadDashboardData() {
-      isLoading = true;
-      loadError = null;
-      renderPage();
+    const documents = [
+      { id: 1, name: 'Retainer Agreement — Johnson & Co', status: 'awaiting_signature', amount: 2500, contactId: 'c1', recipient: 'mike@johnson.co', sentAt: '2026-03-27', signedAt: null, paidAt: null, dueDate: '2026-04-03', category: 'Contract' },
+      { id: 2, name: 'Construction Invoice #1048', status: 'signed_paid', amount: 8750, contactId: 'c2', recipient: 'sarah@buildright.com', sentAt: '2026-03-25', signedAt: '2026-03-26', paidAt: '2026-03-26', dueDate: null, category: 'Invoice' },
+      { id: 3, name: 'NDA — Acme Corp Partnership', status: 'signed', amount: 0, contactId: 'c3', recipient: 'legal@acmecorp.com', sentAt: '2026-03-24', signedAt: '2026-03-25', paidAt: null, dueDate: null, category: 'NDA' },
+      { id: 4, name: 'Consulting Agreement — Q2 2026', status: 'awaiting_signature', amount: 5000, contactId: 'c4', recipient: 'cfo@techstart.io', sentAt: '2026-03-23', signedAt: null, paidAt: null, dueDate: '2026-03-30', category: 'Contract' },
+      { id: 5, name: 'Lease Amendment — Suite 400', status: 'signed_paid', amount: 1200, contactId: 'c2', recipient: 'sarah@buildright.com', sentAt: '2026-03-20', signedAt: '2026-03-21', paidAt: '2026-03-21', dueDate: null, category: 'Agreement' },
+      { id: 6, name: 'Phase 2 Materials Invoice', status: 'overdue', amount: 12400, contactId: 'c2', recipient: 'sarah@buildright.com', sentAt: '2026-03-10', signedAt: '2026-03-11', paidAt: null, dueDate: '2026-03-20', category: 'Invoice' },
+      { id: 7, name: 'Monthly Retainer — March', status: 'signed_paid', amount: 3000, contactId: 'c5', recipient: 'jrivera@riveralaw.com', sentAt: '2026-03-01', signedAt: '2026-03-02', paidAt: '2026-03-02', dueDate: null, category: 'Invoice' },
+      { id: 8, name: 'Service Agreement — Rivera Legal', status: 'draft', amount: 15000, contactId: 'c5', recipient: '', sentAt: null, signedAt: null, paidAt: null, dueDate: null, category: 'Contract' },
+      { id: 9, name: 'Subcontractor Agreement — Plumbing', status: 'signed_paid', amount: 6200, contactId: 'c2', recipient: 'sarah@buildright.com', sentAt: '2026-02-28', signedAt: '2026-03-01', paidAt: '2026-03-03', dueDate: null, category: 'Agreement' },
+      { id: 10, name: 'Project Scope Amendment #3', status: 'awaiting_signature', amount: 0, contactId: 'c1', recipient: 'mike@johnson.co', sentAt: '2026-03-26', signedAt: null, paidAt: null, dueDate: '2026-04-02', category: 'Amendment' },
+    ];
 
-      // Check if API client is available and user is logged in
-      if (typeof DPStudioAPI === 'undefined' || !DPStudioAPI.auth.isLoggedIn()) {
-        isLoading = false;
-        loadError = 'not_logged_in';
-        renderPage();
-        return;
-      }
-
-      try {
-        const [statsRes, docsRes, paymentsRes, contactsRes] = await Promise.allSettled([
-          DPStudioAPI.dashboard.getStats(),
-          DPStudioAPI.dashboard.getDocuments({ limit: '50' }),
-          DPStudioAPI.dashboard.getPayments({ limit: '50' }),
-          DPStudioAPI.dashboard.getContacts(),
-        ]);
-
-        if (statsRes.status === 'fulfilled') dashboardStats = statsRes.value;
-        if (docsRes.status === 'fulfilled') {
-          documents = (docsRes.value.documents || []).map(d => ({
-            id: d.id, name: d.fileName || d.originalFileName || 'Untitled',
-            status: d.status || 'draft', amount: 0,
-            recipient: '', sentAt: d.createdAt, signedAt: null,
-            paidAt: null, dueDate: null, category: d.mimeType === 'application/pdf' ? 'PDF' : 'Document',
-          }));
-        }
-        if (paymentsRes.status === 'fulfilled') {
-          payments = (paymentsRes.value.payments || []).map(p => ({
-            id: p.id, docId: p.documentId, contact: p.payerEmail || 'Unknown',
-            amount: (p.amount || 0) / 100, date: p.paidAt || p.createdAt,
-            method: p.description || 'Stripe', status: p.status || 'pending',
-          }));
-        }
-        if (contactsRes.status === 'fulfilled') {
-          contacts = (contactsRes.value.contacts || []).map((c, i) => ({
-            id: 'c' + i, name: c.name || c.email.split('@')[0],
-            company: '', email: c.email,
-            avatar: (c.name || c.email).substring(0, 2).toUpperCase(),
-            totalPaid: 0, totalDocs: c.totalRequests || 0,
-            lastActive: c.lastInteraction ? new Date(c.lastInteraction).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A',
-          }));
-        }
-
-        isLoading = false;
-        renderPage();
-      } catch (err) {
-        console.error('Dashboard data load error:', err);
-        isLoading = false;
-        loadError = err.message || 'Failed to load data';
-        renderPage();
-      }
-    }
-
-    function renderLoadingState() {
-      return `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;">
-          <div style="width:40px;height:40px;border:3px solid #e2e8f0;border-top-color:#6366f1;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-          <p style="color:#64748b;font-size:14px;">Loading your dashboard...</p>
-        </div>
-        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
-      `;
-    }
-
-    function renderEmptyState(icon, title, subtitle, actionLabel, actionHref) {
-      return `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:50vh;gap:12px;text-align:center;padding:40px;">
-          <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.06));display:flex;align-items:center;justify-content:center;font-size:28px;">${icon}</div>
-          <h3 style="font-size:18px;font-weight:600;color:#0f172a;">${title}</h3>
-          <p style="color:#64748b;font-size:14px;max-width:400px;">${subtitle}</p>
-          ${actionLabel ? `<a href="${actionHref || '#'}" style="margin-top:8px;padding:10px 24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:10px;font-weight:600;font-size:13px;text-decoration:none;">${actionLabel}</a>` : ''}
-        </div>
-      `;
-    }
-
-    function renderNotLoggedIn() {
-      return `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;text-align:center;padding:40px;">
-          <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-          </div>
-          <h3 style="font-size:20px;font-weight:600;color:#0f172a;">Sign in to view your dashboard</h3>
-          <p style="color:#64748b;font-size:14px;max-width:420px;">Log in or create an account to manage your documents, track payments, and send signature requests.</p>
-          <a href="index.html" style="margin-top:8px;padding:12px 32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:10px;font-weight:600;font-size:14px;text-decoration:none;">Sign In</a>
-        </div>
-      `;
-    }
+    const payments = [
+      { id: 'p1', docId: 2, contact: 'Sarah Chen', amount: 8750, date: '2026-03-26', method: 'Visa ****4242', status: 'completed' },
+      { id: 'p2', docId: 5, contact: 'Sarah Chen', amount: 1200, date: '2026-03-21', method: 'Visa ****4242', status: 'completed' },
+      { id: 'p3', docId: 7, contact: 'James Rivera', amount: 3000, date: '2026-03-02', method: 'ACH Transfer', status: 'completed' },
+      { id: 'p4', docId: 9, contact: 'Sarah Chen', amount: 6200, date: '2026-03-03', method: 'Visa ****4242', status: 'completed' },
+      { id: 'p5', docId: 6, contact: 'Sarah Chen', amount: 12400, date: null, method: null, status: 'overdue' },
+      { id: 'p6', docId: 1, contact: 'Mike Johnson', amount: 2500, date: null, method: null, status: 'pending' },
+      { id: 'p7', docId: 4, contact: 'Lisa Tran', amount: 5000, date: null, method: null, status: 'pending' },
+    ];
 
     const avatarColors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
@@ -644,19 +576,6 @@
     // ===== RENDER =====
     function renderPage() {
       const main = document.getElementById('main-content');
-
-      // Handle loading state
-      if (isLoading) {
-        main.innerHTML = renderLoadingState();
-        return;
-      }
-
-      // Handle not logged in
-      if (loadError === 'not_logged_in') {
-        main.innerHTML = renderNotLoggedIn();
-        return;
-      }
-
       // Update overdue badge
       const overdueCount = documents.filter(d => d.status === 'overdue').length;
       const badge = document.getElementById('overdue-badge');
@@ -863,15 +782,6 @@
 
     // ===== DOCUMENTS PAGE =====
     function renderDocuments(el) {
-      if (documents.length === 0) {
-        el.innerHTML = renderEmptyState(
-          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
-          'No documents yet',
-          'Upload a PDF to get started with document signing and payments.',
-          'Upload Document', 'index.html'
-        );
-        return;
-      }
       el.innerHTML = `
         <div class="page-header">
           <div><div class="page-title">Documents</div><div class="page-subtitle">All your sent and draft documents.</div></div>
@@ -885,15 +795,6 @@
 
     // ===== CONTACTS PAGE =====
     function renderContacts(el) {
-      if (contacts.length === 0) {
-        el.innerHTML = renderEmptyState(
-          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
-          'No contacts yet',
-          'Contacts are automatically created when you send signature requests. Send your first document to get started.',
-          'New Document', 'index.html'
-        );
-        return;
-      }
       let html = `
         <div class="page-header">
           <div><div class="page-title">Contacts</div><div class="page-subtitle">All your clients and their documents in one place.</div></div>
@@ -995,15 +896,6 @@
 
     // ===== PAYMENTS PAGE =====
     function renderPayments(el) {
-      if (payments.length === 0) {
-        el.innerHTML = renderEmptyState(
-          '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
-          'No payments yet',
-          'Payments will appear here once clients pay through your document signing flow. Set up a document with payment to get started.',
-          'Create Document', 'index.html'
-        );
-        return;
-      }
       const completed = payments.filter(p => p.status === 'completed');
       const pending = payments.filter(p => p.status === 'pending');
       const overdue = payments.filter(p => p.status === 'overdue');
@@ -1122,24 +1014,9 @@
         el.classList.toggle('active', el.dataset.page === currentPage);
       });
 
-      // Render initial page then load data from API
+      // Render initial page
       renderPage();
-      loadDashboardData();
-
-      // Update user info in sidebar from stored user
-      if (typeof DPStudioAPI !== 'undefined' && DPStudioAPI.auth.isLoggedIn()) {
-        const user = DPStudioAPI.auth.getUser();
-        if (user) {
-          const nameEl = document.getElementById('user-name');
-          const emailEl = document.getElementById('user-email');
-          const avatarEl = document.getElementById('user-avatar');
-          if (nameEl && user.name) nameEl.textContent = user.name;
-          if (emailEl && user.email) emailEl.textContent = user.email;
-          if (avatarEl && user.name) avatarEl.textContent = user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-        }
-      }
     })();
   </script>
-  <script src="api-client.js"></script>
 </body>
 </html>
