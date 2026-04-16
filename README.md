@@ -5,10 +5,10 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-5b4fff.svg)](LICENSE-MIT)
 [![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-brightgreen)](https://github.com/VagishKapila/openpdf-studio/releases)
-[![Version](https://img.shields.io/badge/Version-1.0.0-blue)](https://github.com/VagishKapila/openpdf-studio/releases/tag/v1.0.0)
+[![Version](https://img.shields.io/badge/Version-1.1.0-blue)](https://github.com/VagishKapila/openpdf-studio/releases/tag/v1.1.0)
 [![Website](https://img.shields.io/badge/Website-snaphw.com-5b4fff)](https://snaphw.com)
 
-**[⬇ Download for macOS](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_aarch64.dmg) · [⬇ Windows](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_x64-setup.exe) · [⬇ Linux](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_amd64.AppImage) · [🌐 Try in Browser](https://snaphw.com/app/)**
+**[⬇ Download for macOS](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.1.0/OpenPDF.Studio_1.1.0_aarch64.dmg) · [⬇ Windows](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.1.0/OpenPDF.Studio_1.1.0_x64-setup.exe) · [⬇ Linux](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.1.0/OpenPDF.Studio_1.1.0_amd64.AppImage) · [🌐 Try in Browser](https://snaphw.com/app/)**
 
 ---
 
@@ -65,11 +65,11 @@ Built with **Tauri 2.0** (Rust) — not Electron. Result: a **2.5MB app** that l
 
 | Platform | Download | Notes |
 |----------|----------|-------|
-| **macOS (Apple Silicon)** | [.dmg ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_aarch64.dmg) | M1/M2/M3 · Signed + Notarized |
-| **macOS (Intel)** | [.dmg ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_x64.dmg) | Intel Macs · Signed + Notarized |
-| **Windows** | [.exe ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_x64-setup.exe) | Windows 10/11 |
-| **Linux (Ubuntu/Debian)** | [.deb ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_amd64.deb) | |
-| **Linux (Universal)** | [.AppImage ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.0.0/OpenPDF.Studio_1.0.0_amd64.AppImage) | Runs on any distro |
+| **macOS (Apple Silicon)** | [.dmg ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.1.0/OpenPDF.Studio_1.1.0_aarch64.dmg) | M1/M2/M3 · Signed + Notarized |
+| **macOS (Intel)** | [.dmg ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.1.0/OpenPDF.Studio_1.1.0_x64.dmg) | Intel Macs · Signed + Notarized |
+| **Windows** | [.exe ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.1.0/OpenPDF.Studio_1.1.0_x64-setup.exe) | Windows 10/11 |
+| **Linux (Ubuntu/Debian)** | [.deb ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.1.0/OpenPDF.Studio_1.1.0_amd64.deb) | |
+| **Linux (Universal)** | [.AppImage ↓](https://github.com/VagishKapila/openpdf-studio/releases/download/v1.1.0/OpenPDF.Studio_1.1.0_amd64.AppImage) | Runs on any distro |
 
 **macOS users:** Double-click the .dmg, drag to Applications. No Gatekeeper warnings — the app is signed with an Apple Developer ID and notarized.
 
