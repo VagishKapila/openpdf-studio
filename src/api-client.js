@@ -524,7 +524,7 @@ const DPStudioAPI = (() => {
       formData.append('title', title);
       formData.append('signers', JSON.stringify(signers));
       if (note) formData.append('note', note);
-      return request('/api/signature-requests', { method: 'POST', body: formData });
+      return request('/esign/signature-requests', { method: 'POST', body: formData });
     },
 
     async list() {

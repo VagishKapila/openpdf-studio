@@ -1818,6 +1818,102 @@
 </head>
 <body>
 
+  <!-- ===== DEFAULT APP BANNER (first-launch only) ===== -->
+  <style>
+    #default-app-banner {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      background: linear-gradient(135deg, #1a1040, #0f0820);
+      border-bottom: 1px solid rgba(91,79,255,0.35);
+      font-size: 13px;
+      color: #fff;
+      position: relative;
+      z-index: 100;
+      animation: bannerSlideDown 0.35s cubic-bezier(.4,0,.2,1);
+    }
+    #default-app-banner.show { display: flex; }
+    @keyframes bannerSlideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to   { transform: translateY(0);     opacity: 1; }
+    }
+    .banner-icon { font-size: 18px; flex-shrink: 0; }
+    .banner-text { flex: 1; }
+    .banner-text strong { font-weight: 700; }
+    .banner-text span { color: rgba(255,255,255,0.52); font-size: 12px; margin-left: 8px; }
+    .banner-btn-primary {
+      background: #5b4fff; color: #fff; border: none;
+      padding: 6px 14px; border-radius: 6px; font-size: 12px;
+      font-weight: 600; cursor: pointer; white-space: nowrap;
+      transition: opacity .15s;
+    }
+    .banner-btn-primary:hover { opacity: .82; }
+    .banner-btn-secondary {
+      background: transparent; color: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.22);
+      padding: 6px 14px; border-radius: 6px; font-size: 12px;
+      cursor: pointer; white-space: nowrap; transition: opacity .15s;
+    }
+    .banner-btn-secondary:hover { opacity: .7; }
+    .banner-btn-close {
+      background: none; border: none; color: rgba(255,255,255,0.35);
+      font-size: 18px; cursor: pointer; line-height: 1; padding: 2px 4px;
+      flex-shrink: 0; transition: color .15s;
+    }
+    .banner-btn-close:hover { color: rgba(255,255,255,0.7); }
+  </style>
+
+  <div id="default-app-banner">
+    <span class="banner-icon">📄</span>
+    <div class="banner-text">
+      <strong>Make OpenPDF Studio your default PDF viewer?</strong>
+      <span>Double-click any PDF and it opens here automatically.</span>
+    </div>
+    <button class="banner-btn-primary" onclick="bannerSetDefault()">Set as Default</button>
+    <button class="banner-btn-secondary" onclick="bannerDismiss()">Not Now</button>
+    <button class="banner-btn-close" onclick="bannerDismiss()" title="Dismiss">×</button>
+  </div>
+
+  <script>
+    (function initDefaultBanner() {
+      const KEY = 'openpdf_default_prompt_dismissed';
+      function bannerDismissInternal() {
+        localStorage.setItem(KEY, '1');
+        const el = document.getElementById('default-app-banner');
+        if (el) { el.style.animation = 'none'; el.style.display = 'none'; }
+      }
+      window.bannerDismiss = bannerDismissInternal;
+      window.bannerSetDefault = function () {
+        if (window.__TAURI__) {
+          // Desktop app — open System Preferences / Settings
+          try {
+            window.__TAURI__.shell.open(
+              'x-apple.systempreferences:com.apple.preference.general'
+            );
+          } catch (e) {
+            // Fallback for Windows / Linux Tauri
+            window.__TAURI__.shell.open('ms-settings:defaultapps').catch(() => {});
+          }
+        } else {
+          // Web — show manual instructions
+          showToast(
+            'To set as default: right-click any PDF → Get Info → Open with → OpenPDF Studio → Change All',
+            'info',
+            8000
+          );
+        }
+        bannerDismissInternal();
+      };
+      if (!localStorage.getItem(KEY)) {
+        setTimeout(function () {
+          var el = document.getElementById('default-app-banner');
+          if (el) el.classList.add('show');
+        }, 1500);
+      }
+    })();
+  </script>
+
   <!-- ===== TOP NAV ===== -->
   <nav class="top-nav">
     <a href="https://varshyl.com/dpstudio" class="logo" style="text-decoration:none;color:inherit;">
@@ -2006,6 +2102,10 @@
       <button class="palette-btn pdf-tool" onclick="openSignatureModal()" title="Sign (G)">
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M3 18c3-3 5-8 9-8s3 5 6 3" stroke="#1d4ed8" stroke-width="2.5" fill="none" stroke-linecap="round"/><line x1="2" y1="21" x2="22" y2="21" stroke="#6b7280" stroke-width="1.5"/></svg>
         <span class="btn-label">Sign</span>
+      </button>
+      <button class="palette-btn" onclick="openRequestSignaturesFlow()" title="Request Signatures — send to multiple signers">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="btn-label">Request</span>
       </button>
       <button class="palette-btn pdf-tool" onclick="addStamp()" title="Stamp">
         <svg viewBox="0 0 24 24" width="24" height="24"><rect x="4" y="16" width="16" height="4" rx="1" fill="#dc2626"/><path d="M9 16V12a3 3 0 0 1 6 0v4" fill="#ef4444"/><rect x="7" y="12" width="10" height="4" rx="1" fill="#fca5a5"/><text x="12" y="19.5" text-anchor="middle" font-size="5" font-weight="bold" fill="white">STAMP</text></svg>
@@ -4059,8 +4159,35 @@
 
             await new Promise((resolve) => {
               tmpFabric.loadFromJSON(annotJson, () => {
-                tmpFabric.renderAll();
-                resolve();
+                // fabric.Image objects load their src asynchronously — the callback fires
+                // when JSON is parsed, NOT when images are decoded. If we call toDataURL()
+                // now, signature images won't be rendered yet (they're still loading).
+                // Wait for every image object's underlying <img> element to be complete.
+                const imageObjects = tmpFabric.getObjects('image');
+                if (imageObjects.length === 0) {
+                  tmpFabric.renderAll();
+                  resolve();
+                  return;
+                }
+                let remaining = imageObjects.length;
+                const onLoad = () => {
+                  remaining--;
+                  if (remaining <= 0) {
+                    tmpFabric.renderAll();
+                    resolve();
+                  }
+                };
+                imageObjects.forEach(imgObj => {
+                  const el = imgObj._element;
+                  if (!el) {
+                    onLoad(); // no element — count as done
+                  } else if (el.complete) {
+                    onLoad(); // already loaded
+                  } else {
+                    el.addEventListener('load', onLoad, { once: true });
+                    el.addEventListener('error', onLoad, { once: true }); // don't block on error
+                  }
+                });
               });
             });
 
@@ -7992,6 +8119,127 @@
     }
   </script>
 
+  <!-- ===== REQUEST SIGNATURES — AUTH PROMPT ===== -->
+  <style>
+    .rs-auth-prompt {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      backdrop-filter: blur(4px);
+    }
+    .rs-auth-prompt.visible { display: flex; }
+    .rs-auth-prompt-box {
+      background: var(--bg-secondary, #fff);
+      border-radius: 20px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.28);
+      width: 420px;
+      max-width: calc(100vw - 32px);
+      padding: 44px 40px 40px;
+      text-align: center;
+      position: relative;
+    }
+    .rs-auth-prompt-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-secondary, #9ca3af);
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: background .15s;
+    }
+    .rs-auth-prompt-close:hover { background: var(--bg-primary, #f4f4f7); }
+    .rs-auth-prompt-icon {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 24px rgba(99,102,241,0.3);
+    }
+    .rs-auth-prompt-box h3 {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text-primary, #111827);
+      margin: 0 0 10px;
+      line-height: 1.3;
+    }
+    .rs-auth-prompt-box p {
+      font-size: 14px;
+      color: var(--text-secondary, #6b7280);
+      margin: 0 0 28px;
+      line-height: 1.6;
+    }
+    .rs-auth-prompt-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .rs-auth-prompt-btn {
+      flex: 1;
+      max-width: 168px;
+      padding: 11px 0;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, transform .1s;
+    }
+    .rs-auth-prompt-btn:hover { opacity: .88; transform: translateY(-1px); }
+    .rs-auth-prompt-btn:active { transform: translateY(0); }
+    .rs-auth-prompt-btn.primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+    }
+    .rs-auth-prompt-btn.secondary {
+      background: var(--bg-primary, #f4f4f7);
+      color: var(--text-primary, #111827);
+      border: 1.5px solid var(--border, #e5e7eb);
+    }
+  </style>
+
+  <div class="rs-auth-prompt" id="rs-auth-prompt"
+       onclick="if(event.target===this)document.getElementById('rs-auth-prompt').classList.remove('visible')">
+    <div class="rs-auth-prompt-box">
+      <button class="rs-auth-prompt-close"
+              onclick="document.getElementById('rs-auth-prompt').classList.remove('visible')"
+              title="Close">✕</button>
+      <div class="rs-auth-prompt-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <h3>Sign in to request signatures</h3>
+      <p>To request signatures, you need a free OpenPDF Studio account.<br>It only takes 30 seconds.</p>
+      <div class="rs-auth-prompt-btns">
+        <button class="rs-auth-prompt-btn primary"
+                onclick="document.getElementById('rs-auth-prompt').classList.remove('visible'); openAuthModal('login')">
+          Sign In
+        </button>
+        <button class="rs-auth-prompt-btn secondary"
+                onclick="document.getElementById('rs-auth-prompt').classList.remove('visible'); openAuthModal('register')">
+          Create Account
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== REQUEST SIGNATURES OVERLAY ===== -->
   <style>
     .req-sig-overlay {
@@ -8279,9 +8527,10 @@
     let _rsCurrentStep = 1;
 
     function openRequestSignaturesFlow() {
+      // Auth gate: logged-out users see a friendly sign-in prompt.
+      // Logged-in users go straight to the request form.
       if (typeof DPStudioAPI !== 'undefined' && !DPStudioAPI.auth.isLoggedIn()) {
-        showToast('Please sign in to request signatures', 'error');
-        if (typeof openAuthModal === 'function') openAuthModal('login');
+        document.getElementById('rs-auth-prompt').classList.add('visible');
         return;
       }
       _rsFile = null;
@@ -8415,6 +8664,13 @@
     }
 
     async function rsSendRequest(signers) {
+      // Auth gate belongs HERE (at send time), not at open time
+      if (typeof DPStudioAPI !== 'undefined' && !DPStudioAPI.auth.isLoggedIn()) {
+        showToast('Please sign in to send signing requests', 'error');
+        if (typeof openAuthModal === 'function') openAuthModal('login');
+        return;
+      }
+
       const btnNext = document.getElementById('rs-btn-next');
       btnNext.disabled = true;
       btnNext.textContent = 'Sending…';
@@ -8427,11 +8683,18 @@
           signers: signers.map((s, i) => ({ name: s.name, email: s.email, order: i })),
           note,
         });
+
+        // Build signing URL dynamically — works on any domain the app is served from
+        const appOrigin = window.location.origin;
+        const appPath = window.location.pathname.replace(/\/[^/]*$/, ''); // strip filename
+        const signingBase = `${appOrigin}${appPath}/sign.html`;
+
         // Show success step
         const resultsList = document.getElementById('rs-results-list');
         resultsList.innerHTML = '';
         (result.signers || []).forEach(signer => {
-          const signingUrl = `https://snaphw.com/app/sign.html?token=${signer.signingToken}`;
+          const token = signer.signingToken || signer.accessToken;
+          const signingUrl = `${signingBase}?token=${token}`;
           const card = document.createElement('div');
           card.className = 'req-sig-result-card';
           card.innerHTML = `

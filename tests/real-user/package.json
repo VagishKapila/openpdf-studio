@@ -1,0 +1,13 @@
+{
+  "name": "docuflow-real-user-tests",
+  "version": "1.0.0",
+  "description": "Layer 9 real-user live-site tests for DocuFlow / OpenPDF Studio",
+  "scripts": {
+    "test:production": "PRODUCT=docuflow node live-site-check.js production",
+    "test:dashboard": "PRODUCT=docuflow node live-site-check.js dashboard",
+    "test:all": "npm run test:production && npm run test:dashboard"
+  },
+  "dependencies": {
+    "playwright": "^1.52.0"
+  }
+}

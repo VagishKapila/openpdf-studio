@@ -1,0 +1,76 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d0d1a"/>
+      <stop offset="50%" style="stop-color:#0f0d22"/>
+      <stop offset="100%" style="stop-color:#0a0815"/>
+    </linearGradient>
+    <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c6fff"/>
+      <stop offset="50%" style="stop-color:#5b4fff"/>
+      <stop offset="100%" style="stop-color:#4338d4"/>
+    </linearGradient>
+    <linearGradient id="penGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#5b4fff"/>
+      <stop offset="100%" style="stop-color:#a090ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background squircle -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)"/>
+
+  <!-- Very subtle inner highlight at top -->
+  <ellipse cx="256" cy="100" rx="200" ry="80" fill="white" opacity="0.025"/>
+
+  <!-- Glow behind the O -->
+  <ellipse cx="256" cy="240" rx="150" ry="130" fill="#5b4fff" opacity="0.08"/>
+
+  <!-- Arc ring — partial circle, ~270 degrees, gap at bottom-right -->
+  <circle cx="256" cy="240" r="148"
+    fill="none"
+    stroke="url(#arcGrad)"
+    stroke-width="14"
+    stroke-dasharray="680 250"
+    stroke-linecap="round"
+    transform="rotate(-135 256 240)"/>
+
+  <!-- Subtle outer ring -->
+  <circle cx="256" cy="240" r="168"
+    fill="none"
+    stroke="#5b4fff"
+    stroke-width="1.5"
+    opacity="0.15"/>
+
+  <!-- The O — hero element -->
+  <text
+    x="256" y="295"
+    font-family="-apple-system, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+    font-weight="900"
+    font-size="200"
+    fill="#ffffff"
+    text-anchor="middle"
+    opacity="0.97">O</text>
+
+  <!-- PDF label -->
+  <text
+    x="256" y="420"
+    font-family="-apple-system, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+    font-weight="700"
+    font-size="48"
+    fill="#7c6fff"
+    text-anchor="middle"
+    letter-spacing="14"
+    opacity="0.9">PDF</text>
+
+  <!-- Pen nib accent — upper right -->
+  <g transform="translate(348, 88) rotate(-45)">
+    <path d="M0 0 L28 0 L32 32 L16 48 L0 32 Z" fill="url(#penGrad)" opacity="0.85"/>
+    <path d="M16 48 L10 68 L22 68 Z" fill="#5b4fff" opacity="0.9"/>
+    <line x1="8" y1="8" x2="24" y2="8" stroke="white" stroke-width="2" opacity="0.3"/>
+  </g>
+
+  <!-- Spark dots — lower left -->
+  <circle cx="104" cy="340" r="5" fill="#5b4fff" opacity="0.5"/>
+  <circle cx="90" cy="318" r="3" fill="#7c6fff" opacity="0.35"/>
+  <circle cx="118" cy="362" r="3" fill="#5b4fff" opacity="0.25"/>
+</svg>
