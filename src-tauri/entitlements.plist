@@ -2,6 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <!-- REQUIRED: JIT compilation for WKWebView (Tauri uses WebKit for its web engine) -->
+  <!-- Without this, WebKit cannot execute JavaScript and the app crashes silently on launch -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <!-- Allow unsigned executable memory (needed for Tauri's JS runtime) -->
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
   <!-- File system access for reading/writing PDFs and images -->
   <key>com.apple.security.files.user-selected.read-write</key>
   <true/>
@@ -9,9 +16,6 @@
   <true/>
   <!-- Allow network access for updates and remote resources -->
   <key>com.apple.security.network.client</key>
-  <true/>
-  <!-- Allow process spawning for system commands like qpdf -->
-  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
   <true/>
   <!-- Camera and microphone access (optional, for future features) -->
   <key>com.apple.security.device.camera</key>
