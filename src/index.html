@@ -4059,8 +4059,35 @@
 
             await new Promise((resolve) => {
               tmpFabric.loadFromJSON(annotJson, () => {
-                tmpFabric.renderAll();
-                resolve();
+                // fabric.Image objects load their src asynchronously — the callback fires
+                // when JSON is parsed, NOT when images are decoded. If we call toDataURL()
+                // now, signature images won't be rendered yet (they're still loading).
+                // Wait for every image object's underlying <img> element to be complete.
+                const imageObjects = tmpFabric.getObjects('image');
+                if (imageObjects.length === 0) {
+                  tmpFabric.renderAll();
+                  resolve();
+                  return;
+                }
+                let remaining = imageObjects.length;
+                const onLoad = () => {
+                  remaining--;
+                  if (remaining <= 0) {
+                    tmpFabric.renderAll();
+                    resolve();
+                  }
+                };
+                imageObjects.forEach(imgObj => {
+                  const el = imgObj._element;
+                  if (!el) {
+                    onLoad(); // no element — count as done
+                  } else if (el.complete) {
+                    onLoad(); // already loaded
+                  } else {
+                    el.addEventListener('load', onLoad, { once: true });
+                    el.addEventListener('error', onLoad, { once: true }); // don't block on error
+                  }
+                });
               });
             });
 
@@ -8279,11 +8306,9 @@
     let _rsCurrentStep = 1;
 
     function openRequestSignaturesFlow() {
-      if (typeof DPStudioAPI !== 'undefined' && !DPStudioAPI.auth.isLoggedIn()) {
-        showToast('Please sign in to request signatures', 'error');
-        if (typeof openAuthModal === 'function') openAuthModal('login');
-        return;
-      }
+      // Do NOT gate on auth here — let the user fill in the form and only
+      // require login when they actually click Send (in rsSendRequest).
+      // This makes the feature discoverable to everyone.
       _rsFile = null;
       _rsCurrentStep = 1;
       rsUpdateUI();
@@ -8415,6 +8440,13 @@
     }
 
     async function rsSendRequest(signers) {
+      // Auth gate belongs HERE (at send time), not at open time
+      if (typeof DPStudioAPI !== 'undefined' && !DPStudioAPI.auth.isLoggedIn()) {
+        showToast('Please sign in to send signing requests', 'error');
+        if (typeof openAuthModal === 'function') openAuthModal('login');
+        return;
+      }
+
       const btnNext = document.getElementById('rs-btn-next');
       btnNext.disabled = true;
       btnNext.textContent = 'Sending…';
@@ -8427,11 +8459,18 @@
           signers: signers.map((s, i) => ({ name: s.name, email: s.email, order: i })),
           note,
         });
+
+        // Build signing URL dynamically — works on any domain the app is served from
+        const appOrigin = window.location.origin;
+        const appPath = window.location.pathname.replace(/\/[^/]*$/, ''); // strip filename
+        const signingBase = `${appOrigin}${appPath}/sign.html`;
+
         // Show success step
         const resultsList = document.getElementById('rs-results-list');
         resultsList.innerHTML = '';
         (result.signers || []).forEach(signer => {
-          const signingUrl = `https://snaphw.com/app/sign.html?token=${signer.signingToken}`;
+          const token = signer.signingToken || signer.accessToken;
+          const signingUrl = `${signingBase}?token=${token}`;
           const card = document.createElement('div');
           card.className = 'req-sig-result-card';
           card.innerHTML = `

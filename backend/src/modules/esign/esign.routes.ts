@@ -9,6 +9,13 @@ import {
   detectFieldsFromText,
   type DetectedField,
 } from './esign.service';
+import { db } from '../../shared/db';
+import { documents, signatureRequests, auditLog } from '../../shared/db/schema';
+import { eq } from 'drizzle-orm';
+import { uploadToS3, getDownloadUrl, generateS3Key } from '../../shared/utils/s3';
+import { sendSigningRequestEmail } from '../../shared/services/email.service';
+import { env } from '../../config/env';
+import crypto from 'crypto';
 
 const esignRoutes = new Hono();
 
@@ -168,6 +175,96 @@ esignRoutes.post('/detect-fields', async (c) => {
   } catch (error: any) {
     console.error('Detect fields error:', error);
     return c.json({ error: error.message || 'Failed to detect fields' }, 500);
+  }
+});
+
+// ===== MULTI-SIGNER SIGNATURE REQUEST =====
+// POST /esign/signature-requests
+// Called by the "Request Signatures" UI flow.
+// Accepts a PDF + list of signers, creates one signature_request per signer,
+// emails each signer their unique link, returns signing tokens.
+esignRoutes.post('/signature-requests', async (c) => {
+  try {
+    const userId = getUser(c).id;
+    const body = await c.req.parseBody();
+    const file = body['file'] as File;
+    const title = (body['title'] as string || '').trim();
+    const note = (body['note'] as string || '').trim();
+    let signers: Array<{ name: string; email: string; order?: number }> = [];
+
+    try {
+      signers = JSON.parse(body['signers'] as string || '[]');
+    } catch {
+      return c.json({ error: 'Invalid signers JSON' }, 400);
+    }
+
+    if (!file) return c.json({ error: 'No file uploaded' }, 400);
+    if (!title) return c.json({ error: 'Document title is required' }, 400);
+    if (!signers.length) return c.json({ error: 'At least one signer is required' }, 400);
+
+    // 1. Upload the PDF to S3 once (shared across all signers)
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const s3Key = generateS3Key(userId, 'documents', file.name || 'document.pdf');
+    await uploadToS3(s3Key, buffer, file.type || 'application/pdf');
+
+    // 2. Create a single document record
+    const [doc] = await db.insert(documents).values({
+      userId,
+      fileName: title || file.name,
+      originalFileName: file.name,
+      mimeType: file.type || 'application/pdf',
+      fileSize: file.size,
+      s3Key,
+      status: 'sent',
+    }).returning();
+
+    // 3. For each signer, create a unique signature_request + send email
+    const results: Array<{ name: string; email: string; signingToken: string }> = [];
+
+    for (const signer of signers) {
+      if (!signer.email || !signer.name) continue;
+
+      const accessToken = crypto.randomBytes(32).toString('hex');
+
+      await db.insert(signatureRequests).values({
+        documentId: doc.id,
+        senderId: userId,
+        recipientEmail: signer.email,
+        recipientName: signer.name,
+        message: note || null,
+        status: 'pending',
+        accessToken,
+      });
+
+      // Non-blocking email — don't let one failed email abort the whole request
+      sendSigningRequestEmail({
+        recipientEmail: signer.email,
+        recipientName: signer.name,
+        senderName: userId, // TODO: pass actual user display name when available
+        documentName: title,
+        message: note,
+        accessToken,
+      }).catch(err => console.warn(`[esign] Failed to email ${signer.email}:`, err));
+
+      results.push({ name: signer.name, email: signer.email, signingToken: accessToken });
+    }
+
+    // 4. Audit log
+    await db.insert(auditLog).values({
+      documentId: doc.id,
+      userId,
+      action: 'signature.requested',
+      metadata: { signerCount: results.length, title },
+    }).catch(() => {}); // non-blocking
+
+    return c.json({
+      success: true,
+      documentId: doc.id,
+      signers: results,
+    });
+  } catch (error: any) {
+    console.error('[esign] POST /signature-requests error:', error);
+    return c.json({ error: error.message || 'Failed to create signature requests' }, 500);
   }
 });
 
