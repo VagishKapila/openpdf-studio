@@ -2007,6 +2007,10 @@
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M3 18c3-3 5-8 9-8s3 5 6 3" stroke="#1d4ed8" stroke-width="2.5" fill="none" stroke-linecap="round"/><line x1="2" y1="21" x2="22" y2="21" stroke="#6b7280" stroke-width="1.5"/></svg>
         <span class="btn-label">Sign</span>
       </button>
+      <button class="palette-btn" onclick="openRequestSignaturesFlow()" title="Request Signatures — send to multiple signers">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="btn-label">Request</span>
+      </button>
       <button class="palette-btn pdf-tool" onclick="addStamp()" title="Stamp">
         <svg viewBox="0 0 24 24" width="24" height="24"><rect x="4" y="16" width="16" height="4" rx="1" fill="#dc2626"/><path d="M9 16V12a3 3 0 0 1 6 0v4" fill="#ef4444"/><rect x="7" y="12" width="10" height="4" rx="1" fill="#fca5a5"/><text x="12" y="19.5" text-anchor="middle" font-size="5" font-weight="bold" fill="white">STAMP</text></svg>
         <span class="btn-label">Stamp</span>
@@ -8019,6 +8023,127 @@
     }
   </script>
 
+  <!-- ===== REQUEST SIGNATURES — AUTH PROMPT ===== -->
+  <style>
+    .rs-auth-prompt {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      backdrop-filter: blur(4px);
+    }
+    .rs-auth-prompt.visible { display: flex; }
+    .rs-auth-prompt-box {
+      background: var(--bg-secondary, #fff);
+      border-radius: 20px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.28);
+      width: 420px;
+      max-width: calc(100vw - 32px);
+      padding: 44px 40px 40px;
+      text-align: center;
+      position: relative;
+    }
+    .rs-auth-prompt-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-secondary, #9ca3af);
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: background .15s;
+    }
+    .rs-auth-prompt-close:hover { background: var(--bg-primary, #f4f4f7); }
+    .rs-auth-prompt-icon {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 24px rgba(99,102,241,0.3);
+    }
+    .rs-auth-prompt-box h3 {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text-primary, #111827);
+      margin: 0 0 10px;
+      line-height: 1.3;
+    }
+    .rs-auth-prompt-box p {
+      font-size: 14px;
+      color: var(--text-secondary, #6b7280);
+      margin: 0 0 28px;
+      line-height: 1.6;
+    }
+    .rs-auth-prompt-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .rs-auth-prompt-btn {
+      flex: 1;
+      max-width: 168px;
+      padding: 11px 0;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, transform .1s;
+    }
+    .rs-auth-prompt-btn:hover { opacity: .88; transform: translateY(-1px); }
+    .rs-auth-prompt-btn:active { transform: translateY(0); }
+    .rs-auth-prompt-btn.primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+    }
+    .rs-auth-prompt-btn.secondary {
+      background: var(--bg-primary, #f4f4f7);
+      color: var(--text-primary, #111827);
+      border: 1.5px solid var(--border, #e5e7eb);
+    }
+  </style>
+
+  <div class="rs-auth-prompt" id="rs-auth-prompt"
+       onclick="if(event.target===this)document.getElementById('rs-auth-prompt').classList.remove('visible')">
+    <div class="rs-auth-prompt-box">
+      <button class="rs-auth-prompt-close"
+              onclick="document.getElementById('rs-auth-prompt').classList.remove('visible')"
+              title="Close">✕</button>
+      <div class="rs-auth-prompt-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <h3>Sign in to request signatures</h3>
+      <p>To request signatures, you need a free OpenPDF Studio account.<br>It only takes 30 seconds.</p>
+      <div class="rs-auth-prompt-btns">
+        <button class="rs-auth-prompt-btn primary"
+                onclick="document.getElementById('rs-auth-prompt').classList.remove('visible'); openAuthModal('login')">
+          Sign In
+        </button>
+        <button class="rs-auth-prompt-btn secondary"
+                onclick="document.getElementById('rs-auth-prompt').classList.remove('visible'); openAuthModal('register')">
+          Create Account
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== REQUEST SIGNATURES OVERLAY ===== -->
   <style>
     .req-sig-overlay {
@@ -8306,9 +8431,12 @@
     let _rsCurrentStep = 1;
 
     function openRequestSignaturesFlow() {
-      // Do NOT gate on auth here — let the user fill in the form and only
-      // require login when they actually click Send (in rsSendRequest).
-      // This makes the feature discoverable to everyone.
+      // Auth gate: logged-out users see a friendly sign-in prompt.
+      // Logged-in users go straight to the request form.
+      if (typeof DPStudioAPI !== 'undefined' && !DPStudioAPI.auth.isLoggedIn()) {
+        document.getElementById('rs-auth-prompt').classList.add('visible');
+        return;
+      }
       _rsFile = null;
       _rsCurrentStep = 1;
       rsUpdateUI();
