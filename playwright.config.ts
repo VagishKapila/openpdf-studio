@@ -6,7 +6,7 @@ export default defineConfig({
   retries: 1,
   reporter: 'html',
   use: {
-    baseURL: 'https://snaphw.com/app',
+    baseURL: 'https://snaphw.com',
     screenshot: 'only-on-failure',
     video: 'on-first-retry',
   },

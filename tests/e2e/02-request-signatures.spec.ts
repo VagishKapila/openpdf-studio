@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test('Request Signatures visible in feature cards for logged-out users', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/app/')
   await page.waitForLoadState('networkidle')
   // Must appear in the welcome screen feature cards — always visible regardless of auth state
   await expect(
@@ -10,7 +10,7 @@ test('Request Signatures visible in feature cards for logged-out users', async (
 })
 
 test('clicking Request Signatures while logged out shows auth gate', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/app/')
   await page.waitForLoadState('networkidle')
   // Click the feature card
   await page.locator('.feature-card', { hasText: 'Request Signatures' }).first().click()
@@ -25,7 +25,7 @@ test('clicking Request Signatures while logged out shows auth gate', async ({ pa
 })
 
 test('auth prompt or modal has sign-in option', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/app/')
   await page.waitForLoadState('networkidle')
   await page.locator('.feature-card', { hasText: 'Request Signatures' }).first().click()
   await page.waitForTimeout(600)

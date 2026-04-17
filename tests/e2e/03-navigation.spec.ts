@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test('PDF Editor mode tab is clickable without crash', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/app/')
   await page.waitForLoadState('networkidle')
   await page.getByText('PDF Editor').first().click()
   await page.waitForTimeout(400)
@@ -9,7 +9,7 @@ test('PDF Editor mode tab is clickable without crash', async ({ page }) => {
 })
 
 test('default app banner shows on first visit (localStorage cleared)', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/app/')
   await page.waitForLoadState('networkidle')
   // Clear the dismiss key to simulate first visit
   await page.evaluate(() => localStorage.removeItem('openpdf_default_prompt_dismissed'))
@@ -22,7 +22,7 @@ test('default app banner shows on first visit (localStorage cleared)', async ({ 
 })
 
 test('default app banner stays dismissed after Not Now', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/app/')
   await page.waitForLoadState('networkidle')
   await page.evaluate(() => localStorage.removeItem('openpdf_default_prompt_dismissed'))
   await page.reload()

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test('app loads with correct OpenPDF branding', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/app/')
   await page.waitForLoadState('networkidle')
   await expect(page).toHaveTitle(/OpenPDF/i)
   await expect(page.getByText('PDF Editor').first()).toBeVisible({ timeout: 10000 })
@@ -13,7 +13,7 @@ test('app loads with correct OpenPDF branding', async ({ page }) => {
 })
 
 test('welcome screen feature cards are visible', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/app/')
   await page.waitForLoadState('networkidle')
   // Welcome screen must render feature cards
   await expect(page.locator('.feature-card').first()).toBeVisible({ timeout: 10000 })

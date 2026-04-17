@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test('app page has OpenPDF Studio branding and no DocPix', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/app/')
   await page.waitForLoadState('networkidle')
   await expect(page.getByText('OpenPDF Studio').first()).toBeVisible({ timeout: 10000 })
   const body = await page.textContent('body')
@@ -15,16 +15,20 @@ test('no broken image references (no 404 on key assets)', async ({ page }) => {
       failedRequests.push(`${res.status()} ${res.url()}`)
     }
   })
-  await page.goto('/')
+  await page.goto('/app/')
   await page.waitForLoadState('networkidle')
   await page.waitForTimeout(1500)
   expect(failedRequests, `Broken assets: ${failedRequests.join(', ')}`).toHaveLength(0)
 })
 
 test('page has proper meta description', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/app/')
   await page.waitForLoadState('networkidle')
-  const meta = await page.locator('meta[name="description"]').getAttribute('content')
+  // Use evaluate because meta tags are not "visible" and locator.getAttribute would time out
+  const meta = await page.evaluate(() => {
+    const el = document.querySelector('meta[name="description"]')
+    return el ? el.getAttribute('content') : null
+  })
   expect(meta).toBeTruthy()
   expect(meta!.toLowerCase()).not.toContain('docpix')
 })
