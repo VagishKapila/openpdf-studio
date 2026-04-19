@@ -2827,19 +2827,98 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
       <span>Text</span>
     </button>
-    <button class="mobile-tool-btn" onclick="setMobileTool('draw',this)" title="Draw">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
-      <span>Draw</span>
-    </button>
     <button class="mobile-tool-btn" onclick="setMobileTool('signature',this)" title="Sign">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span>Sign</span>
     </button>
-    <button class="mobile-tool-btn" onclick="setMobileTool('save',this)" title="Save">
+    <button class="mobile-tool-btn" onclick="setMobileTool('draw',this)" title="Draw">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+      <span>Draw</span>
+    </button>
+    <button class="mobile-tool-btn" onclick="setMobileTool('save',this)" title="Save" style="color:var(--primary);">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
       <span>Save</span>
     </button>
+    <button class="mobile-tool-btn" onclick="toggleMobileMore()" id="mobile-more-btn" title="More">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+      <span>More</span>
+    </button>
   </div>
+
+  <!-- ===== MOBILE MORE TOOLS SHEET ===== -->
+  <style>
+    #mobile-more-sheet {
+      display: none; position: fixed; bottom: 64px; left: 0; right: 0;
+      background: var(--bg-secondary); border-top: 1px solid var(--border);
+      border-radius: 16px 16px 0 0; padding: 16px; z-index: 199;
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.12);
+    }
+    #mobile-more-sheet.open { display: block; }
+    .mobile-more-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    }
+    .mobile-more-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: var(--bg-tertiary); border: none; border-radius: 12px;
+      padding: 12px 8px; font-size: 11px; color: var(--text);
+      cursor: pointer; width: 100%; touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mobile-more-btn span:first-child { font-size: 1.4rem; }
+    .mobile-more-btn:active { background: var(--primary-light); color: var(--primary); }
+  </style>
+  <div id="mobile-more-sheet">
+    <div class="mobile-more-grid">
+      <button class="mobile-more-btn" onclick="setTool('highlight');toggleMobileMore()">
+        <span>🖌️</span><span>Highlight</span>
+      </button>
+      <button class="mobile-more-btn" onclick="setTool('rectangle');toggleMobileMore()">
+        <span>⬜</span><span>Shapes</span>
+      </button>
+      <button class="mobile-more-btn" onclick="document.getElementById('image-input').click();toggleMobileMore()">
+        <span>🖼️</span><span>Image</span>
+      </button>
+      <button class="mobile-more-btn" onclick="addStamp();toggleMobileMore()">
+        <span>📮</span><span>Stamp</span>
+      </button>
+      <button class="mobile-more-btn" onclick="aiOCR();toggleMobileMore()">
+        <span>🔍</span><span>OCR</span>
+      </button>
+      <button class="mobile-more-btn" onclick="switchTab('merge-split');toggleMobileMore()">
+        <span>📑</span><span>Merge</span>
+      </button>
+      <button class="mobile-more-btn" onclick="openRequestSignaturesFlow();toggleMobileMore()">
+        <span>📨</span><span>Request Sig</span>
+      </button>
+      <button class="mobile-more-btn" onclick="toggleMobileMore()">
+        <span>✕</span><span>Close</span>
+      </button>
+    </div>
+  </div>
+  <script>
+    function toggleMobileMore() {
+      const sheet = document.getElementById('mobile-more-sheet');
+      if (!sheet) return;
+      sheet.classList.toggle('open');
+    }
+    // Close more sheet on tap outside
+    document.addEventListener('touchend', function(e) {
+      const sheet = document.getElementById('mobile-more-sheet');
+      const moreBtn = document.getElementById('mobile-more-btn');
+      if (!sheet || !sheet.classList.contains('open')) return;
+      if (!sheet.contains(e.target) && e.target !== moreBtn && !moreBtn?.contains(e.target)) {
+        sheet.classList.remove('open');
+      }
+    }, { passive: true });
+    document.addEventListener('click', function(e) {
+      const sheet = document.getElementById('mobile-more-sheet');
+      const moreBtn = document.getElementById('mobile-more-btn');
+      if (!sheet || !sheet.classList.contains('open')) return;
+      if (!sheet.contains(e.target) && e.target !== moreBtn && !moreBtn?.contains(e.target)) {
+        sheet.classList.remove('open');
+      }
+    });
+  </script>
 
   <!-- ===== SIGNING FLOW OVERLAY ===== -->
   <div class="signing-overlay" id="signing-overlay">
