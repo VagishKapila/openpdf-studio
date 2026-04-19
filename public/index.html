@@ -494,6 +494,42 @@
     .hero-sub { animation-delay: 0.2s; }
     .hero-actions { animation-delay: 0.3s; }
     .hero-trust { animation-delay: 0.4s; animation: fadeUp 0.6s ease 0.4s both; }
+
+    /* Highlighted web app card */
+    .dl-card.dl-card-web {
+      border: 2px solid var(--accent) !important;
+      background: rgba(99,102,241,0.08) !important;
+      position: relative;
+    }
+    .dl-card.dl-card-web .dl-btn-label {
+      color: var(--accent); font-weight: 700;
+    }
+    .dl-card-badge {
+      position: absolute; top: -10px; right: -10px;
+      background: var(--accent); color: #fff; font-size: 10px; font-weight: 700;
+      padding: 3px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    /* Sticky bottom CTA bar */
+    .sticky-cta {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
+      background: rgba(15,8,32,0.95); backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(99,102,241,0.3);
+      padding: 12px 24px; display: flex; align-items: center; justify-content: center; gap: 16px;
+      transform: translateY(100%); transition: transform 0.3s ease;
+    }
+    .sticky-cta.show { transform: translateY(0); }
+    .sticky-cta-text { color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 500; }
+    .sticky-cta-btn {
+      background: var(--accent); color: #fff; border: none; padding: 10px 24px;
+      border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+      text-decoration: none; white-space: nowrap;
+    }
+    .sticky-cta-btn:hover { opacity: 0.9; }
+    @media (max-width: 600px) {
+      .sticky-cta { flex-direction: column; gap: 8px; padding: 10px 16px; }
+      .sticky-cta-text { font-size: 12px; }
+    }
   </style>
 </head>
 <body>
@@ -518,11 +554,11 @@
       <h1>The PDF editor<br><em>Adobe should have<br>made.</em></h1>
       <p class="hero-sub">Edit PDFs, collect e-signatures, run local AI OCR, and get paid — all in one free app. No subscription. No cloud. No Gatekeeper warnings.</p>
       <div class="hero-actions">
-        <a href="#download" class="btn-primary">
-          ⬇ Download Free
+        <a href="/app/" class="btn-primary">
+          🚀 Use It Now — Free
         </a>
-        <a href="/app/" target="_blank" class="btn-secondary">
-          Try in Browser →
+        <a href="#download" class="btn-secondary">
+          ⬇ Download Desktop App
         </a>
       </div>
       <div class="hero-trust">
@@ -832,11 +868,12 @@
         <div class="dl-desc">Universal AppImage</div>
         <div class="dl-btn-label">↓ Download .AppImage</div>
       </a>
-      <a href="https://vagishkapila.github.io/openpdf-studio/" target="_blank" class="dl-card">
+      <a href="/app/" class="dl-card dl-card-web">
+        <span class="dl-card-badge">Instant</span>
         <div class="dl-icon">🌐</div>
         <div class="dl-name">Web App</div>
-        <div class="dl-desc">No install required</div>
-        <div class="dl-btn-label">→ Open in Browser</div>
+        <div class="dl-desc">No install — use it right now</div>
+        <div class="dl-btn-label">🚀 Use It Now — Free</div>
       </a>
     </div>
   </div>
@@ -907,6 +944,23 @@
     </div>
   </div>
 </footer>
+
+<!-- Sticky bottom CTA -->
+<div class="sticky-cta" id="sticky-cta">
+  <span class="sticky-cta-text">Edit PDFs free — no install needed</span>
+  <a href="/app/" class="sticky-cta-btn">🚀 Use It Now — Free</a>
+</div>
+<script>
+  (function() {
+    const bar = document.getElementById('sticky-cta');
+    const hero = document.querySelector('.hero-actions');
+    if (!bar || !hero) return;
+    const obs = new IntersectionObserver(function(entries) {
+      bar.classList.toggle('show', !entries[0].isIntersecting);
+    }, { threshold: 0 });
+    obs.observe(hero);
+  })();
+</script>
 
 </body>
 </html>
