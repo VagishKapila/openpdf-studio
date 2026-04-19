@@ -2556,7 +2556,7 @@
   </div>
 
   <!-- ===== HIDDEN FILE INPUTS ===== -->
-  <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tiff" style="display:none" onchange="handleFileOpen(event)">
+  <input type="file" id="file-input" accept=".pdf,application/pdf,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tiff,image/jpeg,image/png,image/gif,image/webp" style="display:none" onchange="handleFileOpen(event)">
   <input type="file" id="image-input" accept=".png,.jpg,.jpeg,.gif,.bmp,.webp" style="display:none" onchange="handleImageInsert(event)">
   <input type="file" id="merge-input" accept=".pdf" multiple style="display:none" onchange="handleMergeFiles(event)">
 
@@ -2964,7 +2964,7 @@
               <p style="color:rgba(255,255,255,0.7);margin:0;font-size:13px;" id="signing-loading-detail">Detecting signature fields</p>
             </div>
           </div>
-          <input type="file" id="signing-file-input" accept=".pdf,.doc,.docx" style="display:none" onchange="handleSigningFileUpload(event)">
+          <input type="file" id="signing-file-input" accept=".pdf,application/pdf,.doc,.docx,application/msword" style="display:none" onchange="handleSigningFileUpload(event)">
         </div>
         <!-- Steps 2-4: PDF preview with field overlays -->
         <div id="signing-pdf-preview" style="display:none;">
