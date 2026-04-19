@@ -4034,14 +4034,41 @@
     }
 
     /* ===== MOBILE HELPERS ===== */
+    function showMobileDoneButton() {
+      if (window.innerWidth >= 768) return;
+      let doneBtn = document.getElementById('mobile-done-btn');
+      if (!doneBtn) {
+        doneBtn = document.createElement('button');
+        doneBtn.id = 'mobile-done-btn';
+        doneBtn.textContent = 'Done ✓';
+        doneBtn.style.cssText = 'position:fixed;top:12px;right:16px;z-index:99999;background:#5b4fff;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(91,79,255,0.4);touch-action:manipulation;-webkit-tap-highlight-color:transparent;';
+        doneBtn.addEventListener('click', function() {
+          if (window.fabricCanvas) { window.fabricCanvas.discardActiveObject(); window.fabricCanvas.renderAll(); }
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+          setTool('select');
+          hideMobileDoneButton();
+          // Reset bottom toolbar active state to Select
+          document.querySelectorAll('.mobile-tool-btn').forEach(b => b.classList.remove('active'));
+          const selBtn = document.querySelector('#mobile-toolbar .mobile-tool-btn');
+          if (selBtn) selBtn.classList.add('active');
+        });
+        document.body.appendChild(doneBtn);
+      }
+      doneBtn.style.display = 'block';
+    }
+    function hideMobileDoneButton() {
+      const btn = document.getElementById('mobile-done-btn');
+      if (btn) btn.style.display = 'none';
+    }
+
     function setMobileTool(tool, btn) {
       document.querySelectorAll('.mobile-tool-btn').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
-      if (tool === 'select') { setTool('select'); }
-      else if (tool === 'text') { setTool('text'); }
-      else if (tool === 'draw') { setTool('freehand'); }
-      else if (tool === 'signature') { if (typeof openSignatureModal === 'function') openSignatureModal(); }
-      else if (tool === 'save') { if (typeof savePDF === 'function') savePDF(); }
+      if (tool === 'select') { setTool('select'); hideMobileDoneButton(); }
+      else if (tool === 'text') { setTool('text'); showMobileDoneButton(); }
+      else if (tool === 'draw') { setTool('freehand'); showMobileDoneButton(); }
+      else if (tool === 'signature') { hideMobileDoneButton(); if (typeof openSignatureModal === 'function') openSignatureModal(); }
+      else if (tool === 'save') { hideMobileDoneButton(); if (typeof savePDF === 'function') savePDF(); }
     }
     function handleMobileCameraCapture(input) {
       if (input.files && input.files[0]) {
