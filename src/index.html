@@ -1109,6 +1109,9 @@
       /* Modal overflow fix */
       .modal-content, .auth-modal, .signing-overlay { max-height: 90vh; overflow-y: auto; }
 
+      /* Prevent Android/iOS auto-zoom on input focus */
+      input, textarea, select { font-size: 16px !important; }
+
       /* Banner responsive */
       #default-app-banner { flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
       .banner-text span { display: none; }
@@ -3983,6 +3986,52 @@
         hideGuide('horizontal');
         hideGuide('vertical');
       });
+
+      // ── MOBILE: double-tap to edit text objects ──
+      if (window.innerWidth < 768) {
+        let _lastTapTime = 0;
+        let _lastTapTarget = null;
+
+        state.fabricCanvas.on('mouse:down', function(opt) {
+          const now = Date.now();
+          const target = opt.target;
+          const isDoubleTap = (now - _lastTapTime < 400) && (target === _lastTapTarget) && target;
+
+          if (isDoubleTap && target && (target.type === 'textbox' || target.type === 'i-text' || target.type === 'text')) {
+            target.enterEditing();
+            target.selectAll();
+            state.fabricCanvas.renderAll();
+            // Force Android keyboard open
+            setTimeout(function() {
+              const ta = document.querySelector('textarea.upper-canvas ~ textarea, .canvas-container textarea, textarea[data-fabric-hiddentextarea]');
+              if (ta) { ta.style.fontSize = '16px'; ta.focus(); }
+              // Also try Fabric's own reference
+              if (target.hiddenTextarea) { target.hiddenTextarea.style.fontSize = '16px'; target.hiddenTextarea.focus(); }
+            }, 80);
+          }
+
+          _lastTapTime = now;
+          _lastTapTarget = target;
+        });
+
+        // When text tool places new text, force keyboard on mobile
+        state.fabricCanvas.on('text:editing:entered', function() {
+          setTimeout(function() {
+            const activeObj = state.fabricCanvas.getActiveObject();
+            if (activeObj && activeObj.hiddenTextarea) {
+              activeObj.hiddenTextarea.style.fontSize = '16px';
+              activeObj.hiddenTextarea.style.opacity = '0.01';
+              activeObj.hiddenTextarea.style.position = 'fixed';
+              activeObj.hiddenTextarea.style.top = '0';
+              activeObj.hiddenTextarea.style.left = '0';
+              activeObj.hiddenTextarea.style.width = '1px';
+              activeObj.hiddenTextarea.style.height = '1px';
+              activeObj.hiddenTextarea.style.zIndex = '-1';
+              activeObj.hiddenTextarea.focus();
+            }
+          }, 50);
+        });
+      }
     }
 
     async function renderThumbnails() {
