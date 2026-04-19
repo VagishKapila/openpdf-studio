@@ -1079,6 +1079,7 @@
       /* Bigger tap targets for menus */
       .menu-bar .menu-item { padding: 10px 12px; font-size: 13px; min-height: 44px; display: flex; align-items: center; }
       .dropdown-menu .menu-action { padding: 12px 16px; min-height: 44px; font-size: 14px; }
+      .dropdown-menu.show { z-index: 9999; }
 
       /* Canvas full width */
       .canvas-wrapper { width: 100% !important; }
@@ -4121,24 +4122,47 @@
       }
     }
 
-    // Close dropdowns when clicking outside
+    // Close dropdowns when clicking/touching outside
+    function closeAllMenus() {
+      document.querySelectorAll('.menu-item').forEach(m => {
+        m.classList.remove('open');
+        m.querySelector('.dropdown-menu')?.classList.remove('show');
+      });
+    }
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.menu-item')) {
-        document.querySelectorAll('.menu-item').forEach(m => {
-          m.classList.remove('open');
-          m.querySelector('.dropdown-menu')?.classList.remove('show');
-        });
-      }
+      if (!e.target.closest('.menu-item')) closeAllMenus();
     });
-    // Close dropdown when a menu action is clicked
     document.addEventListener('click', (e) => {
-      if (e.target.closest('.menu-action')) {
-        document.querySelectorAll('.menu-item').forEach(m => {
-          m.classList.remove('open');
-          m.querySelector('.dropdown-menu')?.classList.remove('show');
-        });
-      }
+      if (e.target.closest('.menu-action')) closeAllMenus();
     });
+
+    // Mobile touch support for menus
+    (function initMobileMenuTouch() {
+      // Add touchend listeners to each menu-item for reliable mobile tap
+      document.querySelectorAll('.menu-item').forEach(menuItem => {
+        menuItem.addEventListener('touchend', function(e) {
+          // Prevent ghost click
+          e.preventDefault();
+          toggleMenu(this);
+        }, { passive: false });
+      });
+
+      // Close menus on touch outside
+      document.addEventListener('touchend', (e) => {
+        if (!e.target.closest('.menu-item')) closeAllMenus();
+      }, { passive: true });
+
+      // Menu actions: close menu + fire the action on touch
+      document.querySelectorAll('.dropdown-menu .menu-action').forEach(action => {
+        action.addEventListener('touchend', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          closeAllMenus();
+          // Trigger the onclick handler
+          this.click();
+        }, { passive: false });
+      });
+    })();
 
     // ===== ZOOM =====
     function zoomIn() {
