@@ -1082,9 +1082,9 @@
       .dropdown-menu.show { z-index: 9999; }
 
       /* Canvas full width + pinch-zoom scrollable */
-      .canvas-area { overflow: auto !important; -webkit-overflow-scrolling: touch !important; }
+      .canvas-area { overflow: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-x pan-y pinch-zoom !important; }
       .canvas-wrapper { width: 100% !important; }
-      #pdf-canvas { max-width: 100%; height: auto !important; touch-action: pinch-zoom !important; }
+      #pdf-canvas { max-width: 100%; height: auto !important; touch-action: pan-x pan-y pinch-zoom !important; }
 
       /* Tool palette adjustments */
       .tool-palette { width: 38px; padding: 6px 2px; }
@@ -4362,6 +4362,7 @@
         if (e.touches.length === 2) {
           e.preventDefault();
           isPinching = true;
+          container.dataset.isPinching = 'true';
           pinchStartDist = getTouchDist(e.touches[0], e.touches[1]);
           lastPinchDist = pinchStartDist;
           pinchStartZoom = state.zoom;
@@ -4389,6 +4390,7 @@
       container.addEventListener('touchend', function(e) {
         if (isPinching && e.touches.length < 2) {
           isPinching = false;
+          container.dataset.isPinching = 'false';
 
           // 1. Calculate final zoom from last known pinch distance
           const finalZoom = Math.min(5, Math.max(0.25,
@@ -4439,39 +4441,42 @@
     })();
 
     // ===== SWIPE TO CHANGE PAGES (MOBILE) =====
-    (function initSwipeNav() {
-      var container = document.getElementById('canvas-area');
-      if (!container || container.dataset.swipeReady) return;
-      container.dataset.swipeReady = 'true';
+    (function() {
+      var el = document.getElementById('canvas-area');
+      if (!el) return;
 
       var swipeStartX = 0;
       var swipeStartY = 0;
+      var swipeStartTime = 0;
 
-      container.addEventListener('touchstart', function(e) {
+      el.addEventListener('touchstart', function(e) {
         if (e.touches.length === 1) {
           swipeStartX = e.touches[0].clientX;
           swipeStartY = e.touches[0].clientY;
+          swipeStartTime = Date.now();
         }
       }, { passive: true });
 
-      container.addEventListener('touchend', function(e) {
-        // Skip if pinching or multi-touch
+      el.addEventListener('touchend', function(e) {
+        // Skip if pinching or just finished pinching
+        if (el.dataset.isPinching === 'true') return;
+        if (Date.now() - swipeStartTime > 500) return; // too slow = scroll not swipe
         if (e.changedTouches.length !== 1) return;
 
         var dx = e.changedTouches[0].clientX - swipeStartX;
         var dy = e.changedTouches[0].clientY - swipeStartY;
 
-        // Only trigger on deliberate horizontal swipes
-        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-          // Check scroll edges so swipe doesn't fight normal scrolling
-          var atRightEdge = container.scrollLeft + container.clientWidth >= container.scrollWidth - 5;
-          var atLeftEdge = container.scrollLeft <= 5;
+        // Only trigger if horizontal movement dominates and > 60px
+        if (Math.abs(dx) < 60) return;
+        if (Math.abs(dy) > Math.abs(dx) * 0.6) return;
 
-          if (dx < 0 && atRightEdge && state.currentPage < state.totalPages) {
-            goToPage(state.currentPage + 1);
-          } else if (dx > 0 && atLeftEdge && state.currentPage > 1) {
-            goToPage(state.currentPage - 1);
-          }
+        // Only navigate at zoom 1x — at zoom > 1 horizontal swipe should pan
+        if (state.zoom > 1.1) return;
+
+        if (dx < 0 && state.currentPage < state.totalPages) {
+          goToPage(state.currentPage + 1);
+        } else if (dx > 0 && state.currentPage > 1) {
+          goToPage(state.currentPage - 1);
         }
       }, { passive: true });
     })();
