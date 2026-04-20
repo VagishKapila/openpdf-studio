@@ -4438,6 +4438,44 @@
       }, { passive: false });
     })();
 
+    // ===== SWIPE TO CHANGE PAGES (MOBILE) =====
+    (function initSwipeNav() {
+      var container = document.getElementById('canvas-area');
+      if (!container || container.dataset.swipeReady) return;
+      container.dataset.swipeReady = 'true';
+
+      var swipeStartX = 0;
+      var swipeStartY = 0;
+
+      container.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 1) {
+          swipeStartX = e.touches[0].clientX;
+          swipeStartY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+
+      container.addEventListener('touchend', function(e) {
+        // Skip if pinching or multi-touch
+        if (e.changedTouches.length !== 1) return;
+
+        var dx = e.changedTouches[0].clientX - swipeStartX;
+        var dy = e.changedTouches[0].clientY - swipeStartY;
+
+        // Only trigger on deliberate horizontal swipes
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          // Check scroll edges so swipe doesn't fight normal scrolling
+          var atRightEdge = container.scrollLeft + container.clientWidth >= container.scrollWidth - 5;
+          var atLeftEdge = container.scrollLeft <= 5;
+
+          if (dx < 0 && atRightEdge && state.currentPage < state.totalPages) {
+            goToPage(state.currentPage + 1);
+          } else if (dx > 0 && atLeftEdge && state.currentPage > 1) {
+            goToPage(state.currentPage - 1);
+          }
+        }
+      }, { passive: true });
+    })();
+
     // ===== HISTORY (UNDO/REDO) =====
     function saveHistory() {
       if (!state.fabricCanvas) return;
