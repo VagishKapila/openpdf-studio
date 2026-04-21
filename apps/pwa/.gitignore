@@ -7,10 +7,9 @@ node_modules/
 dist/
 dist-ssr/
 
-# TS artefacts – noEmit keeps these out of src/ but belt-and-suspenders
+# TS compiled artefacts only (NOT hand-written .d.ts like vite-env.d.ts)
 src/**/*.js
-src/**/*.d.ts
-*.tsbuildinfo
+!src/**/*.d.ts
 
 # Test artefacts
 test-results/
@@ -20,3 +19,4 @@ coverage/
 # Misc
 .DS_Store
 *.local
+*.tsbuildinfo

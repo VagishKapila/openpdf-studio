@@ -1,5 +1,6 @@
 import { useDocumentStore, useUIStore } from '@/store';
 import { FileText, Menu, Upload } from 'lucide-react';
+import { pdfjs } from '@/lib/pdfjs';
 
 export function AppHeader() {
   const { document: doc, loadState } = useDocumentStore();
@@ -15,11 +16,8 @@ export function AppHeader() {
       if (!file) return;
       useDocumentStore.getState().setLoadState('loading');
       try {
-        const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist');
-        const pdfWorkerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default as string;
-        GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
         const data = await file.arrayBuffer();
-        const pdf = await getDocument({ data }).promise;
+        const pdf = await pdfjs.getDocument({ data }).promise;
         setDoc({ id: crypto.randomUUID(), fileName: file.name, totalPages: pdf.numPages, pdf });
       } catch (e) {
         useDocumentStore.getState().setError(e instanceof Error ? e.message : String(e));

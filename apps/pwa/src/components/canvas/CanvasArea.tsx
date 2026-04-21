@@ -11,7 +11,7 @@ export function CanvasArea() {
   const { document: doc, currentPage, loadState } = useDocumentStore();
   const { scale, offsetX, offsetY, renderedScale, resetTransform } = useViewportStore();
 
-  // visibleScale = user-visible zoom / resolution-rendered-at
+  // visibleScale = user-visible zoom / the scale the PDF was rendered at
   const visibleScale = scale / renderedScale;
 
   const renderPdfPage = useCallback(
@@ -30,7 +30,7 @@ export function CanvasArea() {
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        // CSS size stays at container width so transform handles visual zoom
+        // CSS size stays fixed — CSS transform handles visible zoom
         canvas.style.width = `${containerWidth}px`;
         canvas.style.height = `${(containerWidth * viewport.height) / viewport.width}px`;
 
@@ -52,7 +52,7 @@ export function CanvasArea() {
   // Attach gesture recogniser to the scroll container
   useDocumentGestures(gestureContainerRef);
 
-  // Bump render resolution when user zooms in
+  // Bump render resolution when user zooms in past 1.25× of current render
   useCanvasTransform(renderPdfPage);
 
   return (
@@ -61,7 +61,7 @@ export function CanvasArea() {
       className="flex h-full w-full items-center justify-center overflow-hidden"
       style={{ touchAction: 'none', userSelect: 'none' }}
     >
-      {/* Only this inner div gets the CSS transform — chrome stays fixed */}
+      {/* Only this inner div gets the CSS transform — all chrome stays fixed */}
       <div
         style={{
           transform: `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${visibleScale})`,
@@ -77,7 +77,7 @@ export function CanvasArea() {
         />
       </div>
 
-      {/* 1:1 reset badge — only visible when zoomed */}
+      {/* 1:1 reset badge — only shown when scale > 1.05 */}
       {scale > 1.05 && (
         <button
           onClick={resetTransform}
