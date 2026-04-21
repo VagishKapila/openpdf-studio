@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
-export type Tool = 'select' | 'highlight' | 'draw' | 'text' | 'sign' | 'stamp' | 'eraser' | 'comment' | 'zoom-in' | 'zoom-out';
+// v1 scope: exactly 5 primary tools; "More" is a UI affordance handled in MobileToolbar
+export type Tool = 'select' | 'text' | 'draw' | 'highlight' | 'sign';
 
 type ToolState = {
   activeTool: Tool;

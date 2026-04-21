@@ -6,31 +6,38 @@ import { useCanvasTransform } from '@/hooks/useCanvasTransform';
 export function CanvasArea() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gestureContainerRef = useRef<HTMLDivElement>(null);
+  const transformDivRef = useRef<HTMLDivElement>(null);
   const renderingRef = useRef(false);
+  const prevDocIdRef = useRef<string | null>(null);
 
   const { document: doc, currentPage, loadState } = useDocumentStore();
   const { scale, offsetX, offsetY, renderedScale, resetTransform } = useViewportStore();
 
-  // visibleScale = user-visible zoom / the scale the PDF was rendered at
-  const visibleScale = scale / renderedScale;
+  // CSS transform uses `scale` directly — `renderedScale` is purely a render-quality
+  // budget and does NOT affect the displayed size.
+  // scale=1  →  canvas fills container width  →  fit-to-width ✓
+  // scale=2  →  canvas appears 2× wider       →  2× zoom ✓
 
   const renderPdfPage = useCallback(
     async (renderAtScale: number) => {
       const pdf = doc?.pdf;
       const canvas = canvasRef.current;
-      if (!pdf || !canvas || renderingRef.current) return;
+      const container = gestureContainerRef.current;
+      if (!pdf || !canvas || !container || renderingRef.current) return;
       renderingRef.current = true;
       try {
         const page = await pdf.getPage(currentPage);
         const dpr = window.devicePixelRatio || 1;
-        const containerWidth = Math.min(window.innerWidth - 32, 900);
+        // Use actual container width so the canvas fills the screen on all devices
+        const containerWidth = container.clientWidth || Math.min(window.innerWidth, 900);
         const baseViewport = page.getViewport({ scale: 1 });
+        // fitScale converts PDF units → CSS pixels and accounts for DPR
         const fitScale = (containerWidth / baseViewport.width) * dpr;
         const viewport = page.getViewport({ scale: fitScale * renderAtScale });
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        // CSS size stays fixed — CSS transform handles visible zoom
+        // CSS size: canvas fills the container width at scale=1 (no CSS transform applied here)
         canvas.style.width = `${containerWidth}px`;
         canvas.style.height = `${(containerWidth * viewport.height) / viewport.width}px`;
 
@@ -44,13 +51,30 @@ export function CanvasArea() {
     [doc, currentPage],
   );
 
+  // Reset zoom to fit-to-width whenever a NEW document is opened
+  useEffect(() => {
+    if (doc?.id && doc.id !== prevDocIdRef.current) {
+      prevDocIdRef.current = doc.id;
+      resetTransform(); // scale → 1, offsetX/Y → 0 → automatic fit-to-width
+    }
+  }, [doc?.id, resetTransform]);
+
+  // Re-render on orientation change so containerWidth stays accurate
+  useEffect(() => {
+    const handleResize = () => {
+      if (loadState === 'ready') void renderPdfPage(renderedScale);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [loadState, renderedScale, renderPdfPage]);
+
   // Initial render and page changes
   useEffect(() => {
     if (loadState === 'ready') void renderPdfPage(renderedScale);
   }, [loadState, currentPage, renderPdfPage, renderedScale]);
 
   // Attach gesture recogniser to the scroll container
-  useDocumentGestures(gestureContainerRef);
+  useDocumentGestures(gestureContainerRef, transformDivRef);
 
   // Bump render resolution when user zooms in past 1.25× of current render
   useCanvasTransform(renderPdfPage);
@@ -58,13 +82,14 @@ export function CanvasArea() {
   return (
     <div
       ref={gestureContainerRef}
-      className="flex h-full w-full items-center justify-center overflow-hidden"
+      className="flex h-full w-full items-start justify-center overflow-y-auto overflow-x-hidden"
       style={{ touchAction: 'none', userSelect: 'none' }}
     >
-      {/* Only this inner div gets the CSS transform — all chrome stays fixed */}
+      {/* Only this inner div receives the CSS transform — header/toolbar stay fixed */}
       <div
+        ref={transformDivRef}
         style={{
-          transform: `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${visibleScale})`,
+          transform: `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${scale})`,
           transformOrigin: 'center center',
           willChange: 'transform',
         }}
@@ -77,7 +102,7 @@ export function CanvasArea() {
         />
       </div>
 
-      {/* 1:1 reset badge — only shown when scale > 1.05 */}
+      {/* 1:1 reset badge — only shown when user has zoomed in */}
       {scale > 1.05 && (
         <button
           onClick={resetTransform}

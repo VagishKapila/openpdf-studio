@@ -40,3 +40,39 @@ test.describe('Day 2 — Gesture layer', () => {
     await expect(resetBtn).toHaveCount(0);
   });
 });
+
+test.describe('Day 2.1 — Toolbar scope + fit-to-width', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.waitForSelector('#root > *', { timeout: 10_000 });
+  });
+
+  test('mobile toolbar has exactly 6 buttons (5 tools + More)', async ({ page }) => {
+    // v1 scope: Select, Text, Draw, Highlight, Sign, More
+    const toolbar = page.locator('[data-testid="mobile-toolbar"]');
+    await expect(toolbar).toBeVisible();
+    const buttons = toolbar.locator('button');
+    await expect(buttons).toHaveCount(6);
+  });
+
+  test('mobile toolbar includes the 5 primary tools by aria-label', async ({ page }) => {
+    const toolbar = page.locator('[data-testid="mobile-toolbar"]');
+    for (const label of ['Select', 'Text', 'Draw', 'Highlight', 'Sign']) {
+      await expect(toolbar.locator(`button[aria-label="${label}"]`)).toHaveCount(1);
+    }
+  });
+
+  test('mobile toolbar includes More button', async ({ page }) => {
+    const toolbar = page.locator('[data-testid="mobile-toolbar"]');
+    await expect(toolbar.locator('button[aria-label="More tools"]')).toHaveCount(1);
+  });
+
+  test('canvas transform uses scale directly (not scale/renderedScale)', async ({ page }) => {
+    // At initial load the inner transform div should have scale(1) — not scale(0.667)
+    // which would happen if we incorrectly divided by renderedScale=1.5
+    const transformDiv = page.locator('main [style*="translate3d"]').first();
+    const style = await transformDiv.getAttribute('style');
+    // Should contain scale(1) — fit-to-width at load
+    expect(style).toMatch(/scale\(1\)/);
+  });
+});

@@ -1,21 +1,13 @@
 import { useToolStore } from '@/store';
 import type { Tool } from '@/store';
-import {
-  MousePointer2, Highlighter, Pen, Type, PenLine,
-  Stamp, Eraser, MessageSquare, ZoomIn, ZoomOut,
-} from 'lucide-react';
+import { MousePointer2, Type, Pen, Highlighter, PenLine, MoreHorizontal } from 'lucide-react';
 
-const TOOLS: { id: Tool; icon: React.ReactNode; label: string }[] = [
+const PRIMARY_TOOLS: { id: Tool; icon: React.ReactNode; label: string }[] = [
   { id: 'select',    icon: <MousePointer2 size={18} />, label: 'Select' },
-  { id: 'highlight', icon: <Highlighter size={18} />,   label: 'Highlight' },
-  { id: 'draw',      icon: <Pen size={18} />,           label: 'Draw' },
   { id: 'text',      icon: <Type size={18} />,          label: 'Text' },
+  { id: 'draw',      icon: <Pen size={18} />,           label: 'Draw' },
+  { id: 'highlight', icon: <Highlighter size={18} />,   label: 'Highlight' },
   { id: 'sign',      icon: <PenLine size={18} />,       label: 'Sign' },
-  { id: 'stamp',     icon: <Stamp size={18} />,         label: 'Stamp' },
-  { id: 'eraser',    icon: <Eraser size={18} />,        label: 'Erase' },
-  { id: 'comment',   icon: <MessageSquare size={18} />, label: 'Comment' },
-  { id: 'zoom-in',   icon: <ZoomIn size={18} />,        label: 'Zoom in' },
-  { id: 'zoom-out',  icon: <ZoomOut size={18} />,       label: 'Zoom out' },
 ];
 
 export function MobileToolbar() {
@@ -26,8 +18,9 @@ export function MobileToolbar() {
       className="flex h-14 shrink-0 items-center justify-around border-t border-white/10 bg-navy-900 px-1"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Tool palette"
+      data-testid="mobile-toolbar"
     >
-      {TOOLS.map((t) => (
+      {PRIMARY_TOOLS.map((t) => (
         <button
           key={t.id}
           onClick={() => setTool(t.id)}
@@ -43,6 +36,14 @@ export function MobileToolbar() {
           {t.icon}
         </button>
       ))}
+
+      {/* More — placeholder for future tools */}
+      <button
+        aria-label="More tools"
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+      >
+        <MoreHorizontal size={18} />
+      </button>
     </nav>
   );
 }

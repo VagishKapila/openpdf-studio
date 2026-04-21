@@ -1,21 +1,13 @@
 import { useToolStore } from '@/store';
 import type { Tool } from '@/store';
-import {
-  MousePointer2, Highlighter, Pen, Type, PenLine,
-  Stamp, Eraser, MessageSquare, ZoomIn, ZoomOut,
-} from 'lucide-react';
+import { MousePointer2, Type, Pen, Highlighter, PenLine } from 'lucide-react';
 
 const TOOLS: { id: Tool; icon: React.ReactNode; label: string }[] = [
   { id: 'select',    icon: <MousePointer2 size={18} />, label: 'Select' },
-  { id: 'highlight', icon: <Highlighter size={18} />,   label: 'Highlight' },
-  { id: 'draw',      icon: <Pen size={18} />,           label: 'Draw' },
   { id: 'text',      icon: <Type size={18} />,          label: 'Text' },
+  { id: 'draw',      icon: <Pen size={18} />,           label: 'Draw' },
+  { id: 'highlight', icon: <Highlighter size={18} />,   label: 'Highlight' },
   { id: 'sign',      icon: <PenLine size={18} />,       label: 'Sign' },
-  { id: 'stamp',     icon: <Stamp size={18} />,         label: 'Stamp' },
-  { id: 'eraser',    icon: <Eraser size={18} />,        label: 'Erase' },
-  { id: 'comment',   icon: <MessageSquare size={18} />, label: 'Comment' },
-  { id: 'zoom-in',   icon: <ZoomIn size={18} />,        label: 'Zoom in' },
-  { id: 'zoom-out',  icon: <ZoomOut size={18} />,       label: 'Zoom out' },
 ];
 
 export function ToolPalette() {
