@@ -15,7 +15,7 @@ export function MobileToolbar() {
 
   return (
     <nav
-      className="flex h-14 shrink-0 items-center justify-around border-t border-white/10 bg-navy-900 px-1"
+      className="md:hidden flex h-14 shrink-0 items-center justify-around border-t border-white/10 bg-navy-900 px-1"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Tool palette"
       data-testid="mobile-toolbar"

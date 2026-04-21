@@ -59,18 +59,24 @@ export function CanvasArea() {
     }
   }, [doc?.id, resetTransform]);
 
-  // Re-render on orientation change so containerWidth stays accurate
+  // Re-render when the container resizes (orientation change, desktop resize, panel open/close)
+  // ResizeObserver is more accurate than window 'resize' because it fires after layout settles.
   useEffect(() => {
-    const handleResize = () => {
+    const container = gestureContainerRef.current;
+    if (!container) return;
+    const ro = new ResizeObserver(() => {
       if (loadState === 'ready') void renderPdfPage(renderedScale);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
   }, [loadState, renderedScale, renderPdfPage]);
 
-  // Initial render and page changes
+  // Initial render and page changes — defer one rAF so the column-flex layout has settled
   useEffect(() => {
-    if (loadState === 'ready') void renderPdfPage(renderedScale);
+    if (loadState === 'ready') {
+      const raf = requestAnimationFrame(() => void renderPdfPage(renderedScale));
+      return () => cancelAnimationFrame(raf);
+    }
   }, [loadState, currentPage, renderPdfPage, renderedScale]);
 
   // Attach gesture recogniser to the scroll container
@@ -82,7 +88,8 @@ export function CanvasArea() {
   return (
     <div
       ref={gestureContainerRef}
-      className="flex h-full w-full items-start justify-center overflow-y-auto overflow-x-hidden"
+      className="flex flex-1 w-full items-start justify-center overflow-y-auto overflow-x-hidden"
+      data-testid="canvas-area"
       style={{ touchAction: 'none', userSelect: 'none' }}
     >
       {/* Only this inner div receives the CSS transform — header/toolbar stay fixed */}
