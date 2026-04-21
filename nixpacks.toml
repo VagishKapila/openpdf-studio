@@ -1,0 +1,5 @@
+# Disable Nixpacks auto-detected install (it runs pnpm install --frozen-lockfile,
+# which fails when there is no committed lockfile).
+# Our railway.json buildCommand handles install + build in one step.
+[phases.install]
+cmds = []

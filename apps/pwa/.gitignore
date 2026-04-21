@@ -1,0 +1,22 @@
+# Deps
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+dist-ssr/
+
+# TS artefacts – noEmit keeps these out of src/ but belt-and-suspenders
+src/**/*.js
+src/**/*.d.ts
+*.tsbuildinfo
+
+# Test artefacts
+test-results/
+playwright-report/
+coverage/
+
+# Misc
+.DS_Store
+*.local

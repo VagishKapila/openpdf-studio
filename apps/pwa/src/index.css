@@ -1,0 +1,25 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-amber: #f7b84b;
+  --color-navy-900: #0f172a;
+  --color-navy-800: #112244;
+  --color-navy-500: #1e3a5f;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Prevent iOS Safari bounce scroll interfering with gesture layer */
+body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
