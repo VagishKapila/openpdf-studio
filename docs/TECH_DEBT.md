@@ -60,3 +60,52 @@ Smooth with a CSS transition on `width`.
 `lucide-react@^1.x` (in the original scaffold) does not yet have stable semver.
 Pinned to `^0.511` which ships tree-shakeable named exports. Watch for v1 stable.
 
+
+---
+
+## TD-008 — Railway GitHub webhook unreliable on pwa-main · med · Day 2.1
+
+**When:** Day 2.1 (2026-04-21)
+
+Railway's GitHub integration auto-deploys on some pushes to `pwa-main` but
+silently skips others. Root cause unknown — may be related to commit metadata,
+push size, or webhook timing. Confirmed: `579300b` deployed correctly;
+`ad46e09` was pushed but Railway never received the trigger and kept serving
+the old build until a manual API call forced the redeploy.
+
+**What we gave up:**
+- Reliable "push to deploy" flow
+- Trust that the live URL reflects the latest commit without a manual check
+
+**Impact right now:**
+After every `git push`, there's uncertainty about whether Railway actually
+redeployed. Testing against "latest" can mean testing a build that's 1-3
+commits behind.
+
+**Mitigation (applied Day 2.2):**
+`tools/scripts/deploy.sh` pushes to GitHub AND explicitly triggers a
+Railway redeploy via the GraphQL API in one command. Run it instead of
+bare `git push`:
+
+```bash
+./tools/scripts/deploy.sh
+# or
+pnpm deploy
+```
+
+The underlying Railway call (browser-based, no CLI required):
+
+```graphql
+mutation {
+  serviceInstanceDeploy(
+    serviceId: "065fd211-8a8e-421c-af41-556b72af4b07",
+    environmentId: "454461ea-46fd-47c3-af6e-0b87e702153a",
+    latestCommit: true
+  )
+}
+```
+
+**When to revisit:**
+- If Railway ships a webhook reliability fix
+- If we migrate hosting before v1 launch
+- If `deploy.sh` itself starts failing — then investigate Railway status directly
