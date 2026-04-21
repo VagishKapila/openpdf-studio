@@ -5,7 +5,7 @@
 
 ## ✅ DEPLOYED
 
-**Live URL (canonical):** https://openpdf-studio-production-462c.up.railway.app
+**Live URL (canonical):** https://app.snaphw.com (canonical) / https://openpdf-studio-production-462c.up.railway.app (fallback)
 **GitHub:** https://github.com/VagishKapila/openpdf-studio (public, branch: `pwa-main`)
 **Host:** Railway — project `openpdf-pwa`, service `openpdf-studio`
 **Auto-deploy:** ⚠️ — Railway webhook fires on most pushes to `pwa-main` but is
@@ -82,7 +82,7 @@ Broken indicators ($0, NaN, etc): 0  ✅
 
 **Shipped:** 2026-04-21
 **Commit:** `ad46e09`
-**Live URL:** https://openpdf-studio-production-462c.up.railway.app
+**Live URL:** https://app.snaphw.com (canonical) / https://openpdf-studio-production-462c.up.railway.app (fallback)
 
 ### What shipped
 

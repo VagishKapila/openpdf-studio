@@ -2,7 +2,7 @@
 
 Free, private PDF editor. Local-first. No accounts. No uploads.
 
-**Live beta:** https://openpdf-studio-production-462c.up.railway.app
+**Live beta:** https://app.snaphw.com _(DNS propagating — fallback: https://openpdf-studio-production-462c.up.railway.app)_
 
 ## Monorepo Structure
 
