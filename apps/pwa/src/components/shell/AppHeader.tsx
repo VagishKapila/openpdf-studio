@@ -1,33 +1,33 @@
+import { useRef } from 'react';
 import { useDocumentStore, useUIStore } from '@/store';
 import { FileText, Menu, Upload } from 'lucide-react';
-import { pdfjs } from '@/lib/pdfjs';
+import { loadPdfFromFile } from '@/lib/loadPdf';
 
 export function AppHeader() {
   const { document: doc, loadState } = useDocumentStore();
   const toggleAside = useUIStore((s) => s.toggleAside);
-  const setDoc = useDocumentStore((s) => s.setDocument);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileOpen = async () => {
-    const input = globalThis.document.createElement('input');
-    input.type = 'file';
-    input.accept = '.pdf,application/pdf';
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      useDocumentStore.getState().setLoadState('loading');
-      try {
-        const data = await file.arrayBuffer();
-        const pdf = await pdfjs.getDocument({ data }).promise;
-        setDoc({ id: crypto.randomUUID(), fileName: file.name, totalPages: pdf.numPages, pdf });
-      } catch (e) {
-        useDocumentStore.getState().setError(e instanceof Error ? e.message : String(e));
-      }
-    };
-    input.click();
+  const handleOpenClick = () => fileInputRef.current?.click();
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await loadPdfFromFile(file);
+    } catch {
+      // error already set in store by loadPdfFromFile
+    } finally {
+      // reset so the same file can be re-opened
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-navy-900 px-3">
+    <header
+      className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-navy-900 px-3"
+      data-testid="app-header"
+    >
       <div className="flex items-center gap-2">
         <button
           onClick={toggleAside}
@@ -52,14 +52,28 @@ export function AppHeader() {
         ) : null}
       </div>
 
-      <button
-        onClick={handleFileOpen}
-        className="flex items-center gap-1.5 rounded-md bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-400/20"
-        aria-label="Open PDF"
-      >
-        <Upload size={13} />
-        <span>Open</span>
-      </button>
+      <div className="flex items-center">
+        <button
+          onClick={handleOpenClick}
+          className="flex items-center gap-1.5 rounded-md bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-400/20"
+          aria-label="Open PDF"
+          data-testid="open-button"
+        >
+          <Upload size={13} />
+          <span>Open</span>
+        </button>
+
+        {/* Hidden file input — persists across renders; reset after use */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          onChange={handleFileChange}
+          className="hidden"
+          data-testid="file-input"
+          aria-hidden="true"
+        />
+      </div>
     </header>
   );
 }

@@ -1,30 +1,50 @@
+import { useEffect, useCallback } from 'react';
 import { AppHeader } from './AppHeader';
-import { MobileToolbar } from './MobileToolbar';
 import { ToolPalette } from './ToolPalette';
+import { MobileToolbar } from './MobileToolbar';
 import { PageNavDock } from './PageNavDock';
-import { CanvasArea } from '../canvas/CanvasArea';
+import { CanvasArea } from '@/components/canvas/CanvasArea';
+import { loadPdfFromFile, loadMostRecentDocument } from '@/lib/loadPdf';
 
 export function AppShell() {
+  // Restore the most recently opened document on first mount
+  useEffect(() => {
+    void loadMostRecentDocument();
+  }, []);
+
+  // Drag-over: must preventDefault to allow drop
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  // Drop: extract file and load
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    try {
+      await loadPdfFromFile(file);
+    } catch {
+      // error already surfaced in store
+    }
+  }, []);
+
   return (
     <div className="flex h-full flex-col bg-neutral-800">
-      {/* Header — always visible, always at 1:1 scale */}
       <AppHeader />
-
-      {/* Body row: tool palette (desktop) + canvas area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Tool palette — hidden on mobile (hidden), visible on desktop (md:flex) */}
         <ToolPalette />
-
-        {/* Main column: canvas + page navigation */}
-        <main className="relative flex flex-1 flex-col overflow-hidden">
-          {/* Canvas fills all available height */}
+        <main
+          className="relative flex flex-1 flex-col overflow-hidden"
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          data-testid="main-content"
+        >
           <CanvasArea />
-          {/* Page navigation — always visible, docks to bottom of main */}
           <PageNavDock />
         </main>
       </div>
-
-      {/* Mobile bottom toolbar — hidden on desktop (md:hidden) */}
       <MobileToolbar />
     </div>
   );
