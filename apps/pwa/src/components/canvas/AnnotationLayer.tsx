@@ -66,25 +66,61 @@ export function AnnotationLayer({
     const layer = new Konva.Layer();
     stage.add(layer);
 
-    stage.on('click tap', (e) => {
+    // Desktop: Konva mouse-click on stage background → place text or deselect
+    stage.on('click', (e) => {
       if (e.target !== stage) return;
       if (toolRef.current === 'text') {
         const pos = stage.getPointerPosition();
         if (!pos) return;
-        // Convert Konva CSS-px coords back to PDF-space using fresh refs
         const scale = pdfPageWidthRef.current / canvasWidthRef.current;
-        const pdfX = pos.x * scale;
-        const pdfY = pos.y * scale;
-        onPlaceTextRef.current(pdfX, pdfY);
+        onPlaceTextRef.current(pos.x * scale, pos.y * scale);
       } else {
         setSelected(null);
       }
     });
 
+    // Mobile: @use-gesture/react (passive:false) can prevent Konva's synthetic tap
+    // from firing. Bypass with direct DOM touch listeners on the container div.
+    // passive:true keeps scroll performance intact for non-text tools.
+    const touchOrigin = { x: 0, y: 0 };
+
+    const onTouchStart = (evt: TouchEvent) => {
+      const t = evt.touches[0];
+      touchOrigin.x = t.clientX;
+      touchOrigin.y = t.clientY;
+    };
+
+    const onTouchEnd = (evt: TouchEvent) => {
+      const t = evt.changedTouches[0];
+      // Ignore pans/swipes — only act on true taps (<10 px movement)
+      if (Math.abs(t.clientX - touchOrigin.x) > 10 || Math.abs(t.clientY - touchOrigin.y) > 10) return;
+
+      const rect = container.getBoundingClientRect();
+      const localX = t.clientX - rect.left;
+      const localY = t.clientY - rect.top;
+
+      // Check whether a Konva shape is under the tap
+      const hitNode = stageRef.current?.getIntersection({ x: localX, y: localY });
+
+      if (!hitNode || hitNode === stageRef.current) {
+        // Tapped background — place new text annotation
+        if (toolRef.current === 'text') {
+          const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+          onPlaceTextRef.current(localX * scale, localY * scale);
+        }
+      }
+      // Shape taps are handled by each shape's own 'click tap' listener
+    };
+
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+
     stageRef.current = stage;
     layerRef.current = layer;
 
     return () => {
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchend', onTouchEnd);
       stage.destroy();
       stageRef.current = null;
       layerRef.current = null;

@@ -34,4 +34,34 @@ test.describe('Day 5 — Text Tool (mobile)', () => {
     await toolbar.getByRole('button', { name: /Select/i }).click();
     await expect(page.getByTestId('text-tool-controls-mobile')).not.toBeVisible();
   });
+
+  test('mobile tap on canvas with text tool opens TextEditor', async ({ page }) => {
+    await page.goto(`${BASE}?debug=1`);
+    await page.waitForLoadState('networkidle');
+
+    // Seed a blank PDF and wait for the annotation layer
+    await page.waitForFunction(
+      () => !!(window as any).openpdfDebug &&
+            typeof (window as any).openpdfDebug.seedDocument === 'function',
+      { timeout: 8000 },
+    );
+    await page.evaluate(async () => { await (window as any).openpdfDebug.seedDocument(); });
+    await page.locator('[data-testid="annotation-layer"]').waitFor({ state: 'visible', timeout: 8000 });
+
+    // Activate text tool
+    await page.getByTestId('mobile-toolbar').getByRole('button', { name: /Text/i }).click();
+
+    // Tap the annotation layer in the upper quarter (within mobile viewport)
+    const layer = page.locator('[data-testid="annotation-layer"]');
+    const box = await layer.boundingBox();
+    if (!box) throw new Error('annotation-layer has no bounding box');
+
+    await page.touchscreen.tap(
+      box.x + box.width * 0.25,
+      box.y + box.height * 0.25,
+    );
+
+    // TextEditor should appear
+    await expect(page.getByTestId('text-editor')).toBeVisible({ timeout: 5000 });
+  });
 });
