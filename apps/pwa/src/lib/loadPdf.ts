@@ -52,12 +52,13 @@ export async function loadMostRecentDocument(): Promise<void> {
     const stored = docs[0];
     useDocumentStore.getState().setLoadState('loading');
 
-    // Defensive: handle both ArrayBuffer (current) and any future Blob migration
+    // Defensive: handle both ArrayBuffer (current) and any future Blob storage
+    const rawData = stored.data as unknown;
     let bytes: ArrayBuffer;
-    if (stored.data instanceof ArrayBuffer) {
-      bytes = stored.data.slice(0);
-    } else if (stored.data instanceof Blob) {
-      bytes = await (stored.data as Blob).arrayBuffer();
+    if (rawData instanceof ArrayBuffer) {
+      bytes = rawData.slice(0);
+    } else if (rawData instanceof Blob) {
+      bytes = await rawData.arrayBuffer();
     } else {
       throw new Error('Unrecognized document storage format — please re-open the PDF.');
     }
