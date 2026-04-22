@@ -63,7 +63,7 @@ test.describe('Day 5 — Text Tool (desktop)', () => {
     const box = await layer.boundingBox();
     if (!box) throw new Error('annotation-layer has no bounding box');
 
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.click(box.x + box.width * 0.25, box.y + box.height * 0.25);
     await expect(page.getByTestId('text-editor')).toBeVisible({ timeout: 4000 });
   });
 
@@ -113,7 +113,7 @@ test.describe('Day 5 — Text Tool (desktop)', () => {
     const box = await layer.boundingBox();
     if (!box) throw new Error('no box');
 
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.click(box.x + box.width * 0.25, box.y + box.height * 0.25);
     const editor = page.getByTestId('text-editor');
     await editor.waitFor({ state: 'visible', timeout: 4000 });
     // Leave empty and press Escape
@@ -133,8 +133,8 @@ test.describe('Day 5 — Text Tool (desktop)', () => {
     const box = await layer.boundingBox();
     if (!box) throw new Error('no box');
 
-    const cx = box.x + box.width * 0.45;
-    const cy = box.y + box.height * 0.45;
+    const cx = box.x + box.width * 0.25;
+    const cy = box.y + box.height * 0.25;
 
     // Place and commit a text annotation
     await page.mouse.click(cx, cy);
@@ -168,7 +168,7 @@ test.describe('Day 5 — Text Tool (desktop)', () => {
     // Click Red swatch (index 1)
     await swatches.nth(1).click();
     const style = await swatches.nth(1).getAttribute('style');
-    expect(style).toContain('F59E0B'); // amber border = selected
+    expect(style).toContain('245, 158, 11'); // amber border = selected (rgb(245,158,11) = #F59E0B)
   });
 });
 
