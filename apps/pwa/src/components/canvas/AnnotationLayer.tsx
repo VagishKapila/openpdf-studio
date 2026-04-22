@@ -7,7 +7,6 @@
  * Coordinate conversion:
  *   pdfToKonva(coord) = coord * (canvasWidth / pdfPageWidth)
  */
-
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { useAnnotationStore } from '@/store';
@@ -102,7 +101,7 @@ export function AnnotationLayer({
       // Check whether a Konva shape is under the tap
       const hitNode = stageRef.current?.getIntersection({ x: localX, y: localY });
 
-      if (!hitNode || hitNode === stageRef.current) {
+      if (!hitNode) {
         // Tapped background — place new text annotation
         if (toolRef.current === 'text') {
           const scale = pdfPageWidthRef.current / canvasWidthRef.current;
