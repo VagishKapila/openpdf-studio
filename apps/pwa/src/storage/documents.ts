@@ -1,4 +1,5 @@
 import { db, type StoredDocument } from './db';
+export type { StoredDocument };
 
 export async function saveDocument(file: File): Promise<string> {
   const data = await file.arrayBuffer();

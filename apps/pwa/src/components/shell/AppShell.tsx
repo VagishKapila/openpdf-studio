@@ -1,17 +1,13 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { AppHeader } from './AppHeader';
 import { ToolPalette } from './ToolPalette';
 import { MobileToolbar } from './MobileToolbar';
 import { PageNavDock } from './PageNavDock';
+import { DocumentSidebar } from './DocumentSidebar';
 import { CanvasArea } from '@/components/canvas/CanvasArea';
-import { loadPdfFromFile, loadMostRecentDocument } from '@/lib/loadPdf';
+import { loadPdfFromFile } from '@/lib/loadPdf';
 
 export function AppShell() {
-  // Restore the most recently opened document on first mount
-  useEffect(() => {
-    void loadMostRecentDocument();
-  }, []);
-
   // Drag-over: must preventDefault to allow drop
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -26,7 +22,7 @@ export function AppShell() {
     try {
       await loadPdfFromFile(file);
     } catch {
-      // error already surfaced in store
+      // error surfaced in store
     }
   }, []);
 
@@ -34,6 +30,7 @@ export function AppShell() {
     <div className="flex h-full flex-col bg-neutral-800">
       <AppHeader />
       <div className="flex flex-1 overflow-hidden">
+        <DocumentSidebar />
         <ToolPalette />
         <main
           className="relative flex flex-1 flex-col overflow-hidden"

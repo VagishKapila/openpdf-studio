@@ -1,7 +1,11 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
+import { FileText } from 'lucide-react';
 import { useDocumentStore, useViewportStore } from '@/store';
 import { useDocumentGestures } from '@/hooks/useDocumentGestures';
 import { useCanvasTransform } from '@/hooks/useCanvasTransform';
+import { loadMostRecentDocument } from '@/lib/loadPdf';
+
+const CLOSED_FLAG_KEY = 'openpdf_doc_explicitly_closed';
 
 export function CanvasArea() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -13,10 +17,26 @@ export function CanvasArea() {
   const { document: doc, currentPage, loadState } = useDocumentStore();
   const { scale, offsetX, offsetY, renderedScale, resetTransform } = useViewportStore();
 
-  // CSS transform uses `scale` directly — `renderedScale` is purely a render-quality
-  // budget and does NOT affect the displayed size.
-  // scale=1  →  canvas fills container width  →  fit-to-width ✓
-  // scale=2  →  canvas appears 2× wider       →  2× zoom ✓
+  // Track whether we're still checking Dexie for a document to restore
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  // On first mount: check sessionStorage flag, then attempt to restore last doc
+  useEffect(() => {
+    const wasClosed = sessionStorage.getItem(CLOSED_FLAG_KEY) === 'true';
+    if (wasClosed) {
+      // User explicitly closed the doc in this session — show empty state immediately
+      sessionStorage.removeItem(CLOSED_FLAG_KEY);
+      setIsInitializing(false);
+      return;
+    }
+    // Try to reload most recent document from Dexie
+    loadMostRecentDocument().finally(() => setIsInitializing(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Once a document loads during init, stop showing the spinner
+  useEffect(() => {
+    if (loadState === 'ready') setIsInitializing(false);
+  }, [loadState]);
 
   const renderPdfPage = useCallback(
     async (renderAtScale: number) => {
@@ -28,16 +48,13 @@ export function CanvasArea() {
       try {
         const page = await pdf.getPage(currentPage);
         const dpr = window.devicePixelRatio || 1;
-        // Use actual container width so the canvas fills the screen on all devices
         const containerWidth = container.clientWidth || Math.min(window.innerWidth, 900);
         const baseViewport = page.getViewport({ scale: 1 });
-        // fitScale converts PDF units → CSS pixels and accounts for DPR
         const fitScale = (containerWidth / baseViewport.width) * dpr;
         const viewport = page.getViewport({ scale: fitScale * renderAtScale });
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        // CSS size: canvas fills the container width at scale=1 (no CSS transform applied here)
         canvas.style.width = `${containerWidth}px`;
         canvas.style.height = `${(containerWidth * viewport.height) / viewport.width}px`;
 
@@ -51,16 +68,15 @@ export function CanvasArea() {
     [doc, currentPage],
   );
 
-  // Reset zoom to fit-to-width whenever a NEW document is opened
+  // Reset zoom when a new document is opened
   useEffect(() => {
     if (doc?.id && doc.id !== prevDocIdRef.current) {
       prevDocIdRef.current = doc.id;
-      resetTransform(); // scale → 1, offsetX/Y → 0 → automatic fit-to-width
+      resetTransform();
     }
   }, [doc?.id, resetTransform]);
 
-  // Re-render when the container resizes (orientation change, desktop resize, panel open/close)
-  // ResizeObserver is more accurate than window 'resize' because it fires after layout settles.
+  // Re-render on container resize
   useEffect(() => {
     const container = gestureContainerRef.current;
     if (!container) return;
@@ -71,7 +87,7 @@ export function CanvasArea() {
     return () => ro.disconnect();
   }, [loadState, renderedScale, renderPdfPage]);
 
-  // Initial render and page changes — defer one rAF so the column-flex layout has settled
+  // Initial render + page changes — defer one rAF so layout settles
   useEffect(() => {
     if (loadState === 'ready') {
       const raf = requestAnimationFrame(() => void renderPdfPage(renderedScale));
@@ -79,11 +95,60 @@ export function CanvasArea() {
     }
   }, [loadState, currentPage, renderPdfPage, renderedScale]);
 
-  // Attach gesture recogniser to the scroll container
+  // Attach gesture recogniser (handles null ref internally)
   useDocumentGestures(gestureContainerRef, transformDivRef);
 
-  // Bump render resolution when user zooms in past 1.25× of current render
+  // Bump render resolution on zoom
   useCanvasTransform(renderPdfPage);
+
+  // ── Render states ────────────────────────────────────────────────────────────
+
+  if (isInitializing) {
+    return (
+      <div
+        className="flex flex-1 w-full items-center justify-center"
+        data-testid="canvas-area"
+      >
+        <div className="flex flex-col items-center gap-3 opacity-50">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
+          <p className="text-xs text-white/60">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadState === 'error') {
+    return (
+      <div
+        className="flex flex-1 w-full items-center justify-center"
+        data-testid="canvas-area"
+      >
+        <p className="text-sm text-red-400">Failed to load PDF. Try opening it again.</p>
+      </div>
+    );
+  }
+
+  if (!doc) {
+    return (
+      <div
+        className="flex flex-1 w-full items-center justify-center p-8 text-center"
+        data-testid="canvas-area"
+      >
+        <div className="max-w-xs">
+          <FileText className="mx-auto h-16 w-16 text-white/20" />
+          <h3 className="mt-4 text-base font-medium text-white/80">
+            No document open
+          </h3>
+          <p className="mt-2 text-xs text-white/50">
+            Click <span className="text-amber-400 font-medium">Open</span> in the header
+            to load a PDF, or drag one onto this area.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Canvas (document loaded) ─────────────────────────────────────────────────
 
   return (
     <div
@@ -92,7 +157,6 @@ export function CanvasArea() {
       data-testid="canvas-area"
       style={{ touchAction: 'none', userSelect: 'none' }}
     >
-      {/* Only this inner div receives the CSS transform — header/toolbar stay fixed */}
       <div
         ref={transformDivRef}
         style={{
@@ -105,11 +169,11 @@ export function CanvasArea() {
           ref={canvasRef}
           className="block bg-white shadow-lg"
           style={{ touchAction: 'none' }}
-          aria-label={doc ? `Page ${currentPage} of ${doc.totalPages}` : 'PDF canvas'}
+          aria-label={`Page ${currentPage} of ${doc.totalPages}`}
         />
       </div>
 
-      {/* 1:1 reset badge — only shown when user has zoomed in */}
+      {/* 1:1 reset badge — only shown when zoomed in */}
       {scale > 1.05 && (
         <button
           onClick={resetTransform}
@@ -119,23 +183,6 @@ export function CanvasArea() {
         >
           1:1
         </button>
-      )}
-
-      {/* Empty state */}
-      {loadState === 'idle' && (
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/30">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
-          <p className="text-sm">Tap <strong className="text-white/50">Open</strong> to load a PDF</p>
-        </div>
-      )}
-
-      {loadState === 'error' && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-red-400 text-sm">
-          Failed to load PDF
-        </div>
       )}
     </div>
   );

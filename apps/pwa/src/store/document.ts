@@ -22,6 +22,8 @@ type DocumentState = {
   clearDocument: () => void;
 };
 
+const CLOSED_FLAG_KEY = 'openpdf_doc_explicitly_closed';
+
 export const useDocumentStore = create<DocumentState>((set, get) => ({
   loadState: 'idle',
   errorMsg: '',
@@ -36,5 +38,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const clamped = Math.max(1, Math.min(doc.totalPages, page));
     set({ currentPage: clamped });
   },
-  clearDocument: () => set({ document: null, loadState: 'idle', currentPage: 1, errorMsg: '' }),
+  clearDocument: () => {
+    // Set flag so CanvasArea init effect doesn't auto-reload on next render
+    try {
+      sessionStorage.setItem(CLOSED_FLAG_KEY, 'true');
+    } catch {
+      // sessionStorage unavailable (private browsing quirks) — ignore
+    }
+    set({ document: null, loadState: 'idle', currentPage: 1, errorMsg: '' });
+  },
 }));

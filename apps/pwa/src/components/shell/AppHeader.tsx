@@ -1,11 +1,12 @@
 import { useRef } from 'react';
-import { useDocumentStore, useUIStore } from '@/store';
-import { FileText, Menu, Upload } from 'lucide-react';
+import { useDocumentStore, useUIStore, useViewportStore } from '@/store';
+import { FileText, Menu, Upload, X } from 'lucide-react';
 import { loadPdfFromFile } from '@/lib/loadPdf';
 
 export function AppHeader() {
-  const { document: doc, loadState } = useDocumentStore();
+  const { document: doc, loadState, clearDocument } = useDocumentStore();
   const toggleAside = useUIStore((s) => s.toggleAside);
+  const resetTransform = useViewportStore((s) => s.resetTransform);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleOpenClick = () => fileInputRef.current?.click();
@@ -23,6 +24,11 @@ export function AppHeader() {
     }
   };
 
+  const handleCloseDocument = () => {
+    clearDocument();
+    resetTransform();
+  };
+
   return (
     <header
       className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-navy-900 px-3"
@@ -32,7 +38,7 @@ export function AppHeader() {
         <button
           onClick={toggleAside}
           className="rounded p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
-          aria-label="Toggle panel"
+          aria-label="Menu"
         >
           <Menu size={18} />
         </button>
@@ -52,7 +58,20 @@ export function AppHeader() {
         ) : null}
       </div>
 
-      <div className="flex items-center">
+      <div className="flex items-center gap-1">
+        {/* Close button — only visible when a document is loaded */}
+        {loadState === 'ready' && doc && (
+          <button
+            onClick={handleCloseDocument}
+            className="rounded p-1.5 text-white/50 hover:bg-white/10 hover:text-white"
+            aria-label="Close document"
+            title="Close document"
+            data-testid="close-button"
+          >
+            <X size={16} />
+          </button>
+        )}
+
         <button
           onClick={handleOpenClick}
           className="flex items-center gap-1.5 rounded-md bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-400/20"
