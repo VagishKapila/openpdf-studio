@@ -20,6 +20,7 @@ import('./store').then(({ useAnnotationStore, useDocumentStore, useViewportStore
       annotations: useAnnotationStore,
       documents: useDocumentStore,
       viewport: useViewportStore,
+
       /** Console helper: openpdfDebug.seed() or openpdfDebug.seed(2) for page 2 */
       seed: async (pageNumber = 1) => {
         const doc = useDocumentStore.getState().document;
@@ -35,7 +36,44 @@ import('./store').then(({ useAnnotationStore, useDocumentStore, useViewportStore
         console.info('[OpenPDF] Annotation seeded:', ann.id);
         return ann;
       },
+
+      /**
+       * Playwright/console helper: create a blank 1-page test PDF, save it to
+       * Dexie, and load it into the document store — all without needing an
+       * existing document.  Call this from a test via:
+       *   await page.evaluate(() => window.openpdfDebug.seedDocument())
+       */
+      seedDocument: async () => {
+        const [{ PDFDocument }, { pdfjs }, { saveDocument, updatePageCount }] = await Promise.all([
+          import('pdf-lib'),
+          import('@/lib/pdfjs'),
+          import('@/storage/documents'),
+        ]);
+        // Build a minimal blank A4 page
+        const pdfDoc = await PDFDocument.create();
+        pdfDoc.addPage([595, 842]);
+        const bytes = await pdfDoc.save();
+
+        // Save to Dexie (saveDocument expects a File)
+        const file = new File([bytes], 'test-document.pdf', { type: 'application/pdf' });
+        const id = await saveDocument(file);
+
+        // Load via PDF.js then set in store
+        const data = (bytes as Uint8Array).buffer.slice(0);
+        const pdf = await pdfjs.getDocument({ data }).promise;
+        await updatePageCount(id, pdf.numPages);
+
+        useDocumentStore.getState().setDocument({
+          id,
+          fileName: 'test-document.pdf',
+          totalPages: pdf.numPages,
+          pdf,
+        });
+
+        console.info('[OpenPDF] Test document seeded:', id);
+        return id;
+      },
     };
-    console.info('[OpenPDF] Debug API ready — try: openpdfDebug.seed()');
+    console.info('[OpenPDF] Debug API ready — try: openpdfDebug.seed() / openpdfDebug.seedDocument()');
   });
 });

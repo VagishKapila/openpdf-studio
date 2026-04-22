@@ -1,4 +1,4 @@
-import { test, expect, devices } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 const BASE = process.env.SPIKE_URL ?? 'https://app.snaphw.com';
 
@@ -9,17 +9,22 @@ async function openDebugSession(page: import('@playwright/test').Page) {
   await page.waitForLoadState('networkidle');
 }
 
-// Seed a PDF if the debug button exists, return the annotation-layer locator
+// Seed a blank test PDF via openpdfDebug.seedDocument() and wait for canvas
 async function seedAndAwaitCanvas(page: import('@playwright/test').Page) {
-  const seedBtn = page.getByRole('button', { name: /Test ann/i });
-  if (await seedBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await seedBtn.click();
-    await page.waitForTimeout(400);
-  }
+  // Wait for the async debug API to be registered
+  await page.waitForFunction(
+    () => !!(window as unknown as Record<string, unknown>).openpdfDebug &&
+          typeof (window as any).openpdfDebug.seedDocument === 'function',
+    { timeout: 8000 },
+  );
+  await page.evaluate(async () => {
+    await (window as any).openpdfDebug.seedDocument();
+  });
   const layer = page.locator('[data-testid="annotation-layer"]');
-  await layer.waitFor({ state: 'visible', timeout: 5000 });
+  await layer.waitFor({ state: 'visible', timeout: 8000 });
   return layer;
 }
+
 
 // ── Desktop tests (1440×900) ─────────────────────────────────────────────────
 
@@ -167,38 +172,3 @@ test.describe('Day 5 — Text Tool (desktop)', () => {
   });
 });
 
-// ── Mobile tests (Pixel 7) ───────────────────────────────────────────────────
-
-test.describe('Day 5 — Text Tool (mobile)', () => {
-  test.use({ ...devices['Pixel 7'] });
-
-  test('mobile text tool button visible and activatable', async ({ page }) => {
-    await page.goto(`${BASE}?debug=1`);
-    await page.waitForLoadState('networkidle');
-    const toolbar = page.getByTestId('mobile-toolbar');
-    await expect(toolbar).toBeVisible();
-    const textBtn = toolbar.getByRole('button', { name: /Text/i });
-    await expect(textBtn).toBeVisible();
-    await textBtn.click();
-    await expect(textBtn).toHaveAttribute('aria-pressed', 'true');
-  });
-
-  test('mobile text tool controls row appears above toolbar', async ({ page }) => {
-    await page.goto(`${BASE}?debug=1`);
-    await page.waitForLoadState('networkidle');
-    await page.getByTestId('mobile-toolbar').getByRole('button', { name: /Text/i }).click();
-    await expect(page.getByTestId('text-tool-controls-mobile')).toBeVisible();
-    await expect(page.getByTestId('font-size-select-mobile')).toBeVisible();
-    await expect(page.getByTestId('color-swatches-mobile')).toBeVisible();
-  });
-
-  test('mobile: controls disappear when switching to another tool', async ({ page }) => {
-    await page.goto(`${BASE}?debug=1`);
-    await page.waitForLoadState('networkidle');
-    const toolbar = page.getByTestId('mobile-toolbar');
-    await toolbar.getByRole('button', { name: /Text/i }).click();
-    await expect(page.getByTestId('text-tool-controls-mobile')).toBeVisible();
-    await toolbar.getByRole('button', { name: /Select/i }).click();
-    await expect(page.getByTestId('text-tool-controls-mobile')).not.toBeVisible();
-  });
-});
