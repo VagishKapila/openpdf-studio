@@ -17,7 +17,6 @@
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { useAnnotationStore } from '@/store';
-import type { Annotation } from '@/lib/annotations';
 
 export type AnnotationLayerProps = {
   /** CSS pixel width of the underlying PDF canvas */

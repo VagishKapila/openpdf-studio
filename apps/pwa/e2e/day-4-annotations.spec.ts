@@ -5,22 +5,17 @@ const BASE = process.env.SPIKE_URL || 'https://app.snaphw.com';
 test.describe('Day 4 — Annotation foundation', () => {
   test('Konva canvas is present alongside PDF canvas', async ({ page }) => {
     await page.goto(BASE);
-    // Wait for either a document to load or empty state
     await page.waitForFunction(
-      () => {
-        const spinning = document.querySelector('.animate-spin');
-        return spinning === null;
-      },
+      () => !document.querySelector('.animate-spin'),
       { timeout: 10_000 },
     );
 
-    // If a PDF loaded, Konva creates its own canvas — expect ≥2 canvases
     const canvasCount = await page.locator('canvas').count();
-    // May be 0 if no doc loaded (empty state), 2+ if doc loaded with Konva overlay
     if (canvasCount > 0) {
+      // PDF loaded — Konva adds its own canvas alongside the PDF canvas
       expect(canvasCount).toBeGreaterThanOrEqual(2);
     } else {
-      // Empty state is valid — no canvas at all
+      // Empty state is valid
       await expect(page.getByText(/No document open/i)).toBeVisible();
     }
   });
@@ -31,37 +26,40 @@ test.describe('Day 4 — Annotation foundation', () => {
       timeout: 10_000,
     });
 
-    const layer = page.getByTestId('annotation-layer');
     const canvasCount = await page.locator('canvas').count();
-
     if (canvasCount >= 2) {
-      // PDF loaded → AnnotationLayer should be present
-      await expect(layer).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByTestId('annotation-layer')).toBeVisible({ timeout: 5_000 });
     }
-    // If no PDF open, layer won't exist — that's correct behaviour
   });
 
-  test('selection action bar hidden when nothing selected', async ({ page }) => {
+  test('selection action bar is hidden when nothing is selected', async ({ page }) => {
     await page.goto(BASE);
     await page.waitForLoadState('networkidle');
 
     const bar = page.getByTestId('selection-action-bar');
-    // Should not be visible since nothing is selected on fresh load
     await expect(bar).toHaveCount(0);
   });
 
-  test('page navigation clears annotation selection', async ({ page }) => {
+  test('page nav dock is visible when PDF is open', async ({ page }) => {
     await page.goto(BASE);
     await page.waitForFunction(() => !document.querySelector('.animate-spin'), {
       timeout: 10_000,
     });
 
-    // Navigate pages if multi-page doc loaded
-    const nextBtn = page.getByTestId('page-next');
-    if (await nextBtn.isEnabled()) {
-      await nextBtn.click();
-      // Selection bar should still be absent
-      await expect(page.getByTestId('selection-action-bar')).toHaveCount(0);
+    const canvasCount = await page.locator('canvas').count();
+    if (canvasCount >= 2) {
+      // Nav dock should be present
+      const nav = page.getByRole('navigation', { name: /Page navigation/i });
+      await expect(nav).toBeVisible({ timeout: 5_000 });
+
+      // Navigate to next page if enabled
+      const nextBtn = page.getByRole('button', { name: /Next/i });
+      const isDisabled = await nextBtn.getAttribute('disabled');
+      if (isDisabled === null) {
+        await nextBtn.click();
+        // After navigation, selection bar should still be absent
+        await expect(page.getByTestId('selection-action-bar')).toHaveCount(0);
+      }
     }
   });
 });
