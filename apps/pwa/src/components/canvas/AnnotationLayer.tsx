@@ -1,42 +1,59 @@
 /**
  * AnnotationLayer — Konva canvas overlaid on the PDF canvas.
  *
- * Architecture:
- *   This component is mounted INSIDE the CSS-transformed div that wraps the
- *   PDF canvas. That means CSS scale/translate apply to BOTH canvases together,
- *   so annotations stay perfectly locked to PDF content at any zoom/pan level.
+ * Lives INSIDE the CSS-transformed div so zoom/pan apply to both canvases,
+ * keeping annotations locked to PDF content.
  *
  * Coordinate conversion:
- *   Annotations are stored in PDF coordinate space (points, scale=1 viewport).
- *   To place a Konva shape correctly:
- *     konvaX = pdfX * (canvasWidth / pdfPageWidth)
- *   where canvasWidth is the CSS pixel width and pdfPageWidth is the PDF page
- *   width in points at scale=1.
+ *   pdfToKonva(coord) = coord * (canvasWidth / pdfPageWidth)
  */
 
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { useAnnotationStore } from '@/store';
+import type { Tool } from '@/store';
 
 export type AnnotationLayerProps = {
-  /** CSS pixel width of the underlying PDF canvas */
   canvasWidth: number;
-  /** CSS pixel height of the underlying PDF canvas */
   canvasHeight: number;
-  /** Width of the PDF page at scale=1 (in PDF points), used for coord conversion */
   pdfPageWidth: number;
+  activeTool: Tool;
+  editingAnnotationId: string | null;
+  onPlaceText: (pdfX: number, pdfY: number) => void;
 };
 
-export function AnnotationLayer({ canvasWidth, canvasHeight, pdfPageWidth }: AnnotationLayerProps) {
+export function AnnotationLayer({
+  canvasWidth,
+  canvasHeight,
+  pdfPageWidth,
+  activeTool,
+  editingAnnotationId,
+  onPlaceText,
+}: AnnotationLayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
   const layerRef = useRef<Konva.Layer | null>(null);
 
+  // Refs to keep event handlers up-to-date without recreating the stage
+  const toolRef = useRef(activeTool);
+  const onPlaceTextRef = useRef(onPlaceText);
+  const canvasWidthRef = useRef(canvasWidth);
+  const pdfPageWidthRef = useRef(pdfPageWidth);
+
+  useEffect(() => { toolRef.current = activeTool; }, [activeTool]);
+  useEffect(() => { onPlaceTextRef.current = onPlaceText; }, [onPlaceText]);
+  useEffect(() => { canvasWidthRef.current = canvasWidth; }, [canvasWidth]);
+  useEffect(() => { pdfPageWidthRef.current = pdfPageWidth; }, [pdfPageWidth]);
+
   const annotations = useAnnotationStore((s) => s.annotations);
   const selectedId = useAnnotationStore((s) => s.selectedId);
   const setSelected = useAnnotationStore((s) => s.setSelected);
+  const setEditingAnnotationId = useAnnotationStore((s) => s.setEditingAnnotationId);
 
-  // Scale factor: PDF coord (points) → Konva coord (CSS pixels)
+  // Stable ref to setEditingAnnotationId for use inside once-created event handler
+  const setEditingIdRef = useRef(setEditingAnnotationId);
+  useEffect(() => { setEditingIdRef.current = setEditingAnnotationId; }, [setEditingAnnotationId]);
+
   const pdfToKonva = (pdfCoord: number) =>
     pdfPageWidth > 0 ? pdfCoord * (canvasWidth / pdfPageWidth) : pdfCoord;
 
@@ -45,17 +62,23 @@ export function AnnotationLayer({ canvasWidth, canvasHeight, pdfPageWidth }: Ann
     const container = containerRef.current;
     if (!container) return;
 
-    const stage = new Konva.Stage({
-      container,
-      width: canvasWidth,
-      height: canvasHeight,
-    });
+    const stage = new Konva.Stage({ container, width: canvasWidth, height: canvasHeight });
     const layer = new Konva.Layer();
     stage.add(layer);
 
-    // Tap empty stage area → deselect
     stage.on('click tap', (e) => {
-      if (e.target === stage) setSelected(null);
+      if (e.target !== stage) return;
+      if (toolRef.current === 'text') {
+        const pos = stage.getPointerPosition();
+        if (!pos) return;
+        // Convert Konva CSS-px coords back to PDF-space using fresh refs
+        const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+        const pdfX = pos.x * scale;
+        const pdfY = pos.y * scale;
+        onPlaceTextRef.current(pdfX, pdfY);
+      } else {
+        setSelected(null);
+      }
     });
 
     stageRef.current = stage;
@@ -86,6 +109,9 @@ export function AnnotationLayer({ canvasWidth, canvasHeight, pdfPageWidth }: Ann
     layer.destroyChildren();
 
     for (const ann of annotations) {
+      // Skip the annotation currently being edited — TextEditor renders its content
+      if (ann.id === editingAnnotationId) continue;
+
       const isSelected = ann.id === selectedId;
       const selColor = '#F59E0B';
       const selWidth = 2;
@@ -97,8 +123,8 @@ export function AnnotationLayer({ canvasWidth, canvasHeight, pdfPageWidth }: Ann
           shape = new Konva.Text({
             x: pdfToKonva(ann.x),
             y: pdfToKonva(ann.y),
-            text: ann.text || '[empty]',
-            fontSize: pdfToKonva(ann.fontSize),
+            text: ann.text || '…',
+            fontSize: Math.max(4, pdfToKonva(ann.fontSize)),
             fontFamily: ann.fontFamily,
             fill: ann.color,
             stroke: isSelected ? selColor : undefined,
@@ -149,9 +175,15 @@ export function AnnotationLayer({ canvasWidth, canvasHeight, pdfPageWidth }: Ann
 
       if (shape) {
         const capturedId = ann.id;
+        const capturedType = ann.type;
         shape.on('click tap', (e) => {
           e.cancelBubble = true;
-          setSelected(capturedId);
+          if (toolRef.current === 'text' && capturedType === 'text') {
+            // Re-enter edit mode on existing text annotation
+            setEditingIdRef.current(capturedId);
+          } else {
+            setSelected(capturedId);
+          }
         });
         layer.add(shape);
       }
@@ -159,17 +191,13 @@ export function AnnotationLayer({ canvasWidth, canvasHeight, pdfPageWidth }: Ann
 
     layer.batchDraw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [annotations, selectedId, pdfPageWidth, canvasWidth]);
+  }, [annotations, selectedId, editingAnnotationId, pdfPageWidth, canvasWidth]);
 
   return (
     <div
       ref={containerRef}
       data-testid="annotation-layer"
-      style={{
-        position: 'absolute',
-        inset: 0,
-        pointerEvents: 'auto',
-      }}
+      style={{ position: 'absolute', inset: 0, pointerEvents: 'auto' }}
     />
   );
 }
