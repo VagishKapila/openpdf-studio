@@ -1,11 +1,13 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { FileText } from 'lucide-react';
-import { useDocumentStore, useViewportStore, useAnnotationStore } from '@/store';
+import { useDocumentStore, useViewportStore, useAnnotationStore, useToolStore } from '@/store';
 import { useDocumentGestures } from '@/hooks/useDocumentGestures';
 import { useCanvasTransform } from '@/hooks/useCanvasTransform';
 import { loadMostRecentDocument } from '@/lib/loadPdf';
 import { createTextAnnotation } from '@/lib/annotations';
+import type { TextAnnotation } from '@/lib/annotations';
 import { AnnotationLayer } from './AnnotationLayer';
+import { TextEditor } from './TextEditor';
 
 const CLOSED_FLAG_KEY = 'openpdf_doc_explicitly_closed';
 
@@ -21,7 +23,17 @@ export function CanvasArea() {
 
   const { document: doc, currentPage, loadState } = useDocumentStore();
   const { scale, offsetX, offsetY, renderedScale, resetTransform } = useViewportStore();
-  const { loadForPage, clearAll: clearAllAnnotations, addAnnotation } = useAnnotationStore();
+  const {
+    annotations,
+    editingAnnotationId,
+    loadForPage,
+    clearAll: clearAllAnnotations,
+    addAnnotation,
+    updateAnnotation,
+    removeAnnotation,
+    setEditingAnnotationId,
+  } = useAnnotationStore();
+  const { activeTool, textFontSize, textColor } = useToolStore();
 
   const [isInitializing, setIsInitializing] = useState(true);
   const [canvasMeta, setCanvasMeta] = useState<CanvasMeta | null>(null);
@@ -76,7 +88,6 @@ export function CanvasArea() {
         if (!ctx) return;
         await page.render({ canvasContext: ctx, viewport }).promise;
 
-        // Capture canvas meta for AnnotationLayer coordinate conversion
         setCanvasMeta({ cssW: containerWidth, cssH, pdfPageWidth: baseViewport.width });
       } finally {
         renderingRef.current = false;
@@ -119,8 +130,7 @@ export function CanvasArea() {
   // ── Debug mode: enabled via ?debug=1 URL param ───────────────────────────
   const [debugMode, setDebugMode] = useState(false);
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setDebugMode(params.get('debug') === '1');
+    setDebugMode(new URLSearchParams(window.location.search).get('debug') === '1');
   }, []);
 
   const seedTestAnnotation = async () => {
@@ -134,6 +144,61 @@ export function CanvasArea() {
     });
     await addAnnotation(ann);
   };
+
+  // ── Text tool: place a new text annotation at click position ──────────────
+  const onPlaceText = useCallback(
+    async (pdfX: number, pdfY: number) => {
+      if (!doc) return;
+      const ann = createTextAnnotation({
+        documentId: doc.id,
+        pageNumber: currentPage,
+        x: pdfX,
+        y: pdfY,
+        text: '',
+      });
+      // Apply current text tool settings
+      ann.fontSize = textFontSize;
+      ann.color = textColor;
+      await addAnnotation(ann);
+      setEditingAnnotationId(ann.id);
+    },
+    [doc, currentPage, textFontSize, textColor, addAnnotation, setEditingAnnotationId],
+  );
+
+  // ── Live-update editing annotation when font/color settings change ─────────
+  const editingAnnotationIdRef = useRef(editingAnnotationId);
+  useEffect(() => { editingAnnotationIdRef.current = editingAnnotationId; }, [editingAnnotationId]);
+
+  useEffect(() => {
+    const id = editingAnnotationIdRef.current;
+    if (!id) return;
+    void updateAnnotation(id, { fontSize: textFontSize, color: textColor });
+  }, [textFontSize, textColor]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── TextEditor commit handler ──────────────────────────────────────────────
+  const onCommitText = useCallback(
+    async (text: string) => {
+      if (!editingAnnotationId) return;
+      if (text.trim() === '') {
+        await removeAnnotation(editingAnnotationId);
+      } else {
+        await updateAnnotation(editingAnnotationId, { text, updatedAt: Date.now() });
+      }
+      setEditingAnnotationId(null);
+    },
+    [editingAnnotationId, updateAnnotation, removeAnnotation, setEditingAnnotationId],
+  );
+
+  // Find the annotation currently being edited (must be a text annotation)
+  const editingAnnotation =
+    editingAnnotationId != null
+      ? (annotations.find(
+          (a) => a.id === editingAnnotationId && a.type === 'text',
+        ) as TextAnnotation | undefined)
+      : undefined;
+
+  // Scale factor PDF-space → CSS-pixel space (for TextEditor positioning)
+  const pdfToCss = canvasMeta ? canvasMeta.cssW / canvasMeta.pdfPageWidth : 1;
 
   // ── Render states ──────────────────────────────────────────────────────────
   if (isInitializing) {
@@ -203,6 +268,18 @@ export function CanvasArea() {
             canvasWidth={canvasMeta.cssW}
             canvasHeight={canvasMeta.cssH}
             pdfPageWidth={canvasMeta.pdfPageWidth}
+            activeTool={activeTool}
+            editingAnnotationId={editingAnnotationId}
+            onPlaceText={onPlaceText}
+          />
+        )}
+
+        {/* Inline text editor — lives inside transformDiv so it tracks zoom/pan */}
+        {editingAnnotation && canvasMeta && (
+          <TextEditor
+            ann={editingAnnotation}
+            pdfToCss={pdfToCss}
+            onCommit={onCommitText}
           />
         )}
       </div>
