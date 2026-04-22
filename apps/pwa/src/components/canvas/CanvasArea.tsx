@@ -122,7 +122,7 @@ export function CanvasArea() {
       const raf = requestAnimationFrame(() => void renderPdfPage(renderedScale));
       return () => cancelAnimationFrame(raf);
     }
-  }, [loadState, currentPage, renderPdfPage, renderedScale]);
+  }, [loadState, currentPage, renderPdfPage, renderedScale, isInitializing]); // isInitializing: re-fire when canvas mounts after init
 
   useDocumentGestures(gestureContainerRef, transformDivRef);
   useCanvasTransform(renderPdfPage);
