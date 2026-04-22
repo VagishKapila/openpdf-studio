@@ -5,3 +5,5 @@ export { useToolStore } from './tool';
 export type { Tool } from './tool';
 export { useViewportStore } from './viewport';
 export type { ViewportState } from './viewport';
+export { useAnnotationStore } from './annotations';
+export type { AnnotationState } from './annotations';

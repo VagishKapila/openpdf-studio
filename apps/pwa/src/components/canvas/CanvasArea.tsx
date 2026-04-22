@@ -1,11 +1,16 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { FileText } from 'lucide-react';
-import { useDocumentStore, useViewportStore } from '@/store';
+import { useDocumentStore, useViewportStore, useAnnotationStore } from '@/store';
 import { useDocumentGestures } from '@/hooks/useDocumentGestures';
 import { useCanvasTransform } from '@/hooks/useCanvasTransform';
 import { loadMostRecentDocument } from '@/lib/loadPdf';
+import { createTextAnnotation } from '@/lib/annotations';
+import { AnnotationLayer } from './AnnotationLayer';
 
 const CLOSED_FLAG_KEY = 'openpdf_doc_explicitly_closed';
+
+// Tracks the CSS dimensions of the rendered PDF canvas + the PDF page width at scale=1
+type CanvasMeta = { cssW: number; cssH: number; pdfPageWidth: number };
 
 export function CanvasArea() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -16,28 +21,36 @@ export function CanvasArea() {
 
   const { document: doc, currentPage, loadState } = useDocumentStore();
   const { scale, offsetX, offsetY, renderedScale, resetTransform } = useViewportStore();
+  const { loadForPage, clearAll: clearAllAnnotations, addAnnotation } = useAnnotationStore();
 
-  // Track whether we're still checking Dexie for a document to restore
   const [isInitializing, setIsInitializing] = useState(true);
+  const [canvasMeta, setCanvasMeta] = useState<CanvasMeta | null>(null);
 
-  // On first mount: check sessionStorage flag, then attempt to restore last doc
+  // ── Init: restore last doc (unless explicitly closed) ─────────────────────
   useEffect(() => {
     const wasClosed = sessionStorage.getItem(CLOSED_FLAG_KEY) === 'true';
     if (wasClosed) {
-      // User explicitly closed the doc in this session — show empty state immediately
       sessionStorage.removeItem(CLOSED_FLAG_KEY);
       setIsInitializing(false);
       return;
     }
-    // Try to reload most recent document from Dexie
     loadMostRecentDocument().finally(() => setIsInitializing(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Once a document loads during init, stop showing the spinner
   useEffect(() => {
     if (loadState === 'ready') setIsInitializing(false);
   }, [loadState]);
 
+  // ── Load annotations whenever document or page changes ────────────────────
+  useEffect(() => {
+    if (!doc) {
+      clearAllAnnotations();
+      return;
+    }
+    void loadForPage(doc.id, currentPage);
+  }, [doc?.id, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── PDF rendering ──────────────────────────────────────────────────────────
   const renderPdfPage = useCallback(
     async (renderAtScale: number) => {
       const pdf = doc?.pdf;
@@ -56,11 +69,15 @@ export function CanvasArea() {
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         canvas.style.width = `${containerWidth}px`;
-        canvas.style.height = `${(containerWidth * viewport.height) / viewport.width}px`;
+        const cssH = (containerWidth * viewport.height) / viewport.width;
+        canvas.style.height = `${cssH}px`;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         await page.render({ canvasContext: ctx, viewport }).promise;
+
+        // Capture canvas meta for AnnotationLayer coordinate conversion
+        setCanvasMeta({ cssW: containerWidth, cssH, pdfPageWidth: baseViewport.width });
       } finally {
         renderingRef.current = false;
       }
@@ -73,6 +90,7 @@ export function CanvasArea() {
     if (doc?.id && doc.id !== prevDocIdRef.current) {
       prevDocIdRef.current = doc.id;
       resetTransform();
+      setCanvasMeta(null);
     }
   }, [doc?.id, resetTransform]);
 
@@ -87,7 +105,7 @@ export function CanvasArea() {
     return () => ro.disconnect();
   }, [loadState, renderedScale, renderPdfPage]);
 
-  // Initial render + page changes — defer one rAF so layout settles
+  // Initial render + page changes
   useEffect(() => {
     if (loadState === 'ready') {
       const raf = requestAnimationFrame(() => void renderPdfPage(renderedScale));
@@ -95,20 +113,27 @@ export function CanvasArea() {
     }
   }, [loadState, currentPage, renderPdfPage, renderedScale]);
 
-  // Attach gesture recogniser (handles null ref internally)
   useDocumentGestures(gestureContainerRef, transformDivRef);
-
-  // Bump render resolution on zoom
   useCanvasTransform(renderPdfPage);
 
-  // ── Render states ────────────────────────────────────────────────────────────
+  // ── Dev: seed a test annotation ────────────────────────────────────────────
+  const isDev = import.meta.env.DEV;
+  const seedTestAnnotation = async () => {
+    if (!doc) return;
+    const ann = createTextAnnotation({
+      documentId: doc.id,
+      pageNumber: currentPage,
+      x: 100,
+      y: 150,
+      text: 'Test annotation — Day 4 foundation',
+    });
+    await addAnnotation(ann);
+  };
 
+  // ── Render states ──────────────────────────────────────────────────────────
   if (isInitializing) {
     return (
-      <div
-        className="flex flex-1 w-full items-center justify-center"
-        data-testid="canvas-area"
-      >
+      <div className="flex flex-1 w-full items-center justify-center" data-testid="canvas-area">
         <div className="flex flex-col items-center gap-3 opacity-50">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
           <p className="text-xs text-white/60">Loading…</p>
@@ -119,10 +144,7 @@ export function CanvasArea() {
 
   if (loadState === 'error') {
     return (
-      <div
-        className="flex flex-1 w-full items-center justify-center"
-        data-testid="canvas-area"
-      >
+      <div className="flex flex-1 w-full items-center justify-center" data-testid="canvas-area">
         <p className="text-sm text-red-400">Failed to load PDF. Try opening it again.</p>
       </div>
     );
@@ -136,9 +158,7 @@ export function CanvasArea() {
       >
         <div className="max-w-xs">
           <FileText className="mx-auto h-16 w-16 text-white/20" />
-          <h3 className="mt-4 text-base font-medium text-white/80">
-            No document open
-          </h3>
+          <h3 className="mt-4 text-base font-medium text-white/80">No document open</h3>
           <p className="mt-2 text-xs text-white/50">
             Click <span className="text-amber-400 font-medium">Open</span> in the header
             to load a PDF, or drag one onto this area.
@@ -148,8 +168,7 @@ export function CanvasArea() {
     );
   }
 
-  // ── Canvas (document loaded) ─────────────────────────────────────────────────
-
+  // ── Canvas (document loaded) ───────────────────────────────────────────────
   return (
     <div
       ref={gestureContainerRef}
@@ -160,6 +179,7 @@ export function CanvasArea() {
       <div
         ref={transformDivRef}
         style={{
+          position: 'relative',
           transform: `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${scale})`,
           transformOrigin: 'center center',
           willChange: 'transform',
@@ -171,9 +191,18 @@ export function CanvasArea() {
           style={{ touchAction: 'none' }}
           aria-label={`Page ${currentPage} of ${doc.totalPages}`}
         />
+
+        {/* Annotation overlay — absolutely positioned, same CSS size as canvas */}
+        {canvasMeta && (
+          <AnnotationLayer
+            canvasWidth={canvasMeta.cssW}
+            canvasHeight={canvasMeta.cssH}
+            pdfPageWidth={canvasMeta.pdfPageWidth}
+          />
+        )}
       </div>
 
-      {/* 1:1 reset badge — only shown when zoomed in */}
+      {/* 1:1 reset badge */}
       {scale > 1.05 && (
         <button
           onClick={resetTransform}
@@ -182,6 +211,17 @@ export function CanvasArea() {
           aria-label="Reset zoom"
         >
           1:1
+        </button>
+      )}
+
+      {/* Dev-only: seed a test annotation */}
+      {isDev && (
+        <button
+          onClick={() => void seedTestAnnotation()}
+          className="pointer-events-auto fixed bottom-32 right-4 z-30 rounded bg-green-700/80 px-3 py-1.5 text-xs text-white"
+          title="Dev: seed test annotation"
+        >
+          + Test ann
         </button>
       )}
     </div>
