@@ -5,22 +5,25 @@ import * as annStorage from '@/storage/annotations';
 export type AnnotationState = {
   annotations: Annotation[];
   selectedId: AnnotationId | null;
+  editingAnnotationId: AnnotationId | null;
 
   loadForPage: (documentId: DocumentId, pageNumber: PageNumber) => Promise<void>;
   addAnnotation: (ann: Annotation) => Promise<void>;
   updateAnnotation: (id: AnnotationId, patch: Partial<Annotation>) => Promise<void>;
   removeAnnotation: (id: AnnotationId) => Promise<void>;
   setSelected: (id: AnnotationId | null) => void;
+  setEditingAnnotationId: (id: AnnotationId | null) => void;
   clearAll: () => void;
 };
 
 export const useAnnotationStore = create<AnnotationState>((set, get) => ({
   annotations: [],
   selectedId: null,
+  editingAnnotationId: null,
 
   loadForPage: async (documentId, pageNumber) => {
     const annotations = await annStorage.getAnnotationsForPage(documentId, pageNumber);
-    set({ annotations, selectedId: null });
+    set({ annotations, selectedId: null, editingAnnotationId: null });
   },
 
   addAnnotation: async (ann) => {
@@ -43,9 +46,11 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
     set((s) => ({
       annotations: s.annotations.filter((a) => a.id !== id),
       selectedId: s.selectedId === id ? null : s.selectedId,
+      editingAnnotationId: s.editingAnnotationId === id ? null : s.editingAnnotationId,
     }));
   },
 
   setSelected: (id) => set({ selectedId: id }),
-  clearAll: () => set({ annotations: [], selectedId: null }),
+  setEditingAnnotationId: (id) => set({ editingAnnotationId: id }),
+  clearAll: () => set({ annotations: [], selectedId: null, editingAnnotationId: null }),
 }));
