@@ -116,8 +116,13 @@ export function CanvasArea() {
   useDocumentGestures(gestureContainerRef, transformDivRef);
   useCanvasTransform(renderPdfPage);
 
-  // ── Dev: seed a test annotation ────────────────────────────────────────────
-  const isDev = import.meta.env.DEV;
+  // ── Debug mode: enabled via ?debug=1 URL param ───────────────────────────
+  const [debugMode, setDebugMode] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setDebugMode(params.get('debug') === '1');
+  }, []);
+
   const seedTestAnnotation = async () => {
     if (!doc) return;
     const ann = createTextAnnotation({
@@ -214,12 +219,12 @@ export function CanvasArea() {
         </button>
       )}
 
-      {/* Dev-only: seed a test annotation */}
-      {isDev && (
+      {/* Debug mode: seed a test annotation — enabled via ?debug=1 */}
+      {debugMode && doc && (
         <button
           onClick={() => void seedTestAnnotation()}
-          className="pointer-events-auto fixed bottom-32 right-4 z-30 rounded bg-green-700/80 px-3 py-1.5 text-xs text-white"
-          title="Dev: seed test annotation"
+          className="pointer-events-auto fixed bottom-32 right-4 z-30 rounded bg-green-700/80 px-3 py-1.5 text-xs text-white shadow"
+          title="Debug: seed test annotation at (100, 150)"
         >
           + Test ann
         </button>
