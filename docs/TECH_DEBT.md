@@ -109,3 +109,31 @@ mutation {
 - If Railway ships a webhook reliability fix
 - If we migrate hosting before v1 launch
 - If `deploy.sh` itself starts failing — then investigate Railway status directly
+
+
+---
+
+## TD-009 — GoDaddy API requires 2FA + account tier qualification · low · Day 2.3c
+
+**When:** 2026-04-21
+
+GoDaddy's developer API portal at `developer.godaddy.com/keys` requires step-up
+authentication (2FA via SMS) before generating API keys, and production API access
+requires one of: 10+ domains on the account, Discount Domain Club membership, or a
+Reseller account.
+
+**Impact:** DNS changes for `snaphw.com` (and other GoDaddy-managed Varshyl domains)
+require Chrome browser automation against Vagish's authenticated session, or manual
+dashboard work at `dcc.godaddy.com/control/dnsmanagement`.
+
+**What was done:** CNAME for `app.snaphw.com` was added via browser automation
+(no API needed for a one-off change). The DNS record was created and propagated in <30s.
+
+**When to revisit:**
+- If Vagish upgrades to Discount Domain Club (~$15-30/yr — unlocks unlimited production API)
+- If domain count grows past 10 on the GoDaddy account
+- When choosing a registrar for future Varshyl domains: prefer Cloudflare Registrar or
+  Namecheap (both offer free-tier DNS APIs, no account tier requirements)
+
+**Workaround:** Chrome MCP browser automation in Vagish's authenticated GoDaddy session
+works fine for occasional DNS changes without any API credentials.
