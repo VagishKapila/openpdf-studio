@@ -1,15 +1,3 @@
-/**
- * loadPdf.ts — shared file-loading helper used by:
- *   - AppHeader (file input click)
- *   - AppShell (drag-drop)
- *
- * Responsibilities:
- *   1. Validate the file is a PDF
- *   2. Parse with PDF.js
- *   3. Save raw bytes + metadata to Dexie
- *   4. Push the parsed document into Zustand
- */
-
 import { pdfjs } from '@/lib/pdfjs';
 import { saveDocument, updatePageCount, touchDocument, listDocuments } from '@/storage/documents';
 import { useDocumentStore } from '@/store';
@@ -20,26 +8,19 @@ export async function loadPdfFromFile(file: File): Promise<void> {
     file.type === 'application/x-pdf' ||
     file.name.toLowerCase().endsWith('.pdf');
 
-  if (!isPdf) {
-    throw new Error('Please select a PDF file.');
-  }
+  if (!isPdf) throw new Error('Please select a PDF file.');
 
-  // Set loading state immediately so UI reflects activity
   useDocumentStore.getState().setLoadState('loading');
 
   try {
-    // Save to Dexie first (uses the File object — includes raw bytes)
     const id = await saveDocument(file);
 
-    // Parse with PDF.js (reads the same bytes via file.arrayBuffer inside saveDocument)
-    // We need a fresh buffer here since saveDocument consumed the file
+    // Re-read bytes after saveDocument consumed the file stream
     const data = await file.arrayBuffer();
     const pdf = await pdfjs.getDocument({ data }).promise;
 
-    // Back-fill pageCount in Dexie now that we know it
     await updatePageCount(id, pdf.numPages);
 
-    // Push into Zustand — CanvasArea will react and render
     useDocumentStore.getState().setDocument({
       id,
       fileName: file.name,
@@ -57,23 +38,32 @@ export async function loadPdfFromFile(file: File): Promise<void> {
 }
 
 /**
- * loadMostRecentDocument — called once on app startup.
- * Finds the most recently opened doc in Dexie, re-parses it,
- * and hydrates the store so the last session is restored.
+ * Called once on app startup to restore the most-recently-opened document.
+ * Uses defensive error handling so any storage / schema / parse failure
+ * results in the empty state (not the red error banner).
  */
 export async function loadMostRecentDocument(): Promise<void> {
-  // Avoid overwriting a document that was already set in this session
   if (useDocumentStore.getState().loadState !== 'idle') return;
 
   try {
-    const docs = await listDocuments(); // ordered by lastOpenedAt desc
+    const docs = await listDocuments();
     if (docs.length === 0) return;
 
     const stored = docs[0];
     useDocumentStore.getState().setLoadState('loading');
 
-    const pdf = await pdfjs.getDocument({ data: stored.data.slice(0) }).promise;
-    await touchDocument(stored.id); // update lastOpenedAt
+    // Defensive: handle both ArrayBuffer (current) and any future Blob migration
+    let bytes: ArrayBuffer;
+    if (stored.data instanceof ArrayBuffer) {
+      bytes = stored.data.slice(0);
+    } else if (stored.data instanceof Blob) {
+      bytes = await (stored.data as Blob).arrayBuffer();
+    } else {
+      throw new Error('Unrecognized document storage format — please re-open the PDF.');
+    }
+
+    const pdf = await pdfjs.getDocument({ data: bytes }).promise;
+    await touchDocument(stored.id);
 
     useDocumentStore.getState().setDocument({
       id: stored.id,
@@ -81,8 +71,9 @@ export async function loadMostRecentDocument(): Promise<void> {
       totalPages: pdf.numPages,
       pdf,
     });
-  } catch {
-    // Silently fail — user can always click Open to load manually
+  } catch (err) {
+    // Silently fall back to empty state — never show red error on startup
+    console.warn('[OpenPDF] loadMostRecentDocument failed:', err);
     useDocumentStore.getState().setLoadState('idle');
   }
 }

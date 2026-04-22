@@ -4,6 +4,7 @@ import { FileText, Trash2, Upload, X } from 'lucide-react';
 import { useDocumentStore, useUIStore } from '@/store';
 import { pdfjs } from '@/lib/pdfjs';
 import { listDocuments, deleteDocument, type StoredDocument } from '@/storage/documents';
+import { db } from '@/storage/db';
 
 export function DocumentSidebar() {
   const aside = useUIStore((s) => s.aside);
@@ -165,6 +166,21 @@ export function DocumentSidebar() {
               })}
             </ul>
           )}
+        </div>
+
+        {/* Escape hatch — recovers from DB schema corruption */}
+        <div className="border-t border-white/10 p-3">
+          <button
+            onClick={async () => {
+              if (!confirm('Clear all stored documents and annotations? This cannot be undone.')) return;
+              await db.delete();
+              window.location.reload();
+            }}
+            className="w-full rounded px-2 py-1.5 text-[10px] text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors"
+            title="Clear all local storage and reload"
+          >
+            Clear local storage
+          </button>
         </div>
       </aside>
     </>
