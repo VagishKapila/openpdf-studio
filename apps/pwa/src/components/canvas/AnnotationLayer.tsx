@@ -168,16 +168,7 @@ export function AnnotationLayer({
           break;
         }
         case 'draw': {
-          shape = new Konva.Line({
-            points: ann.points.map((c) => pdfToKonva(c)),
-            stroke: ann.color,
-            strokeWidth: pdfToKonva(ann.strokeWidth),
-            lineCap: 'round',
-            lineJoin: 'round',
-            tension: 0.4,
-            shadowColor: isSelected ? selColor : undefined,
-            shadowBlur: isSelected ? 6 : 0,
-          });
+          // TODO(task-2): replaced by perfect-freehand Konva.Path renderer
           break;
         }
         case 'highlight': {

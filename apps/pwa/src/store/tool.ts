@@ -14,13 +14,44 @@ export const TEXT_COLORS = [
   { label: 'Gray',  value: '#718096' },
 ] as const;
 
+export const DRAW_COLORS = [
+  { label: 'Red',   value: '#e53e3e' },
+  { label: 'Black', value: '#1a1a1a' },
+  { label: 'Blue',  value: '#2b6cb0' },
+  { label: 'Green', value: '#276749' },
+  { label: 'White', value: '#ffffff' },
+] as const;
+
+export const DRAW_STROKE_WIDTHS = [
+  { label: 'Thin',   value: 2 },
+  { label: 'Medium', value: 4 },
+  { label: 'Thick',  value: 7 },
+] as const;
+export type DrawStrokeWidth = (typeof DRAW_STROKE_WIDTHS)[number]['value'];
+
+export const HIGHLIGHT_COLORS = [
+  { label: 'Yellow', value: '#F6E05E' },
+  { label: 'Green',  value: '#9AE6B4' },
+  { label: 'Blue',   value: '#90CDF4' },
+  { label: 'Pink',   value: '#FEB2B2' },
+] as const;
+
 type ToolState = {
   activeTool: Tool;
   setTool: (tool: Tool) => void;
+  // Text settings
   textFontSize: TextFontSize;
   textColor: string;
   setTextFontSize: (size: TextFontSize) => void;
   setTextColor: (color: string) => void;
+  // Draw settings
+  drawColor: string;
+  drawStrokeWidth: DrawStrokeWidth;
+  setDrawColor: (color: string) => void;
+  setDrawStrokeWidth: (width: DrawStrokeWidth) => void;
+  // Highlight settings
+  highlightColor: string;
+  setHighlightColor: (color: string) => void;
 };
 
 export const useToolStore = create<ToolState>((set) => ({
@@ -30,4 +61,10 @@ export const useToolStore = create<ToolState>((set) => ({
   textColor: '#1a1a1a',
   setTextFontSize: (textFontSize) => set({ textFontSize }),
   setTextColor: (textColor) => set({ textColor }),
+  drawColor: '#e53e3e',
+  drawStrokeWidth: 4,
+  setDrawColor: (drawColor) => set({ drawColor }),
+  setDrawStrokeWidth: (drawStrokeWidth) => set({ drawStrokeWidth }),
+  highlightColor: '#F6E05E',
+  setHighlightColor: (highlightColor) => set({ highlightColor }),
 }));

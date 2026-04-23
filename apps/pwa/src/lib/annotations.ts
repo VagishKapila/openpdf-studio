@@ -28,9 +28,10 @@ export type TextAnnotation = AnnotationBase & {
 
 export type DrawAnnotation = AnnotationBase & {
   type: 'draw';
-  points: number[];   // flat [x1, y1, x2, y2, ...] in PDF coords
-  strokeWidth: number;
-  color: string;
+  /** [x, y, pressure] triplets in PDF-space. pressure ∈ [0, 1]. */
+  points: Array<[number, number, number]>;
+  strokeWidth: number; // default 4 (PDF points, matches Medium preset)
+  color: string;       // hex, default '#e53e3e'
 };
 
 export type HighlightAnnotation = AnnotationBase & {
@@ -39,7 +40,8 @@ export type HighlightAnnotation = AnnotationBase & {
   y: number;
   width: number;
   height: number;
-  color: string; // rgba recommended
+  color: string;   // hex, default '#F6E05E'
+  opacity: number; // default 0.35
 };
 
 export type SignatureAnnotation = AnnotationBase & {
@@ -92,6 +94,7 @@ export function createHighlightAnnotation(args: {
   width: number;
   height: number;
   color?: string;
+  opacity?: number;
 }): HighlightAnnotation {
   const now = Date.now();
   return {
@@ -105,14 +108,15 @@ export function createHighlightAnnotation(args: {
     y: args.y,
     width: args.width,
     height: args.height,
-    color: args.color ?? 'rgba(255, 230, 0, 0.5)',
+    color: args.color ?? '#F6E05E',
+    opacity: args.opacity ?? 0.35,
   };
 }
 
 export function createDrawAnnotation(args: {
   documentId: DocumentId;
   pageNumber: PageNumber;
-  points: number[];
+  points: Array<[number, number, number]>;
   color?: string;
   strokeWidth?: number;
 }): DrawAnnotation {
@@ -125,8 +129,8 @@ export function createDrawAnnotation(args: {
     updatedAt: now,
     type: 'draw',
     points: args.points,
-    strokeWidth: args.strokeWidth ?? 2,
-    color: args.color ?? '#E53E3E',
+    strokeWidth: args.strokeWidth ?? 4,
+    color: args.color ?? '#e53e3e',
   };
 }
 
