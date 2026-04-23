@@ -304,6 +304,17 @@ export function AnnotationLayer({
       if (ll) { ll.destroyChildren(); ll.batchDraw(); }
     };
 
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      drawPointerId = -1;
+      isPointerDrawing = false;
+      highlightStartRef.current.active = false;
+      livePoints.length = 0;
+      const ll = liveLayerRef.current;
+      if (ll) { ll.destroyChildren(); ll.batchDraw(); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+
     container.addEventListener('pointerdown', onPointerDown);
     container.addEventListener('pointermove', onPointerMove);
     container.addEventListener('pointerup', onPointerUp);
@@ -315,6 +326,7 @@ export function AnnotationLayer({
     return () => {
       container.removeEventListener('touchstart', onTouchStart);
       container.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('keydown', onKeyDown);
       container.removeEventListener('pointerdown', onPointerDown);
       container.removeEventListener('pointermove', onPointerMove);
       container.removeEventListener('pointerup', onPointerUp);
