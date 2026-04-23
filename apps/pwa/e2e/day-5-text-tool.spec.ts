@@ -84,7 +84,7 @@ test.describe('Day 5 — Text Tool (desktop)', () => {
 
     // Editor dismisses, Konva canvas (annotation layer) still present
     await expect(editor).not.toBeVisible({ timeout: 3000 });
-    await expect(page.locator('[data-testid="annotation-layer"] canvas')).toBeVisible();
+    await expect(page.locator('[data-testid="annotation-layer"] canvas').first()).toBeVisible();
   });
 
   test('pressing Enter commits annotation', async ({ page }) => {
