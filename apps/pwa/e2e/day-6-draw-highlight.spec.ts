@@ -1,11 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
-import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const BASE_URL = process.env.BASE_URL ?? 'https://app.snaphw.com';
 
 /** Load a PDF into the app via the file picker. */
 async function loadTestPdf(page: Page) {
-  const samplePath = path.resolve(__dirname, '../../../tools/test-fixtures/sample.pdf');
+  const samplePath = resolve(__dirname, '../../../tools/test-fixtures/sample.pdf');
   const [fileChooser] = await Promise.all([
     page.waitForEvent('filechooser'),
     page.locator('[data-testid="open-button"]').click(),
@@ -91,9 +94,15 @@ test.describe('Day 6 — Draw tool (desktop)', () => {
 
   test('selecting a different draw color updates active swatch', async ({ page }) => {
     await page.locator('[data-testid="tool-draw"]').click();
-    await page.locator('[data-testid="draw-color-swatches"] button[aria-label="Black"]').click();
     const swatch = page.locator('[data-testid="draw-color-swatches"] button[aria-label="Black"]');
-    const borderColor = await swatch.evaluate((el) => getComputedStyle(el).borderColor);
+    await swatch.click();
+    // Wait for React re-render — amber border should appear on the active swatch
+    await page.waitForFunction(() => {
+      const el = document.querySelector('[data-testid="draw-color-swatches"] button[aria-label="Black"]') as HTMLElement | null;
+      if (!el) return false;
+      return getComputedStyle(el).borderColor !== 'rgba(0, 0, 0, 0)';
+    }, { timeout: 3000 });
+    const borderColor = await swatch.evaluate((el: HTMLElement) => getComputedStyle(el).borderColor);
     // Active border is amber (#F59E0B = rgb(245,158,11))
     expect(borderColor).toMatch(/245|f59/i);
   });
