@@ -1,6 +1,6 @@
 import { useGesture } from '@use-gesture/react';
-import { useRef, useCallback } from 'react';
-import { useViewportStore } from '@/store';
+import { useRef, useCallback, useEffect } from 'react';
+import { useViewportStore, useToolStore } from '@/store';
 
 export function useDocumentGestures(
   targetRef: React.RefObject<HTMLElement | null>,
@@ -10,6 +10,10 @@ export function useDocumentGestures(
   const resetTransform = useViewportStore((s) => s.resetTransform);
   const minScale = useViewportStore((s) => s.minScale);
   const maxScale = useViewportStore((s) => s.maxScale);
+
+  const activeTool = useToolStore((s) => s.activeTool);
+  const activeToolRef = useRef(activeTool);
+  useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
 
   // Mirror store state into a ref so gesture callbacks read current values
   // without needing to re-subscribe on every render
@@ -77,6 +81,11 @@ export function useDocumentGestures(
 
       onDrag: ({ offset: [ox, oy], pinching, cancel }) => {
         if (pinching) {
+          cancel?.();
+          return;
+        }
+        // Draw and highlight tools own single-finger pointer events — don't pan
+        if (activeToolRef.current === 'draw' || activeToolRef.current === 'highlight') {
           cancel?.();
           return;
         }
