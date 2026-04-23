@@ -9,8 +9,24 @@
  */
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
+import { getStroke } from 'perfect-freehand';
 import { useAnnotationStore } from '@/store';
 import type { Tool } from '@/store';
+
+/** Convert perfect-freehand output polygon to an SVG path `d` string. */
+function getSvgPathFromStroke(stroke: number[][]): string {
+  if (!stroke.length) return '';
+  const d = stroke.reduce(
+    (acc: (string | number)[], [x0, y0], i, arr) => {
+      const [x1, y1] = arr[(i + 1) % arr.length];
+      acc.push(x0, y0, (x0 + x1) / 2, (y0 + y1) / 2);
+      return acc;
+    },
+    ['M', ...stroke[0], 'Q'],
+  );
+  d.push('Z');
+  return d.join(' ');
+}
 
 export type AnnotationLayerProps = {
   canvasWidth: number;
@@ -168,7 +184,25 @@ export function AnnotationLayer({
           break;
         }
         case 'draw': {
-          // TODO(task-2): replaced by perfect-freehand Konva.Path renderer
+          if (!ann.points.length) break;
+          const screenPoints = ann.points.map(([x, y, p]) => [
+            pdfToKonva(x),
+            pdfToKonva(y),
+            p,
+          ]);
+          const strokePoly = getStroke(screenPoints, {
+            size: pdfToKonva(ann.strokeWidth) * 2,
+            thinning: 0.5,
+            smoothing: 0.5,
+            streamline: 0.5,
+          });
+          const pathData = getSvgPathFromStroke(strokePoly);
+          shape = new Konva.Path({
+            data: pathData,
+            fill: ann.color,
+            stroke: isSelected ? selColor : undefined,
+            strokeWidth: isSelected ? 1.5 : 0,
+          });
           break;
         }
         case 'highlight': {
@@ -178,9 +212,10 @@ export function AnnotationLayer({
             width: pdfToKonva(ann.width),
             height: pdfToKonva(ann.height),
             fill: ann.color,
-            opacity: 0.4,
+            opacity: ann.opacity ?? 0.35,
             stroke: isSelected ? selColor : undefined,
             strokeWidth: isSelected ? selWidth : 0,
+            listening: false,
           });
           break;
         }
