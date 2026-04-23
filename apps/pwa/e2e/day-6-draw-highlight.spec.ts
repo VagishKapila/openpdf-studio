@@ -164,4 +164,45 @@ test.describe('Day 6 — Draw + Highlight tools (mobile)', () => {
     await page.locator('[data-testid="mobile-toolbar"] button[aria-label="Select"]').click();
     await expect(page.locator('[data-testid="draw-tool-controls-mobile"]')).not.toBeVisible();
   });
+
+  test('CDP touch drag with draw tool creates visible stroke on mobile', async ({ page }) => {
+    await page.locator('[data-testid="mobile-toolbar"] button[aria-label="Draw"]').click();
+    const layer = page.locator('[data-testid="annotation-layer"] canvas').first();
+    const box = await layer.boundingBox();
+    if (!box) throw new Error('annotation-layer canvas not found');
+
+    const client = await page.context().newCDPSession(page);
+    const startX = box.x + box.width * 0.3;
+    const startY = box.y + box.height * 0.25;
+
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x: startX, y: startY, id: 0, radiusX: 4, radiusY: 4, rotationAngle: 0, force: 0.5 }],
+    });
+    for (let i = 1; i <= 8; i++) {
+      await client.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x: startX + i * 20, y: startY + i * 8, id: 0, radiusX: 4, radiusY: 4, rotationAngle: 0, force: 0.5 }],
+      });
+      await page.waitForTimeout(16);
+    }
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [{ x: startX + 160, y: startY + 64, id: 0, radiusX: 4, radiusY: 4, rotationAngle: 0, force: 0 }],
+    });
+    await page.waitForTimeout(500);
+
+    const hasContent = await page.evaluate(() => {
+      const canvases = document.querySelectorAll('[data-testid="annotation-layer"] canvas');
+      return Array.from(canvases).some((c) => {
+        const ctx = (c as HTMLCanvasElement).getContext('2d');
+        if (!ctx) return false;
+        const { width, height } = c as HTMLCanvasElement;
+        if (!width || !height) return false;
+        const data = ctx.getImageData(0, 0, width, height);
+        return data.data.some((v, i) => i % 4 === 3 && v > 0);
+      });
+    });
+    expect(hasContent).toBe(true);
+  });
 });

@@ -320,6 +320,128 @@ export function AnnotationLayer({
     container.addEventListener('pointerup', onPointerUp);
     container.addEventListener('pointercancel', onPointerCancel);
 
+    // ── Touch fallback for Android/mobile (pointer capture unreliable on some devices) ──
+    // Runs in parallel with pointer handlers. Pointer handlers handle desktop mouse;
+    // these handlers handle mobile touch. Both paths produce identical annotation output.
+    let touchDrawId = -1;
+
+    const drawTouchStart = (e: TouchEvent) => {
+      const tool = toolRef.current;
+      if (tool !== 'draw' && tool !== 'highlight') return;
+      // Only handle single-finger; two-finger stays with gesture hook for pinch-zoom
+      if (e.touches.length > 1) return;
+      e.preventDefault(); // suppress scroll / pan
+      e.stopPropagation(); // don't let gesture hook receive this touch
+      const touch = e.changedTouches[0];
+      touchDrawId = touch.identifier;
+
+      const rect = container.getBoundingClientRect();
+      const localX = touch.clientX - rect.left;
+      const localY = touch.clientY - rect.top;
+      const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+
+      if (tool === 'draw') {
+        livePoints.length = 0;
+        livePoints.push([localX * scale, localY * scale, (touch as Touch & { force?: number }).force || 0.5]);
+        isPointerDrawing = true;
+      } else {
+        highlightStartRef.current.x = localX * scale;
+        highlightStartRef.current.y = localY * scale;
+        highlightStartRef.current.active = true;
+      }
+    };
+
+    const drawTouchMove = (e: TouchEvent) => {
+      const tool = toolRef.current;
+      if (tool !== 'draw' && tool !== 'highlight') return;
+      const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchDrawId);
+      if (!touch) return;
+      if (!isPointerDrawing && !highlightStartRef.current.active) return;
+      e.preventDefault();
+
+      const rect = container.getBoundingClientRect();
+      const localX = touch.clientX - rect.left;
+      const localY = touch.clientY - rect.top;
+      const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+      const ll = liveLayerRef.current;
+      if (!ll) return;
+
+      if (tool === 'draw') {
+        livePoints.push([localX * scale, localY * scale, (touch as Touch & { force?: number }).force || 0.5]);
+        ll.destroyChildren();
+        if (livePoints.length > 1) {
+          const kScale = canvasWidthRef.current / pdfPageWidthRef.current;
+          const screenPts = livePoints.map(([x, y, p]) => [x * kScale, y * kScale, p]);
+          const poly = getStroke(screenPts, {
+            size: drawStrokeWidthRef.current * kScale * 2,
+            thinning: 0.5,
+            smoothing: 0.5,
+            streamline: 0.5,
+          });
+          ll.add(new Konva.Path({ data: getSvgPathFromStroke(poly), fill: drawColorRef.current, opacity: 0.85 }));
+        }
+        ll.batchDraw();
+      } else {
+        const x = Math.min(highlightStartRef.current.x, localX * scale);
+        const y = Math.min(highlightStartRef.current.y, localY * scale);
+        const w = Math.abs(localX * scale - highlightStartRef.current.x);
+        const h = Math.abs(localY * scale - highlightStartRef.current.y);
+        const kScale = canvasWidthRef.current / pdfPageWidthRef.current;
+        ll.destroyChildren();
+        ll.add(new Konva.Rect({ x: x * kScale, y: y * kScale, width: w * kScale, height: h * kScale, fill: highlightColorRef.current, opacity: 0.4 }));
+        ll.batchDraw();
+      }
+    };
+
+    const drawTouchEnd = async (e: TouchEvent) => {
+      const tool = toolRef.current;
+      if (tool !== 'draw' && tool !== 'highlight') return;
+      const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchDrawId);
+      if (!touch) return;
+      touchDrawId = -1;
+
+      const ll = liveLayerRef.current;
+      if (ll) { ll.destroyChildren(); ll.batchDraw(); }
+
+      if (tool === 'draw' && isPointerDrawing) {
+        isPointerDrawing = false;
+        if (livePoints.length > 1) {
+          const ann = createDrawAnnotation({
+            documentId: documentIdRef.current,
+            pageNumber: pageNumberRef.current,
+            points: [...livePoints] as Array<[number, number, number]>,
+            color: drawColorRef.current,
+            strokeWidth: drawStrokeWidthRef.current,
+          });
+          await addAnnotationRef.current(ann);
+        }
+        livePoints.length = 0;
+      } else if (tool === 'highlight' && highlightStartRef.current.active) {
+        highlightStartRef.current.active = false;
+        const rect = container.getBoundingClientRect();
+        const localX = touch.clientX - rect.left;
+        const localY = touch.clientY - rect.top;
+        const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+        const x = Math.min(highlightStartRef.current.x, localX * scale);
+        const y = Math.min(highlightStartRef.current.y, localY * scale);
+        const w = Math.abs(localX * scale - highlightStartRef.current.x);
+        const h = Math.abs(localY * scale - highlightStartRef.current.y);
+        if (w > 5 && h > 5) {
+          const ann = createHighlightAnnotation({
+            documentId: documentIdRef.current,
+            pageNumber: pageNumberRef.current,
+            x, y, width: w, height: h,
+            color: highlightColorRef.current,
+          });
+          await addAnnotationRef.current(ann);
+        }
+      }
+    };
+
+    container.addEventListener('touchstart', drawTouchStart, { passive: false });
+    container.addEventListener('touchmove', drawTouchMove, { passive: false });
+    container.addEventListener('touchend', drawTouchEnd);
+
     stageRef.current = stage;
     layerRef.current = layer;
 
@@ -331,6 +453,9 @@ export function AnnotationLayer({
       container.removeEventListener('pointermove', onPointerMove);
       container.removeEventListener('pointerup', onPointerUp);
       container.removeEventListener('pointercancel', onPointerCancel);
+      container.removeEventListener('touchstart', drawTouchStart);
+      container.removeEventListener('touchmove', drawTouchMove);
+      container.removeEventListener('touchend', drawTouchEnd);
       liveLayerRef.current = null;
       stage.destroy();
       stageRef.current = null;
