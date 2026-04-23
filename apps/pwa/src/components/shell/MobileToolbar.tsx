@@ -1,6 +1,11 @@
 import { useToolStore } from '@/store';
 import type { Tool } from '@/store';
-import { TEXT_FONT_SIZES, TEXT_COLORS } from '@/store/tool';
+import {
+  TEXT_FONT_SIZES, TEXT_COLORS,
+  DRAW_COLORS, DRAW_STROKE_WIDTHS,
+  HIGHLIGHT_COLORS,
+} from '@/store/tool';
+import type { DrawStrokeWidth } from '@/store/tool';
 import { MousePointer2, Type, Pen, Highlighter, PenLine, MoreHorizontal } from 'lucide-react';
 
 const PRIMARY_TOOLS: { id: Tool; icon: React.ReactNode; label: string }[] = [
@@ -12,12 +17,16 @@ const PRIMARY_TOOLS: { id: Tool; icon: React.ReactNode; label: string }[] = [
 ];
 
 export function MobileToolbar() {
-  const { activeTool, setTool, textFontSize, textColor, setTextFontSize, setTextColor } =
-    useToolStore();
+  const {
+    activeTool, setTool,
+    textFontSize, textColor, setTextFontSize, setTextColor,
+    drawColor, drawStrokeWidth, setDrawColor, setDrawStrokeWidth,
+    highlightColor, setHighlightColor,
+  } = useToolStore();
 
   return (
     <div className="md:hidden shrink-0">
-      {/* Text tool controls row — shown above the toolbar when text tool is active */}
+      {/* Text tool controls */}
       {activeTool === 'text' && (
         <div
           className="flex h-10 items-center gap-3 border-t border-white/10 bg-navy-900 px-4"
@@ -34,12 +43,9 @@ export function MobileToolbar() {
             className="rounded bg-white/10 px-2 py-0.5 text-xs text-white focus:outline-none"
           >
             {TEXT_FONT_SIZES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
+              <option key={s} value={s}>{s}</option>
             ))}
           </select>
-
           <span className="text-xs text-white/40">Color</span>
           <div className="flex gap-2" data-testid="color-swatches-mobile">
             {TEXT_COLORS.map((c) => (
@@ -53,6 +59,79 @@ export function MobileToolbar() {
                   background: c.value,
                   borderColor: textColor === c.value ? '#F59E0B' : 'transparent',
                   transform: textColor === c.value ? 'scale(1.2)' : 'scale(1)',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Draw tool controls */}
+      {activeTool === 'draw' && (
+        <div
+          className="flex h-10 items-center gap-3 border-t border-white/10 bg-navy-900 px-4"
+          data-testid="draw-tool-controls-mobile"
+        >
+          <span className="text-xs text-white/40">Width</span>
+          <div className="flex gap-1" data-testid="stroke-width-buttons-mobile">
+            {DRAW_STROKE_WIDTHS.map((w) => (
+              <button
+                key={w.value}
+                onClick={() => setDrawStrokeWidth(w.value as DrawStrokeWidth)}
+                aria-label={w.label}
+                aria-pressed={drawStrokeWidth === w.value}
+                className={[
+                  'rounded px-2 py-0.5 text-xs transition-colors',
+                  drawStrokeWidth === w.value
+                    ? 'bg-amber-400/30 text-amber-400'
+                    : 'text-white/50 hover:bg-white/10',
+                ].join(' ')}
+              >
+                {w.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-white/40">Color</span>
+          <div className="flex gap-2" data-testid="draw-color-swatches-mobile">
+            {DRAW_COLORS.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => setDrawColor(c.value)}
+                title={c.label}
+                aria-label={c.label}
+                className="h-5 w-5 rounded-full border-2 transition-all"
+                style={{
+                  background: c.value,
+                  borderColor: drawColor === c.value ? '#F59E0B' : 'transparent',
+                  transform: drawColor === c.value ? 'scale(1.2)' : 'scale(1)',
+                  boxShadow: c.value === '#ffffff' ? 'inset 0 0 0 1px rgba(255,255,255,0.3)' : 'none',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Highlight tool controls */}
+      {activeTool === 'highlight' && (
+        <div
+          className="flex h-10 items-center gap-3 border-t border-white/10 bg-navy-900 px-4"
+          data-testid="highlight-tool-controls-mobile"
+        >
+          <span className="text-xs text-white/40">Color</span>
+          <div className="flex gap-2" data-testid="highlight-color-swatches-mobile">
+            {HIGHLIGHT_COLORS.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => setHighlightColor(c.value)}
+                title={c.label}
+                aria-label={c.label}
+                className="h-5 w-5 rounded border-2 transition-all"
+                style={{
+                  background: c.value,
+                  borderColor: highlightColor === c.value ? '#F59E0B' : 'transparent',
+                  transform: highlightColor === c.value ? 'scale(1.2)' : 'scale(1)',
+                  opacity: 0.9,
                 }}
               />
             ))}
@@ -83,7 +162,6 @@ export function MobileToolbar() {
             {t.icon}
           </button>
         ))}
-
         <button
           aria-label="More tools"
           className="flex h-10 w-10 items-center justify-center rounded-xl text-white/50 hover:bg-white/10 hover:text-white transition-colors"
