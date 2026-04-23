@@ -271,6 +271,8 @@ export function CanvasArea() {
             activeTool={activeTool}
             editingAnnotationId={editingAnnotationId}
             onPlaceText={onPlaceText}
+            documentId={doc.id}
+            pageNumber={currentPage}
           />
         )}
 

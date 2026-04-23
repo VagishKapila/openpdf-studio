@@ -12,6 +12,8 @@ import Konva from 'konva';
 import { getStroke } from 'perfect-freehand';
 import { useAnnotationStore } from '@/store';
 import type { Tool } from '@/store';
+import { useToolStore } from '@/store';
+import { createDrawAnnotation, createHighlightAnnotation } from '@/lib/annotations';
 
 /** Convert perfect-freehand output polygon to an SVG path `d` string. */
 function getSvgPathFromStroke(stroke: number[][]): string {
@@ -35,6 +37,8 @@ export type AnnotationLayerProps = {
   activeTool: Tool;
   editingAnnotationId: string | null;
   onPlaceText: (pdfX: number, pdfY: number) => void;
+  documentId: string;
+  pageNumber: number;
 };
 
 export function AnnotationLayer({
@@ -44,6 +48,8 @@ export function AnnotationLayer({
   activeTool,
   editingAnnotationId,
   onPlaceText,
+  documentId,
+  pageNumber,
 }: AnnotationLayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
@@ -64,10 +70,38 @@ export function AnnotationLayer({
   const selectedId = useAnnotationStore((s) => s.selectedId);
   const setSelected = useAnnotationStore((s) => s.setSelected);
   const setEditingAnnotationId = useAnnotationStore((s) => s.setEditingAnnotationId);
+  const addAnnotation = useAnnotationStore((s) => s.addAnnotation);
+
+  const drawColor = useToolStore((s) => s.drawColor);
+  const drawStrokeWidth = useToolStore((s) => s.drawStrokeWidth);
+  const highlightColor = useToolStore((s) => s.highlightColor);
+
+  // Refs so event handlers always read current values without stage recreation
+  const drawColorRef = useRef(drawColor);
+  const drawStrokeWidthRef = useRef(drawStrokeWidth);
+  const highlightColorRef = useRef(highlightColor);
+  const addAnnotationRef = useRef(addAnnotation);
+  const documentIdRef = useRef(documentId);
+  const pageNumberRef = useRef(pageNumber);
+
+  useEffect(() => { drawColorRef.current = drawColor; }, [drawColor]);
+  useEffect(() => { drawStrokeWidthRef.current = drawStrokeWidth; }, [drawStrokeWidth]);
+  useEffect(() => { highlightColorRef.current = highlightColor; }, [highlightColor]);
+  useEffect(() => { addAnnotationRef.current = addAnnotation; }, [addAnnotation]);
+  useEffect(() => { documentIdRef.current = documentId; }, [documentId]);
+  useEffect(() => { pageNumberRef.current = pageNumber; }, [pageNumber]);
 
   // Stable ref to setEditingAnnotationId for use inside once-created event handler
   const setEditingIdRef = useRef(setEditingAnnotationId);
   useEffect(() => { setEditingIdRef.current = setEditingAnnotationId; }, [setEditingAnnotationId]);
+
+  // Live preview Konva layer (separate from the committed-annotations layer)
+  const liveLayerRef = useRef<Konva.Layer | null>(null);
+
+  // Highlight drag start point
+  const highlightStartRef = useRef<{ x: number; y: number; active: boolean }>({
+    x: 0, y: 0, active: false,
+  });
 
   const pdfToKonva = (pdfCoord: number) =>
     pdfPageWidth > 0 ? pdfCoord * (canvasWidth / pdfPageWidth) : pdfCoord;
@@ -80,6 +114,10 @@ export function AnnotationLayer({
     const stage = new Konva.Stage({ container, width: canvasWidth, height: canvasHeight });
     const layer = new Konva.Layer();
     stage.add(layer);
+
+    const liveLayer = new Konva.Layer();
+    stage.add(liveLayer);
+    liveLayerRef.current = liveLayer;
 
     // Desktop: Konva mouse-click on stage background → place text or deselect
     stage.on('click', (e) => {
@@ -98,6 +136,11 @@ export function AnnotationLayer({
     // from firing. Bypass with direct DOM touch listeners on the container div.
     // passive:true keeps scroll performance intact for non-text tools.
     const touchOrigin = { x: 0, y: 0 };
+
+    // Mutable state for in-progress draws (not React state — no re-render overhead)
+    const livePoints: Array<[number, number, number]> = [];
+    let isPointerDrawing = false;
+    let drawPointerId = -1;
 
     const onTouchStart = (evt: TouchEvent) => {
       const t = evt.touches[0];
@@ -130,12 +173,153 @@ export function AnnotationLayer({
     container.addEventListener('touchstart', onTouchStart, { passive: true });
     container.addEventListener('touchend', onTouchEnd, { passive: true });
 
+    // ── Pointer handlers for draw + highlight capture ─────────────────────────
+    const onPointerDown = (e: PointerEvent) => {
+      const tool = toolRef.current;
+      if (tool !== 'draw' && tool !== 'highlight') return;
+      e.stopPropagation();
+      container.setPointerCapture(e.pointerId);
+      drawPointerId = e.pointerId;
+
+      const rect = container.getBoundingClientRect();
+      const localX = e.clientX - rect.left;
+      const localY = e.clientY - rect.top;
+      const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+
+      if (tool === 'draw') {
+        livePoints.length = 0;
+        livePoints.push([localX * scale, localY * scale, e.pressure || 0.5]);
+        isPointerDrawing = true;
+      } else {
+        highlightStartRef.current.x = localX * scale;
+        highlightStartRef.current.y = localY * scale;
+        highlightStartRef.current.active = true;
+      }
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerId !== drawPointerId) return;
+      const tool = toolRef.current;
+      if (tool !== 'draw' && tool !== 'highlight') return;
+      if (!isPointerDrawing && !highlightStartRef.current.active) return;
+
+      const rect = container.getBoundingClientRect();
+      const localX = e.clientX - rect.left;
+      const localY = e.clientY - rect.top;
+      const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+      const ll = liveLayerRef.current;
+      if (!ll) return;
+
+      if (tool === 'draw') {
+        livePoints.push([localX * scale, localY * scale, e.pressure || 0.5]);
+
+        ll.destroyChildren();
+        if (livePoints.length > 1) {
+          const kScale = canvasWidthRef.current / pdfPageWidthRef.current;
+          const screenPts = livePoints.map(([x, y, p]) => [x * kScale, y * kScale, p]);
+          const poly = getStroke(screenPts, {
+            size: drawStrokeWidthRef.current * kScale * 2,
+            thinning: 0.5,
+            smoothing: 0.5,
+            streamline: 0.5,
+          });
+          const livePath = new Konva.Path({
+            data: getSvgPathFromStroke(poly),
+            fill: drawColorRef.current,
+            opacity: 0.85,
+          });
+          ll.add(livePath);
+        }
+        ll.batchDraw();
+      } else {
+        // highlight live rect
+        const x = Math.min(highlightStartRef.current.x, localX * scale);
+        const y = Math.min(highlightStartRef.current.y, localY * scale);
+        const w = Math.abs(localX * scale - highlightStartRef.current.x);
+        const h = Math.abs(localY * scale - highlightStartRef.current.y);
+        const kScale = canvasWidthRef.current / pdfPageWidthRef.current;
+
+        ll.destroyChildren();
+        const liveRect = new Konva.Rect({
+          x: x * kScale, y: y * kScale,
+          width: w * kScale, height: h * kScale,
+          fill: highlightColorRef.current,
+          opacity: 0.4,
+        });
+        ll.add(liveRect);
+        ll.batchDraw();
+      }
+    };
+
+    const onPointerUp = async (e: PointerEvent) => {
+      if (e.pointerId !== drawPointerId) return;
+      drawPointerId = -1;
+      const tool = toolRef.current;
+
+      // Clear live preview
+      const ll = liveLayerRef.current;
+      if (ll) { ll.destroyChildren(); ll.batchDraw(); }
+
+      if (tool === 'draw' && isPointerDrawing) {
+        isPointerDrawing = false;
+        if (livePoints.length > 1) {
+          const ann = createDrawAnnotation({
+            documentId: documentIdRef.current,
+            pageNumber: pageNumberRef.current,
+            points: [...livePoints] as Array<[number, number, number]>,
+            color: drawColorRef.current,
+            strokeWidth: drawStrokeWidthRef.current,
+          });
+          await addAnnotationRef.current(ann);
+        }
+        livePoints.length = 0;
+      } else if (tool === 'highlight' && highlightStartRef.current.active) {
+        highlightStartRef.current.active = false;
+        const rect = container.getBoundingClientRect();
+        const localX = e.clientX - rect.left;
+        const localY = e.clientY - rect.top;
+        const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+        const x = Math.min(highlightStartRef.current.x, localX * scale);
+        const y = Math.min(highlightStartRef.current.y, localY * scale);
+        const w = Math.abs(localX * scale - highlightStartRef.current.x);
+        const h = Math.abs(localY * scale - highlightStartRef.current.y);
+        if (w > 5 && h > 5) {
+          const ann = createHighlightAnnotation({
+            documentId: documentIdRef.current,
+            pageNumber: pageNumberRef.current,
+            x, y, width: w, height: h,
+            color: highlightColorRef.current,
+          });
+          await addAnnotationRef.current(ann);
+        }
+      }
+    };
+
+    const onPointerCancel = () => {
+      drawPointerId = -1;
+      isPointerDrawing = false;
+      highlightStartRef.current.active = false;
+      livePoints.length = 0;
+      const ll = liveLayerRef.current;
+      if (ll) { ll.destroyChildren(); ll.batchDraw(); }
+    };
+
+    container.addEventListener('pointerdown', onPointerDown);
+    container.addEventListener('pointermove', onPointerMove);
+    container.addEventListener('pointerup', onPointerUp);
+    container.addEventListener('pointercancel', onPointerCancel);
+
     stageRef.current = stage;
     layerRef.current = layer;
 
     return () => {
       container.removeEventListener('touchstart', onTouchStart);
       container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('pointerdown', onPointerDown);
+      container.removeEventListener('pointermove', onPointerMove);
+      container.removeEventListener('pointerup', onPointerUp);
+      container.removeEventListener('pointercancel', onPointerCancel);
+      liveLayerRef.current = null;
       stage.destroy();
       stageRef.current = null;
       layerRef.current = null;
