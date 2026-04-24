@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useToolStore } from '@/store';
 import type { Tool } from '@/store';
 import {
@@ -7,16 +8,19 @@ import {
 } from '@/store/tool';
 import type { DrawStrokeWidth } from '@/store/tool';
 import { MousePointer2, Type, Pen, Highlighter, PenLine, MoreHorizontal } from 'lucide-react';
+import { MoreMenu } from './MoreMenu';
 
+// "Highlight" is too long for a mobile label — shorten to "Mark"
 const PRIMARY_TOOLS: { id: Tool; icon: React.ReactNode; label: string }[] = [
   { id: 'select',    icon: <MousePointer2 size={18} />, label: 'Select' },
   { id: 'text',      icon: <Type size={18} />,          label: 'Text' },
   { id: 'draw',      icon: <Pen size={18} />,           label: 'Draw' },
-  { id: 'highlight', icon: <Highlighter size={18} />,   label: 'Highlight' },
+  { id: 'highlight', icon: <Highlighter size={18} />,   label: 'Mark' },
   { id: 'sign',      icon: <PenLine size={18} />,       label: 'Sign' },
 ];
 
 export function MobileToolbar() {
+  const [moreOpen, setMoreOpen] = useState(false);
   const {
     activeTool, setTool,
     textFontSize, textColor, setTextFontSize, setTextColor,
@@ -141,7 +145,7 @@ export function MobileToolbar() {
 
       {/* Primary toolbar */}
       <nav
-        className="flex h-14 items-center justify-around border-t border-white/10 bg-navy-900 px-1"
+        className="flex h-16 items-center justify-around border-t border-white/10 bg-navy-900 px-1"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label="Tool palette"
         data-testid="mobile-toolbar"
@@ -153,22 +157,34 @@ export function MobileToolbar() {
             aria-label={t.label}
             aria-pressed={activeTool === t.id}
             className={[
-              'flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
+              'relative flex flex-col h-14 w-14 items-center justify-center gap-0.5 rounded-xl transition-colors',
               activeTool === t.id
-                ? 'bg-amber-400/20 text-amber-400'
+                ? 'text-amber-400'
                 : 'text-white/50 hover:bg-white/10 hover:text-white',
             ].join(' ')}
           >
             {t.icon}
+            <span className="text-[10px] leading-none">{t.label}</span>
+            {/* Active indicator dot */}
+            {activeTool === t.id && (
+              <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-amber-400" />
+            )}
           </button>
         ))}
+
+        {/* More button */}
         <button
           aria-label="More tools"
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+          onClick={() => setMoreOpen(true)}
+          className="relative flex flex-col h-14 w-14 items-center justify-center gap-0.5 rounded-xl text-white/50 hover:bg-white/10 hover:text-white transition-colors"
         >
           <MoreHorizontal size={18} />
+          <span className="text-[10px] leading-none">More</span>
         </button>
       </nav>
+
+      {/* More menu bottom sheet */}
+      <MoreMenu open={moreOpen} onClose={() => setMoreOpen(false)} />
     </div>
   );
 }
