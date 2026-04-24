@@ -36,6 +36,21 @@ export const HIGHLIGHT_COLORS = [
   { label: 'Pink',   value: '#FEB2B2' },
 ] as const;
 
+/** Data returned by SignatureModal — used for placement mode */
+export type PendingSignature = {
+  source: 'draw' | 'type' | 'upload';
+  /** base64 PNG data URL for draw/upload */
+  imageData?: string;
+  /** typed text for type source */
+  text?: string;
+  /** CSS font-family string for type source */
+  fontFamily?: string;
+  /** Width in pixels at source resolution (for aspect-ratio calc) */
+  naturalWidth: number;
+  /** Height in pixels at source resolution */
+  naturalHeight: number;
+};
+
 type ToolState = {
   activeTool: Tool;
   setTool: (tool: Tool) => void;
@@ -52,6 +67,9 @@ type ToolState = {
   // Highlight settings
   highlightColor: string;
   setHighlightColor: (color: string) => void;
+  // Signature placement
+  pendingSignature: PendingSignature | null;
+  setPendingSignature: (sig: PendingSignature | null) => void;
 };
 
 export const useToolStore = create<ToolState>((set) => ({
@@ -67,4 +85,6 @@ export const useToolStore = create<ToolState>((set) => ({
   setDrawStrokeWidth: (drawStrokeWidth) => set({ drawStrokeWidth }),
   highlightColor: '#F6E05E',
   setHighlightColor: (highlightColor) => set({ highlightColor }),
+  pendingSignature: null,
+  setPendingSignature: (pendingSignature) => set({ pendingSignature }),
 }));

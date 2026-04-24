@@ -19,6 +19,7 @@
     "dexie-react-hooks": "^1",
     "konva": "^9",
     "perfect-freehand": "^1.2.2",
+    "signature_pad": "^5.0.4",
     "lucide-react": "^0.511.0",
     "pdf-lib": "^1",
     "pdfjs-dist": "^4",

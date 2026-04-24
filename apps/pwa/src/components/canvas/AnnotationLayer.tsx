@@ -541,12 +541,14 @@ export function AnnotationLayer({
           break;
         }
         case 'signature': {
+          // Full Konva.Image rendering added in Task 4 (day-7d)
+          // For now, render placeholder rect
           shape = new Konva.Rect({
             x: pdfToKonva(ann.x),
             y: pdfToKonva(ann.y),
             width: pdfToKonva(ann.width),
             height: pdfToKonva(ann.height),
-            fill: 'rgba(0,0,0,0.04)',
+            fill: ann.imageData ? 'rgba(0,0,200,0.05)' : 'rgba(0,0,0,0.04)',
             stroke: isSelected ? selColor : '#888',
             strokeWidth: isSelected ? selWidth : 1,
             dash: isSelected ? undefined : [4, 3],

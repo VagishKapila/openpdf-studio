@@ -46,12 +46,17 @@ export type HighlightAnnotation = AnnotationBase & {
 
 export type SignatureAnnotation = AnnotationBase & {
   type: 'signature';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  dataUrl: string; // PNG dataURL or SVG path
-  mode: 'drawn' | 'typed' | 'uploaded';
+  x: number;       // PDF-space
+  y: number;       // PDF-space
+  width: number;   // PDF-space
+  height: number;  // PDF-space
+  source: 'draw' | 'type' | 'upload';
+  /** base64 PNG data URL — present for draw + upload */
+  imageData?: string;
+  /** typed text — present for type source */
+  text?: string;
+  /** CSS font-family string — present for type source */
+  fontFamily?: string;
 };
 
 export type Annotation =
@@ -141,8 +146,10 @@ export function createSignatureAnnotation(args: {
   y: number;
   width: number;
   height: number;
-  dataUrl: string;
-  mode?: 'drawn' | 'typed' | 'uploaded';
+  source: 'draw' | 'type' | 'upload';
+  imageData?: string;
+  text?: string;
+  fontFamily?: string;
 }): SignatureAnnotation {
   const now = Date.now();
   return {
@@ -156,7 +163,9 @@ export function createSignatureAnnotation(args: {
     y: args.y,
     width: args.width,
     height: args.height,
-    dataUrl: args.dataUrl,
-    mode: args.mode ?? 'drawn',
+    source: args.source,
+    imageData: args.imageData,
+    text: args.text,
+    fontFamily: args.fontFamily,
   };
 }
