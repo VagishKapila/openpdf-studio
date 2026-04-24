@@ -4,7 +4,7 @@ import { useDocumentStore, useViewportStore, useAnnotationStore, useToolStore } 
 import { useDocumentGestures } from '@/hooks/useDocumentGestures';
 import { useCanvasTransform } from '@/hooks/useCanvasTransform';
 import { loadMostRecentDocument } from '@/lib/loadPdf';
-import { createTextAnnotation } from '@/lib/annotations';
+import { createTextAnnotation, createSignatureAnnotation } from '@/lib/annotations';
 import type { TextAnnotation } from '@/lib/annotations';
 import { AnnotationLayer } from './AnnotationLayer';
 import { TextEditor } from './TextEditor';
@@ -33,10 +33,12 @@ export function CanvasArea() {
     removeAnnotation,
     setEditingAnnotationId,
   } = useAnnotationStore();
-  const { activeTool, textFontSize, textColor } = useToolStore();
+  const { activeTool, textFontSize, textColor, pendingSignature, setPendingSignature } = useToolStore();
 
   const [isInitializing, setIsInitializing] = useState(true);
   const [canvasMeta, setCanvasMeta] = useState<CanvasMeta | null>(null);
+  // Position of the ghost signature overlay in transformDiv-local CSS pixels
+  const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null);
 
   // ── Init: restore last doc (unless explicitly closed) ─────────────────────
   useEffect(() => {
@@ -126,6 +128,107 @@ export function CanvasArea() {
 
   useDocumentGestures(gestureContainerRef, transformDivRef);
   useCanvasTransform(renderPdfPage);
+
+  // ── Placement mode: track pointer + commit pending signature ──────────────
+  useEffect(() => {
+    const container = gestureContainerRef.current;
+    const transformDiv = transformDivRef.current;
+    if (!container || !transformDiv || !pendingSignature) {
+      setGhostPos(null);
+      return;
+    }
+
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return; // touch handled separately
+      const tRect = transformDiv.getBoundingClientRect();
+      setGhostPos({
+        x: (e.clientX - tRect.left) / scale,
+        y: (e.clientY - tRect.top) / scale,
+      });
+    };
+
+    const onCommit = async (e: PointerEvent) => {
+      if (!pendingSignature || !canvasMeta || !doc) return;
+      const tRect = transformDiv.getBoundingClientRect();
+      const localX = (e.clientX - tRect.left) / scale;
+      const localY = (e.clientY - tRect.top) / scale;
+      const pdfScale = canvasMeta.pdfPageWidth / canvasMeta.cssW;
+
+      const maxPdfW = 200;
+      const aspectRatio = pendingSignature.naturalWidth / Math.max(pendingSignature.naturalHeight, 1);
+      const pdfW = Math.min(pendingSignature.naturalWidth * pdfScale, maxPdfW);
+      const pdfH = pdfW / aspectRatio;
+
+      const ann = createSignatureAnnotation({
+        documentId: doc.id,
+        pageNumber: currentPage,
+        x: Math.max(0, localX * pdfScale - pdfW / 2),
+        y: Math.max(0, localY * pdfScale - pdfH / 2),
+        width: pdfW,
+        height: pdfH,
+        source: pendingSignature.source,
+        imageData: pendingSignature.imageData,
+        text: pendingSignature.text,
+        fontFamily: pendingSignature.fontFamily,
+      });
+      await addAnnotation(ann);
+      setPendingSignature(null);
+      setGhostPos(null);
+    };
+
+    // Touch: track touchmove, commit on touchend
+    const onTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      const tRect = transformDiv.getBoundingClientRect();
+      setGhostPos({
+        x: (touch.clientX - tRect.left) / scale,
+        y: (touch.clientY - tRect.top) / scale,
+      });
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!pendingSignature || !canvasMeta || !doc) return;
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+      const tRect = transformDiv.getBoundingClientRect();
+      const localX = (touch.clientX - tRect.left) / scale;
+      const localY = (touch.clientY - tRect.top) / scale;
+      const pdfScale = canvasMeta.pdfPageWidth / canvasMeta.cssW;
+      const maxPdfW = 200;
+      const aspectRatio = pendingSignature.naturalWidth / Math.max(pendingSignature.naturalHeight, 1);
+      const pdfW = Math.min(pendingSignature.naturalWidth * pdfScale, maxPdfW);
+      const pdfH = pdfW / aspectRatio;
+
+      const ann = createSignatureAnnotation({
+        documentId: doc.id,
+        pageNumber: currentPage,
+        x: Math.max(0, localX * pdfScale - pdfW / 2),
+        y: Math.max(0, localY * pdfScale - pdfH / 2),
+        width: pdfW,
+        height: pdfH,
+        source: pendingSignature.source,
+        imageData: pendingSignature.imageData,
+        text: pendingSignature.text,
+        fontFamily: pendingSignature.fontFamily,
+      });
+      void addAnnotation(ann);
+      setPendingSignature(null);
+      setGhostPos(null);
+    };
+
+    container.addEventListener('pointermove', onMove);
+    container.addEventListener('pointerdown', onCommit);
+    container.addEventListener('touchmove', onTouchMove, { passive: true });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('pointermove', onMove);
+      container.removeEventListener('pointerdown', onCommit);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [pendingSignature, scale, canvasMeta, doc, currentPage, addAnnotation, setPendingSignature]);
 
   // ── Debug mode: enabled via ?debug=1 URL param ───────────────────────────
   const [debugMode, setDebugMode] = useState(false);
@@ -284,6 +387,39 @@ export function CanvasArea() {
             onCommit={onCommitText}
           />
         )}
+
+        {/* Signature placement ghost */}
+        {pendingSignature && ghostPos && (
+          <div
+            data-testid="sig-placement-ghost"
+            style={{
+              position: 'absolute',
+              left: ghostPos.x,
+              top: ghostPos.y,
+              transform: 'translate(-50%, -50%)',
+              opacity: 0.7,
+              pointerEvents: 'none',
+              border: '2px dashed #F59E0B',
+              borderRadius: 4,
+              padding: 4,
+              background: 'rgba(255,255,255,0.85)',
+              maxWidth: 220,
+            }}
+          >
+            {pendingSignature.imageData && (
+              <img
+                src={pendingSignature.imageData}
+                style={{
+                  width: Math.min(pendingSignature.naturalWidth, 200),
+                  height: Math.min(pendingSignature.naturalWidth, 200) /
+                    Math.max(pendingSignature.naturalWidth / Math.max(pendingSignature.naturalHeight, 1), 0.01),
+                  display: 'block',
+                }}
+                alt="Signature ghost"
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {/* 1:1 reset badge */}
@@ -295,6 +431,19 @@ export function CanvasArea() {
           aria-label="Reset zoom"
         >
           1:1
+        </button>
+      )}
+
+      {/* Cancel placement mode button */}
+      {pendingSignature && (
+        <button
+          onClick={() => { setPendingSignature(null); setGhostPos(null); }}
+          className="pointer-events-auto fixed right-4 z-20 rounded-full bg-black/60 px-3 py-2 text-xs text-white/80 backdrop-blur hover:bg-red-900/60"
+          style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom) + 3rem)' }}
+          aria-label="Cancel signature placement"
+          data-testid="sig-placement-cancel"
+        >
+          ✕ Cancel placement
         </button>
       )}
 
