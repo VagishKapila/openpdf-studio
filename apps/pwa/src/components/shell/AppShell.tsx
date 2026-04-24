@@ -6,9 +6,28 @@ import { PageNavDock } from './PageNavDock';
 import { DocumentSidebar } from './DocumentSidebar';
 import { CanvasArea } from '@/components/canvas/CanvasArea';
 import { SelectionActionBar } from '@/components/canvas/SelectionActionBar';
+import { SignatureModal } from '@/components/canvas/SignatureModal';
 import { loadPdfFromFile } from '@/lib/loadPdf';
+import { useToolStore } from '@/store';
+import type { PendingSignature } from '@/store/tool';
 
 export function AppShell() {
+  const { activeTool, setTool, setPendingSignature } = useToolStore();
+
+  const isSignModalOpen = activeTool === 'sign';
+
+  const handleSignClose = useCallback(() => {
+    setTool('select');
+  }, [setTool]);
+
+  const handleSignPlace = useCallback(
+    (sig: PendingSignature) => {
+      setPendingSignature(sig);
+      setTool('select');
+    },
+    [setPendingSignature, setTool],
+  );
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
@@ -29,7 +48,7 @@ export function AppShell() {
     <div className="flex h-full flex-col bg-neutral-800">
       <AppHeader />
 
-      {/* Floating annotation selection toolbar — rendered above everything */}
+      {/* Floating annotation selection toolbar */}
       <SelectionActionBar />
 
       <div className="flex flex-1 overflow-hidden">
@@ -46,6 +65,13 @@ export function AppShell() {
         </main>
       </div>
       <MobileToolbar />
+
+      {/* Sign tool modal */}
+      <SignatureModal
+        open={isSignModalOpen}
+        onClose={handleSignClose}
+        onPlace={handleSignPlace}
+      />
     </div>
   );
 }
