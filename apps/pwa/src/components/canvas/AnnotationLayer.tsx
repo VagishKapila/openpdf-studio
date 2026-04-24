@@ -541,18 +541,44 @@ export function AnnotationLayer({
           break;
         }
         case 'signature': {
-          // Full Konva.Image rendering added in Task 4 (day-7d)
-          // For now, render placeholder rect
-          shape = new Konva.Rect({
-            x: pdfToKonva(ann.x),
-            y: pdfToKonva(ann.y),
-            width: pdfToKonva(ann.width),
-            height: pdfToKonva(ann.height),
-            fill: ann.imageData ? 'rgba(0,0,200,0.05)' : 'rgba(0,0,0,0.04)',
-            stroke: isSelected ? selColor : '#888',
-            strokeWidth: isSelected ? selWidth : 1,
-            dash: isSelected ? undefined : [4, 3],
-          });
+          if (ann.imageData) {
+            // Async: load image then add to layer imperatively
+            const imgEl = new window.Image();
+            const capturedId = ann.id;
+            const capturedSelected = isSelected;
+            imgEl.onload = () => {
+              const konvaImg = new Konva.Image({
+                x: pdfToKonva(ann.x),
+                y: pdfToKonva(ann.y),
+                width: pdfToKonva(ann.width),
+                height: pdfToKonva(ann.height),
+                image: imgEl,
+                opacity: capturedSelected ? 0.7 : 1,
+                stroke: capturedSelected ? selColor : undefined,
+                strokeWidth: capturedSelected ? selWidth : 0,
+              });
+              konvaImg.on('click tap', (e) => {
+                e.cancelBubble = true;
+                setSelected(capturedId);
+              });
+              layer.add(konvaImg);
+              layer.batchDraw();
+            };
+            imgEl.src = ann.imageData;
+            // shape stays null — Konva.Image adds itself in onload
+          } else {
+            // Fallback placeholder for legacy annotations without imageData
+            shape = new Konva.Rect({
+              x: pdfToKonva(ann.x),
+              y: pdfToKonva(ann.y),
+              width: pdfToKonva(ann.width),
+              height: pdfToKonva(ann.height),
+              fill: 'rgba(0,0,0,0.04)',
+              stroke: isSelected ? selColor : '#888',
+              strokeWidth: isSelected ? selWidth : 1,
+              dash: isSelected ? undefined : [4, 3],
+            });
+          }
           break;
         }
       }
