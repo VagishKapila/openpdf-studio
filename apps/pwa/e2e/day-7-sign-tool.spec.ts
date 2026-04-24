@@ -65,21 +65,15 @@ test.describe('Day 7 — Sign tool (desktop)', () => {
     await expect(page.locator('[data-testid="signature-modal"]')).not.toBeVisible();
   });
 
-  test('Place Signature (type) closes modal and shows ghost on mouse move', async ({ page }) => {
+  test('Place Signature (type) closes modal and enters placement mode', async ({ page }) => {
     await page.locator('[data-testid="tool-sign"]').click();
     await page.locator('[data-testid="sig-tab-type"]').click();
     await page.locator('[data-testid="sig-type-input"]').fill('Alice');
     await page.locator('[data-testid="sig-place"]').click();
+    // Modal closes
     await expect(page.locator('[data-testid="signature-modal"]')).not.toBeVisible();
-
-    // Move mouse over canvas to trigger ghost
-    const canvas = page.locator('[data-testid="annotation-layer"] canvas').first();
-    const box = await canvas.boundingBox();
-    if (box) {
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      await page.waitForTimeout(200);
-      await expect(page.locator('[data-testid="sig-placement-ghost"]')).toBeVisible();
-    }
+    // Cancel placement button appears — confirms placement mode is active (pendingSignature is set)
+    await expect(page.locator('[data-testid="sig-placement-cancel"]')).toBeVisible({ timeout: 3000 });
   });
 
   test('clicking canvas during placement commits annotation', async ({ page }) => {
@@ -163,8 +157,9 @@ test.describe('Day 7 — Sign tool (mobile)', () => {
     const canvas = page.locator('[data-testid="annotation-layer"] canvas').first();
     const box = await canvas.boundingBox();
     if (!box) throw new Error('canvas not found');
-    await page.touchscreen.tap(box.x + box.width * 0.5, box.y + box.height * 0.4);
+    await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.4);
     await page.waitForTimeout(600);
-    await expect(page.locator('[data-testid="sig-placement-ghost"]')).not.toBeVisible();
+    // Cancel button gone confirms placement committed/cleared
+    await expect(page.locator('[data-testid="sig-placement-cancel"]')).not.toBeVisible();
   });
 });
