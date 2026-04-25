@@ -12,7 +12,7 @@
 unreliable (see `docs/TECH_DEBT.md` TD-008). Use `pnpm deploy` after every push.
 
 > **Note:** The original Day 1 spike deployed to Vercel at `openpdf-spike.vercel.app`
-> and later to a short-lived Railway URL (`pwa-production-d532.up.railway.app`).
+> and later to a short-lived Railway URL (`pwa-production-d532.up.railway.app`, decommissioned April 25, 2026).
 > Both are defunct. The canonical URL above is the only live endpoint.
 
 ---

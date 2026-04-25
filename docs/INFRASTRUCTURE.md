@@ -222,3 +222,22 @@ Update this file whenever any of those happen.
 ---
 
 © 2026 Vagish Kapila · Varshyl Inc · kapilav@varshyl.com
+
+---
+
+## Railway Projects
+
+### Production (active)
+- **Project:** openpdf-pwa
+- **Project ID:** `e6bafc72-7659-4aa4-9371-67ab6b0bef35`
+- **Service:** openpdf-studio
+- **Domain:** app.snaphw.com
+- **Region:** us-west-2
+- **GitHub:** VagishKapila/openpdf-studio → pwa-main
+
+### Duplicate project (deleted April 25, 2026)
+- **Project ID:** `9b8e546c-9761-4f17-bdcc-fa4b3b61c8fc`
+- **Service:** pwa
+- **Domain:** pwa-production-d532.up.railway.app (Railway default, no custom domain)
+- **Reason deleted:** stale leftover from early development, no custom domain, no active users, no environment variables, last deploy April 21 "chore: day 1.9"
+- **Code preserved:** GitHub at v1.0.1 tag (all history intact)
