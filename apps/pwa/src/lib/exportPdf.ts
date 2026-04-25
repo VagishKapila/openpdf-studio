@@ -9,6 +9,7 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { getStroke } from 'perfect-freehand';
 import type { Annotation } from '@/lib/annotations';
+import * as Sentry from '@sentry/react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -124,6 +125,9 @@ export async function exportAnnotatedPdf(
         }
       } catch (annErr) {
         // Skip individual annotation failures — don't abort the whole export
+        Sentry.captureException(annErr, {
+          extra: { annotationType: ann.type, annotationId: ann.id },
+        });
         console.warn('[exportPdf] skipped annotation:', ann.type, annErr);
       }
     }

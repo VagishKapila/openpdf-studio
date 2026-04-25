@@ -1,6 +1,7 @@
 import { pdfjs } from '@/lib/pdfjs';
 import { saveDocument, updatePageCount, touchDocument, listDocuments } from '@/storage/documents';
 import { useDocumentStore } from '@/store';
+import { trackEvent } from '@/lib/analytics';
 
 export async function loadPdfFromFile(file: File): Promise<void> {
   const isPdf =
@@ -34,6 +35,7 @@ export async function loadPdfFromFile(file: File): Promise<void> {
       totalPages: pdf.numPages,
       pdf,
     });
+    trackEvent('pdf_opened', { source: 'file-picker' });
   } catch (err) {
     const msg =
       err instanceof Error

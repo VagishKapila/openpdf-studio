@@ -1,3 +1,21 @@
+import * as Sentry from '@sentry/react';
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  environment: import.meta.env.MODE,
+  enabled: import.meta.env.PROD,
+  tracesSampleRate: 0.1,
+  ignoreErrors: [
+    'ResizeObserver loop limit exceeded',
+    'Non-Error promise rejection',
+    'AbortError',
+  ],
+  beforeSend(event) {
+    if (window.location.hostname === 'localhost') return null;
+    return event;
+  },
+});
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
@@ -6,10 +24,36 @@ import App from './App';
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');
 createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+  <Sentry.ErrorBoundary
+    fallback={({ resetError }) => (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-slate-900 p-8 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-400/10">
+          <span className="text-3xl">⚠️</span>
+        </div>
+        <p className="text-xl font-bold text-white">Something went wrong</p>
+        <p className="text-sm text-white/50 max-w-xs">
+          This error has been reported automatically. Please try refreshing.
+        </p>
+        <button
+          onClick={resetError}
+          className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-black hover:bg-amber-400"
+        >
+          Try Again
+        </button>
+      </div>
+    )}
+  >
+    <StrictMode>
+      <App />
+    </StrictMode>
+  </Sentry.ErrorBoundary>,
 );
+
+import('@/lib/analytics').then(({ trackEvent }) => {
+  window.addEventListener('appinstalled', () => {
+    trackEvent('pwa_installed');
+  });
+});
 
 // Always expose store references for browser console testing and Playwright.
 // These are read-only references to Zustand stores — no security risk

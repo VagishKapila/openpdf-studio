@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { trackEvent } from '@/lib/analytics';
 
 // v1 scope: exactly 5 primary tools; "More" is a UI affordance handled in MobileToolbar
 export type Tool = 'select' | 'text' | 'draw' | 'highlight' | 'sign';
@@ -74,7 +75,10 @@ type ToolState = {
 
 export const useToolStore = create<ToolState>((set) => ({
   activeTool: 'select',
-  setTool: (activeTool) => set({ activeTool }),
+  setTool: (activeTool) => {
+    set({ activeTool });
+    trackEvent('tool_selected', { tool: activeTool });
+  },
   textFontSize: 16,
   textColor: '#1a1a1a',
   setTextFontSize: (textFontSize) => set({ textFontSize }),

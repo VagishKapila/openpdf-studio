@@ -139,15 +139,25 @@ Typical deploy time: 60-90 seconds from push to live.
 
 ---
 
-## Monitoring
+## Analytics & Monitoring
 
-Current state: None formal. Railway dashboard shows build/deploy status
-and logs. No error tracking, no uptime monitoring, no alerting.
+### Sentry (Error Monitoring) — ACTIVE
+- Project: formiq (org: varshyl-inc)
+- DSN: stored in Railway env var `VITE_SENTRY_DSN`
+- Dashboard: https://varshyl-inc.sentry.io/projects/formiq/
+- Captures: unhandled errors, export annotation failures, ErrorBoundary crashes
+- Enabled: production only (`import.meta.env.PROD`)
+- Sample rate: 10% traces
 
-Planned:
-- Sentry for error tracking (TECH_DEBT #3, add pre-launch)
-- Plausible for analytics (ANALYTICS_PLAN.md, Day 4-5)
-- Uptime monitoring (later, when product has real users)
+### Varshyl Dashboard Master (Analytics) — PENDING
+- Status: hub.varshyl.com being restored — will activate when URL is live
+- To activate: add `VITE_VARSHYL_WEBHOOK_URL` and `VITE_VARSHYL_WEBHOOK_SECRET` to Railway env vars
+- Product tag: `formiq`
+- Events tracked: `pdf_opened`, `annotation_created`, `pdf_exported`, `tool_selected`, `pwa_installed`
+- Implementation: `apps/pwa/src/lib/analytics.ts` (no-op until env var is set)
+
+### Uptime Monitoring
+- Not yet set up. Planned when product has real users.
 
 ---
 

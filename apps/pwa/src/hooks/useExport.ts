@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import { useDocumentStore } from '@/store';
 
 import { getDocument } from '@/storage/documents';
@@ -45,6 +46,7 @@ export function useExport() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      trackEvent('pdf_exported', { annotation_count: allAnnotations.length });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Export failed. Please try again.';
       alert(msg);

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Annotation, AnnotationId, DocumentId, PageNumber } from '@/lib/annotations';
 import * as annStorage from '@/storage/annotations';
+import { trackEvent } from '@/lib/analytics';
 
 const HISTORY_LIMIT = 50;
 
@@ -63,6 +64,7 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
       undoStack: pushHistory(undoStack, annotations),
       redoStack: [],
     });
+    trackEvent('annotation_created', { type: ann.type });
   },
 
   updateAnnotation: async (id, patch) => {
