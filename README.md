@@ -1,37 +1,59 @@
-# OpenPDF Studio
+# FormIQ — Your Documents Should Work for You. With AI.
 
-Free, private PDF editor. Local-first. No accounts. No uploads.
+FormIQ is a privacy-first PDF editor and e-signature platform. Open, annotate,
+sign, and manage PDFs entirely on-device — no server uploads, no accounts required.
+AI-assisted features help you work smarter with every document.
 
-**Live beta:** https://app.snaphw.com
-Fallback: https://openpdf-studio-production-462c.up.railway.app
+## Features
 
-## Monorepo Structure
+- **PDF editing** — text annotations, highlights, freehand drawing
+- **E-signatures** — draw, type, or upload — placed anywhere on the page
+- **Local-first** — all files stored in IndexedDB, never leave your device
+- **PWA** — installable on iOS and Android, works offline
+- **File Handler API** — open PDFs directly from your OS file picker (Android)
 
-- `apps/pwa` — Progressive Web App (primary build target)
-- `apps/desktop-placeholder` — placeholder for future desktop migration
-- `packages/core` — shared PDF logic, annotation model, types
-- `packages/ui` — shared UI components, design tokens
+## Live App
 
-## v1 Scope
+[https://app.snaphw.com](https://app.snaphw.com)
 
-10 features. 4 weeks. See `docs/SCOPE_LOCK.md` for details.
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19 + TypeScript + Vite |
+| Styling | Tailwind CSS v4 |
+| State | Zustand |
+| Storage | Dexie (IndexedDB) |
+| PDF rendering | PDF.js |
+| Annotations | Konva.js |
+| Gestures | @use-gesture/react |
+| Signatures | signature_pad |
+| PWA | vite-plugin-pwa + Workbox |
+| Hosting | Railway (project `openpdf-pwa`, branch `pwa-main`) |
 
 ## Development
 
 ```bash
 pnpm install
-pnpm dev        # start local dev server
-pnpm build      # production build
-pnpm typecheck  # TypeScript check
-pnpm deploy     # push to pwa-main + trigger Railway redeploy
+pnpm --filter @openpdf/pwa dev
 ```
 
-## Deployment
+## Build
 
-Hosted on Railway (project `openpdf-pwa`, branch `pwa-main`).
-Railway's GitHub webhook is unreliable — always use `pnpm deploy`
-instead of bare `git push`. See `docs/TECH_DEBT.md` TD-008.
+```bash
+pnpm --filter @openpdf/pwa build
+```
 
----
+## Monorepo structure
 
-© 2026 Vagish Kapila · Varshyl Inc · kapilav@varshyl.com
+```
+apps/
+  pwa/          # FormIQ PWA
+tools/
+  scripts/      # deploy.sh
+  test-fixtures/
+```
+
+## License
+
+MIT

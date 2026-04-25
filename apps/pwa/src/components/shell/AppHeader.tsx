@@ -77,7 +77,7 @@ export function AppHeader() {
         >
           <Menu size={18} />
         </button>
-        <span className="text-sm font-semibold tracking-tight text-amber-400">OpenPDF</span>
+        <span className="text-sm font-bold tracking-tight text-white">Form<span className="text-amber-400">IQ</span></span>
         <span className="hidden text-xs text-white/40 sm:inline">Studio</span>
       </div>
 

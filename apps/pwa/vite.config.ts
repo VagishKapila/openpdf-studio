@@ -68,9 +68,9 @@ export default defineConfig({
       },
 
       manifest: {
-        name: 'OpenPDF Studio',
-        short_name: 'OpenPDF',
-        description: 'Free, private, local-first PDF editor',
+        name: 'FormIQ',
+        short_name: 'FormIQ',
+        description: 'Your Documents Should Work for You. With AI.',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
@@ -79,6 +79,14 @@ export default defineConfig({
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
           { src: '/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        file_handlers: [
+          {
+            action: '/',
+            accept: { 'application/pdf': ['.pdf'] },
+            icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }],
+            launch_type: 'single-client',
+          },
         ],
       },
     }),
