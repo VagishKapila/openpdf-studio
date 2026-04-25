@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
-import { useDocumentStore, useUIStore, useViewportStore } from '@/store';
-import { FileText, Menu, Upload, X, Download } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useDocumentStore, useUIStore, useViewportStore, useAnnotationStore } from '@/store';
+import { FileText, Menu, Upload, X, Download, Undo2, Redo2 } from 'lucide-react';
 import { loadPdfFromFile } from '@/lib/loadPdf';
 import { useExport } from '@/hooks/useExport';
 
@@ -11,6 +11,28 @@ export function AppHeader() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { exportPdf, canExport, exporting } = useExport();
   const [exportError, setExportError] = useState(false);
+
+  const undoStack = useAnnotationStore((s) => s.undoStack);
+  const redoStack = useAnnotationStore((s) => s.redoStack);
+  const undo = useAnnotationStore((s) => s.undo);
+  const redo = useAnnotationStore((s) => s.redo);
+  const canUndo = undoStack.length > 0;
+  const canRedo = redoStack.length > 0;
+
+  // Keyboard shortcut: Cmd/Ctrl+Z → undo, Cmd/Ctrl+Shift+Z → redo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key !== 'z') return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        redo();
+      } else {
+        undo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo]);
 
   const handleOpenClick = () => fileInputRef.current?.click();
 
@@ -85,6 +107,32 @@ export function AppHeader() {
           >
             <X size={16} />
           </button>
+        )}
+
+        {/* Undo / Redo — only when a document is open */}
+        {loadState === 'ready' && doc && (
+          <>
+            <button
+              onClick={() => undo()}
+              disabled={!canUndo}
+              aria-label="Undo"
+              title="Undo (⌘Z)"
+              data-testid="undo-button"
+              className="rounded p-1.5 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <Undo2 size={16} />
+            </button>
+            <button
+              onClick={() => redo()}
+              disabled={!canRedo}
+              aria-label="Redo"
+              title="Redo (⌘⇧Z)"
+              data-testid="redo-button"
+              className="rounded p-1.5 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <Redo2 size={16} />
+            </button>
+          </>
         )}
 
         {/* Export button — only when a document is open */}

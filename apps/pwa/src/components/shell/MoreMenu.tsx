@@ -1,14 +1,31 @@
 import { useExport } from '@/hooks/useExport';
+import { useAnnotationStore } from '@/store';
 
 type MoreMenuProps = { open: boolean; onClose: () => void };
 
 export function MoreMenu({ open, onClose }: MoreMenuProps) {
   const { exportPdf, canExport, exporting } = useExport();
+  const undoStack = useAnnotationStore((s) => s.undoStack);
+  const redoStack = useAnnotationStore((s) => s.redoStack);
+  const undo = useAnnotationStore((s) => s.undo);
+  const redo = useAnnotationStore((s) => s.redo);
+  const canUndo = undoStack.length > 0;
+  const canRedo = redoStack.length > 0;
 
   if (!open) return null;
 
   const handleExport = async () => {
     await exportPdf();
+    onClose();
+  };
+
+  const handleUndo = async () => {
+    await undo();
+    onClose();
+  };
+
+  const handleRedo = async () => {
+    await redo();
     onClose();
   };
 
@@ -35,6 +52,34 @@ export function MoreMenu({ open, onClose }: MoreMenuProps) {
             ✕
           </button>
         </div>
+
+        {/* Undo */}
+        <button
+          onClick={handleUndo}
+          disabled={!canUndo}
+          data-testid="undo-button-mobile"
+          className="flex w-full items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <span className="w-7 text-center text-xl">↩️</span>
+          <div className="flex-1 text-left">
+            <div className="text-sm text-white">Undo</div>
+            <div className="text-xs text-white/40">Undo last action</div>
+          </div>
+        </button>
+
+        {/* Redo */}
+        <button
+          onClick={handleRedo}
+          disabled={!canRedo}
+          data-testid="redo-button-mobile"
+          className="flex w-full items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <span className="w-7 text-center text-xl">↪️</span>
+          <div className="flex-1 text-left">
+            <div className="text-sm text-white">Redo</div>
+            <div className="text-xs text-white/40">Redo last undone action</div>
+          </div>
+        </button>
 
         {/* Pages — coming soon */}
         <div className="flex items-center gap-3 rounded-xl px-2 py-3 opacity-50">
