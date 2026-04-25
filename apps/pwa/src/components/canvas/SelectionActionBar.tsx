@@ -14,40 +14,40 @@ export function SelectionActionBar() {
 
   return (
     <div
-      className="fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/80 px-2 py-1.5 shadow-lg backdrop-blur"
+      className="fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-0.5 rounded-xl bg-white px-2 py-1.5 shadow-lg shadow-black/30 border border-gray-100"
       style={{ top: 'calc(4rem + env(safe-area-inset-top))' }}
       data-testid="selection-action-bar"
     >
-      {/* Duplicate — stubbed, enabled in Day 5+ */}
+      {/* Duplicate — stubbed, coming later */}
       <button
         disabled
-        className="rounded-full p-1.5 opacity-30"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-300 cursor-not-allowed"
         aria-label="Duplicate (not yet available)"
-        title="Duplicate — coming in Day 5"
+        title="Duplicate — coming soon"
       >
-        <Copy className="h-4 w-4" />
+        <Copy size={15} />
       </button>
 
-      <div className="mx-1 h-4 w-px bg-white/20" aria-hidden />
+      <div className="mx-1 h-4 w-px bg-gray-200" aria-hidden />
 
       {/* Delete */}
       <button
         onClick={handleDelete}
-        className="rounded-full p-1.5 hover:bg-red-900/40 hover:text-red-300 transition-colors"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
         aria-label="Delete annotation"
         title="Delete"
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 size={15} />
       </button>
 
       {/* Deselect */}
       <button
         onClick={() => setSelected(null)}
-        className="rounded-full p-1.5 hover:bg-white/10 transition-colors"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
         aria-label="Deselect"
         title="Done"
       >
-        <X className="h-4 w-4 opacity-60" />
+        <X size={15} />
       </button>
     </div>
   );
