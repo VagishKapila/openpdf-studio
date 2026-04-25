@@ -6,6 +6,7 @@
  *
  * Coordinate conversion:
  *   pdfToKonva(coord) = coord * (canvasWidth / pdfPageWidth)
+ *   konvaToPdf(coord) = coord * (pdfPageWidth / canvasWidth)
  */
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
@@ -71,6 +72,7 @@ export function AnnotationLayer({
   const setSelected = useAnnotationStore((s) => s.setSelected);
   const setEditingAnnotationId = useAnnotationStore((s) => s.setEditingAnnotationId);
   const addAnnotation = useAnnotationStore((s) => s.addAnnotation);
+  const updateAnnotation = useAnnotationStore((s) => s.updateAnnotation);
 
   const drawColor = useToolStore((s) => s.drawColor);
   const drawStrokeWidth = useToolStore((s) => s.drawStrokeWidth);
@@ -81,6 +83,7 @@ export function AnnotationLayer({
   const drawStrokeWidthRef = useRef(drawStrokeWidth);
   const highlightColorRef = useRef(highlightColor);
   const addAnnotationRef = useRef(addAnnotation);
+  const updateAnnotationRef = useRef(updateAnnotation);
   const documentIdRef = useRef(documentId);
   const pageNumberRef = useRef(pageNumber);
 
@@ -88,6 +91,7 @@ export function AnnotationLayer({
   useEffect(() => { drawStrokeWidthRef.current = drawStrokeWidth; }, [drawStrokeWidth]);
   useEffect(() => { highlightColorRef.current = highlightColor; }, [highlightColor]);
   useEffect(() => { addAnnotationRef.current = addAnnotation; }, [addAnnotation]);
+  useEffect(() => { updateAnnotationRef.current = updateAnnotation; }, [updateAnnotation]);
   useEffect(() => { documentIdRef.current = documentId; }, [documentId]);
   useEffect(() => { pageNumberRef.current = pageNumber; }, [pageNumber]);
 
@@ -321,17 +325,14 @@ export function AnnotationLayer({
     container.addEventListener('pointercancel', onPointerCancel);
 
     // ── Touch fallback for Android/mobile (pointer capture unreliable on some devices) ──
-    // Runs in parallel with pointer handlers. Pointer handlers handle desktop mouse;
-    // these handlers handle mobile touch. Both paths produce identical annotation output.
     let touchDrawId = -1;
 
     const drawTouchStart = (e: TouchEvent) => {
       const tool = toolRef.current;
       if (tool !== 'draw' && tool !== 'highlight') return;
-      // Only handle single-finger; two-finger stays with gesture hook for pinch-zoom
       if (e.touches.length > 1) return;
-      e.preventDefault(); // suppress scroll / pan
-      e.stopPropagation(); // don't let gesture hook receive this touch
+      e.preventDefault();
+      e.stopPropagation();
       const touch = e.changedTouches[0];
       touchDrawId = touch.identifier;
 
@@ -480,6 +481,8 @@ export function AnnotationLayer({
 
     layer.destroyChildren();
 
+    const isSelectTool = activeTool === 'select';
+
     for (const ann of annotations) {
       // Skip the annotation currently being edited — TextEditor renders its content
       if (ann.id === editingAnnotationId) continue;
@@ -487,6 +490,15 @@ export function AnnotationLayer({
       const isSelected = ann.id === selectedId;
       const selColor = '#F59E0B';
       const selWidth = 2;
+
+      // Capture for closures
+      const capturedId = ann.id;
+      const capturedType = ann.type;
+      // Draw strokes are NOT draggable (their points are absolute, not position-offset)
+      const isDraggable = isSelectTool && ann.type !== 'draw';
+
+      const konvaToPdf = (k: number) =>
+        pdfPageWidth > 0 ? k * (pdfPageWidth / canvasWidth) : k;
 
       let shape: Konva.Shape | null = null;
 
@@ -501,7 +513,17 @@ export function AnnotationLayer({
             fill: ann.color,
             stroke: isSelected ? selColor : undefined,
             strokeWidth: isSelected ? 1 : 0,
+            draggable: isDraggable,
           });
+          if (isDraggable) {
+            shape.on('dragend', () => {
+              const pos = (shape as Konva.Text).position();
+              updateAnnotationRef.current(capturedId, {
+                x: konvaToPdf(pos.x),
+                y: konvaToPdf(pos.y),
+              });
+            });
+          }
           break;
         }
         case 'draw': {
@@ -523,6 +545,7 @@ export function AnnotationLayer({
             fill: ann.color,
             stroke: isSelected ? selColor : undefined,
             strokeWidth: isSelected ? 1.5 : 0,
+            draggable: false,
           });
           break;
         }
@@ -536,16 +559,27 @@ export function AnnotationLayer({
             opacity: ann.opacity ?? 0.35,
             stroke: isSelected ? selColor : undefined,
             strokeWidth: isSelected ? selWidth : 0,
-            listening: false,
+            listening: !isDraggable,
+            draggable: isDraggable,
           });
+          if (isDraggable) {
+            (shape as Konva.Rect).listening(true);
+            shape.on('dragend', () => {
+              const pos = (shape as Konva.Rect).position();
+              updateAnnotationRef.current(capturedId, {
+                x: konvaToPdf(pos.x),
+                y: konvaToPdf(pos.y),
+              });
+            });
+          }
           break;
         }
         case 'signature': {
           if (ann.imageData) {
             // Async: load image then add to layer imperatively
             const imgEl = new window.Image();
-            const capturedId = ann.id;
             const capturedSelected = isSelected;
+            const capturedDraggable = isDraggable;
             imgEl.onload = () => {
               const konvaImg = new Konva.Image({
                 x: pdfToKonva(ann.x),
@@ -556,11 +590,21 @@ export function AnnotationLayer({
                 opacity: capturedSelected ? 0.7 : 1,
                 stroke: capturedSelected ? selColor : undefined,
                 strokeWidth: capturedSelected ? selWidth : 0,
+                draggable: capturedDraggable,
               });
               konvaImg.on('click tap', (e) => {
                 e.cancelBubble = true;
                 setSelected(capturedId);
               });
+              if (capturedDraggable) {
+                konvaImg.on('dragend', () => {
+                  const pos = konvaImg.position();
+                  updateAnnotationRef.current(capturedId, {
+                    x: konvaToPdf(pos.x),
+                    y: konvaToPdf(pos.y),
+                  });
+                });
+              }
               layer.add(konvaImg);
               layer.batchDraw();
             };
@@ -577,19 +621,26 @@ export function AnnotationLayer({
               stroke: isSelected ? selColor : '#888',
               strokeWidth: isSelected ? selWidth : 1,
               dash: isSelected ? undefined : [4, 3],
+              draggable: isDraggable,
             });
+            if (isDraggable) {
+              shape.on('dragend', () => {
+                const pos = (shape as Konva.Rect).position();
+                updateAnnotationRef.current(capturedId, {
+                  x: konvaToPdf(pos.x),
+                  y: konvaToPdf(pos.y),
+                });
+              });
+            }
           }
           break;
         }
       }
 
       if (shape) {
-        const capturedId = ann.id;
-        const capturedType = ann.type;
         shape.on('click tap', (e) => {
           e.cancelBubble = true;
           if (toolRef.current === 'text' && capturedType === 'text') {
-            // Re-enter edit mode on existing text annotation
             setEditingIdRef.current(capturedId);
           } else {
             setSelected(capturedId);
@@ -601,7 +652,7 @@ export function AnnotationLayer({
 
     layer.batchDraw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [annotations, selectedId, editingAnnotationId, pdfPageWidth, canvasWidth]);
+  }, [annotations, selectedId, editingAnnotationId, pdfPageWidth, canvasWidth, activeTool]);
 
   return (
     <div
