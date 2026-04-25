@@ -9,7 +9,7 @@ import type { DrawStrokeWidth } from '@/store/tool';
 import { MousePointer2, Type, Pen, Highlighter, PenLine } from 'lucide-react';
 
 const TOOLS: { id: Tool; icon: React.ReactNode; label: string }[] = [
-  { id: 'select',    icon: <MousePointer2 size={18} />, label: 'Select' },
+  { id: 'select',    icon: <MousePointer2 size={18} />, label: 'Select & Move' },
   { id: 'text',      icon: <Type size={18} />,          label: 'Text' },
   { id: 'draw',      icon: <Pen size={18} />,           label: 'Draw' },
   { id: 'highlight', icon: <Highlighter size={18} />,   label: 'Highlight' },

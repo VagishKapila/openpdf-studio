@@ -5,7 +5,7 @@ import { MousePointer2, Type, Pen, Highlighter, PenLine, MoreHorizontal } from '
 import { MoreMenu } from './MoreMenu';
 
 const PRIMARY_TOOLS: { id: Tool; icon: React.ReactNode; label: string }[] = [
-  { id: 'select',    icon: <MousePointer2 size={18} />, label: 'Select' },
+  { id: 'select',    icon: <MousePointer2 size={18} />, label: 'Move' },
   { id: 'text',      icon: <Type size={18} />,          label: 'Text' },
   { id: 'draw',      icon: <Pen size={18} />,           label: 'Draw' },
   { id: 'highlight', icon: <Highlighter size={18} />,   label: 'Mark' },

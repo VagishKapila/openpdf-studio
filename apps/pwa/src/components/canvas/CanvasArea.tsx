@@ -349,6 +349,13 @@ export function CanvasArea() {
       data-testid="canvas-area"
       style={{ touchAction: 'none', userSelect: 'none' }}
     >
+      {/* Drag hint — shown when select tool is active */}
+      {activeTool === 'select' && (
+        <div className="pointer-events-none select-none absolute top-2 left-1/2 z-30 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white/80">
+          Tap an annotation to select · drag to move
+        </div>
+      )}
+
       <div
         ref={transformDivRef}
         style={{
