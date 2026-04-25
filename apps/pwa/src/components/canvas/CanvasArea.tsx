@@ -386,7 +386,7 @@ export function CanvasArea() {
         <div className="flex flex-col items-center gap-6 max-w-xs">
           {/* Logo mark */}
           <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-amber-400/10 border border-amber-400/20">
-            <span className="text-4xl">📄</span>
+            <img src="/icon-192.png" alt="FormIQ" className="h-16 w-16 rounded-2xl" />
           </div>
 
           <div>
