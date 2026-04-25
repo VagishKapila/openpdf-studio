@@ -148,14 +148,14 @@ export function AppHeader() {
               exportError
                 ? 'bg-red-700/60 text-red-200'
                 : exporting
-                ? 'bg-amber-500/50 text-black/60 cursor-not-allowed'
-                : 'bg-amber-500 text-black hover:bg-amber-400',
+                ? 'bg-amber-400/50 text-black/50 cursor-wait'
+                : 'bg-amber-400 text-black hover:bg-amber-300',
             ].join(' ')}
             title="Export annotated PDF"
           >
             {exporting ? (
               <>
-                <span className="h-3 w-3 animate-spin rounded-full border border-black/40 border-t-transparent" />
+                <span className="inline-block animate-spin">⏳</span>
                 <span>Exporting…</span>
               </>
             ) : (

@@ -119,10 +119,10 @@ export function DocumentSidebar() {
         {/* Document list */}
         <div className="flex-1 overflow-y-auto">
           {docs.length === 0 ? (
-            <div className="p-6 text-center text-xs text-white/40">
-              No documents yet.
-              <br />
-              Open a PDF to get started.
+            <div className="flex flex-col items-center gap-2 p-6 text-center">
+              <span className="text-3xl">📂</span>
+              <p className="text-sm text-white/50">No documents yet</p>
+              <p className="text-xs text-white/30">Open a PDF to get started</p>
             </div>
           ) : (
             <ul className="divide-y divide-white/5">

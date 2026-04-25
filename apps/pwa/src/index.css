@@ -23,3 +23,10 @@ body {
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
 }
+
+/* FormIQ indeterminate loading bar animation */
+@keyframes formiq-loading {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(100%); }
+  100% { transform: translateX(300%); }
+}

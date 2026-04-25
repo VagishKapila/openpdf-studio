@@ -3,7 +3,7 @@ import { FileText } from 'lucide-react';
 import { useDocumentStore, useViewportStore, useAnnotationStore, useToolStore } from '@/store';
 import { useDocumentGestures } from '@/hooks/useDocumentGestures';
 import { useCanvasTransform } from '@/hooks/useCanvasTransform';
-import { loadMostRecentDocument } from '@/lib/loadPdf';
+import { loadMostRecentDocument, loadPdfFromFile } from '@/lib/loadPdf';
 import { createTextAnnotation, createSignatureAnnotation } from '@/lib/annotations';
 import type { TextAnnotation } from '@/lib/annotations';
 import { AnnotationLayer } from './AnnotationLayer';
@@ -39,6 +39,10 @@ export function CanvasArea() {
   const [canvasMeta, setCanvasMeta] = useState<CanvasMeta | null>(null);
   // Position of the ghost signature overlay in transformDiv-local CSS pixels
   const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null);
+  // First-use tool hint
+  const [showToolHint, setShowToolHint] = useState(false);
+  // File input ref for the empty-state CTA
+  const emptyFileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Init: restore last doc (unless explicitly closed) ─────────────────────
   useEffect(() => {
@@ -54,6 +58,34 @@ export function CanvasArea() {
   useEffect(() => {
     if (loadState === 'ready') setIsInitializing(false);
   }, [loadState]);
+
+  // First-use tool hint — show once after the first PDF is loaded
+  useEffect(() => {
+    if (!doc) return;
+    const seen = localStorage.getItem('formiq-tool-hint-seen');
+    if (seen) return;
+    const timer = setTimeout(() => setShowToolHint(true), 1500);
+    return () => clearTimeout(timer);
+  }, [doc?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Dismiss hint when user picks any non-select tool
+  useEffect(() => {
+    if (activeTool !== 'select' && showToolHint) {
+      setShowToolHint(false);
+      localStorage.setItem('formiq-tool-hint-seen', '1');
+    }
+  }, [activeTool, showToolHint]);
+
+  // Empty-state file open handler
+  const handleEmptyStateOpen = () => {
+    emptyFileInputRef.current?.click();
+  };
+  const handleEmptyFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try { await loadPdfFromFile(file); } catch { /* error surfaced in store */ }
+  };
 
   // ── Load annotations whenever document or page changes ────────────────────
   useEffect(() => {
@@ -326,15 +358,57 @@ export function CanvasArea() {
   if (!doc) {
     return (
       <div
-        className="flex flex-1 w-full items-center justify-center p-8 text-center"
+        className="flex flex-1 w-full items-center justify-center p-8 text-center select-none"
         data-testid="canvas-area"
       >
-        <div className="max-w-xs">
-          <FileText className="mx-auto h-16 w-16 text-white/20" />
-          <h3 className="mt-4 text-base font-medium text-white/80">No document open</h3>
-          <p className="mt-2 text-xs text-white/50">
-            Click <span className="text-amber-400 font-medium">Open</span> in the header
-            to load a PDF, or drag one onto this area.
+        {/* Hidden file input for CTA button */}
+        <input
+          ref={emptyFileInputRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          className="hidden"
+          onChange={handleEmptyFileChange}
+        />
+
+        <div className="flex flex-col items-center gap-6 max-w-xs">
+          {/* Logo mark */}
+          <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-amber-400/10 border border-amber-400/20">
+            <span className="text-4xl">📄</span>
+          </div>
+
+          <div>
+            <h2 className="text-xl font-semibold text-white mb-2">
+              Your Documents Should Work for You
+            </h2>
+            <p className="text-sm text-white/50 leading-relaxed">
+              Open a PDF to annotate, highlight, sign, and export — all on your device. Nothing leaves your phone.
+            </p>
+          </div>
+
+          {/* Primary CTA */}
+          <button
+            onClick={handleEmptyStateOpen}
+            data-testid="empty-state-open-btn"
+            className="flex items-center gap-2 rounded-xl bg-amber-400 px-6 py-3 text-sm font-semibold text-black hover:bg-amber-300 transition-colors"
+          >
+            <span>Open a PDF</span>
+          </button>
+
+          {/* Feature pills */}
+          <div className="flex flex-wrap justify-center gap-2">
+            {['Annotate', 'Highlight', 'Sign', 'Export', 'Private'].map((f) => (
+              <span
+                key={f}
+                className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs text-white/40"
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+
+          {/* Drag-drop hint — desktop only */}
+          <p className="hidden md:block text-xs text-white/30">
+            or drag and drop a PDF anywhere
           </p>
         </div>
       </div>
@@ -349,6 +423,42 @@ export function CanvasArea() {
       data-testid="canvas-area"
       style={{ touchAction: 'none', userSelect: 'none' }}
     >
+      {/* Indeterminate loading bar — visible when a new PDF is loading */}
+      {loadState === 'loading' && (
+        <div className="absolute inset-x-0 top-0 z-50 h-0.5 bg-amber-400/20 overflow-hidden">
+          <div
+            className="h-full bg-amber-400"
+            style={{
+              width: '40%',
+              animation: 'formiq-loading 1.4s ease-in-out infinite',
+            }}
+          />
+        </div>
+      )}
+
+      {/* First-use tool hint */}
+      {showToolHint && (
+        <div
+          className={[
+            'absolute z-40 rounded-xl bg-amber-400 px-4 py-2.5 text-xs font-medium text-black shadow-lg whitespace-nowrap',
+            'bottom-24 left-1/2 -translate-x-1/2',
+            'md:left-16 md:translate-x-0 md:bottom-auto md:top-1/2 md:-translate-y-1/2',
+          ].join(' ')}
+        >
+          ← Pick a tool to start annotating
+          <button
+            onClick={() => {
+              setShowToolHint(false);
+              localStorage.setItem('formiq-tool-hint-seen', '1');
+            }}
+            className="ml-3 opacity-60 hover:opacity-100"
+            aria-label="Dismiss hint"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Drag hint — shown when select tool is active */}
       {activeTool === 'select' && (
         <div className="pointer-events-none select-none absolute top-2 left-1/2 z-30 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white/80">

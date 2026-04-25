@@ -28,20 +28,33 @@ export function PageNavDock() {
         ← Prev
       </button>
 
-      <div className="flex items-center gap-1" aria-label={`Page ${currentPage} of ${total}`}>
-        {pages.map((p) => (
-          <button
-            key={p}
-            onClick={() => setPage(p)}
-            aria-current={p === currentPage ? 'page' : undefined}
-            className="h-2 rounded-full transition-all"
-            style={{
-              width: p === currentPage ? '20px' : '8px',
-              background: p === currentPage ? 'var(--color-amber, #f7b84b)' : 'rgba(246,244,238,0.25)',
-            }}
-          />
-        ))}
-      </div>
+      {total <= 5 ? (
+        /* Dots for short documents */
+        <div className="flex items-center gap-1" aria-label={`Page ${currentPage} of ${total}`}>
+          {pages.map((p) => (
+            <button
+              key={p}
+              onClick={() => setPage(p)}
+              aria-current={p === currentPage ? 'page' : undefined}
+              className="h-2 rounded-full transition-all"
+              style={{
+                width: p === currentPage ? '20px' : '8px',
+                background: p === currentPage ? 'var(--color-amber, #f7b84b)' : 'rgba(246,244,238,0.25)',
+              }}
+            />
+          ))}
+        </div>
+      ) : (
+        /* Page counter for long documents (6+ pages) */
+        <div
+          className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-1"
+          aria-label={`Page ${currentPage} of ${total}`}
+        >
+          <span className="text-xs text-white/70">
+            {currentPage} / {total}
+          </span>
+        </div>
+      )}
 
       <button
         onClick={next}
