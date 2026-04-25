@@ -39,6 +39,11 @@ export function CanvasArea() {
   const [canvasMeta, setCanvasMeta] = useState<CanvasMeta | null>(null);
   // Position of the ghost signature overlay in transformDiv-local CSS pixels
   const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null);
+  // iOS fix (ios-4b): ignore-window ref — skip commits within 200ms of placement
+  // mode activating. Without this, the iOS phantom touchend from the "Place
+  // Signature" button bleeds through before placement listeners are registered,
+  // making the first real canvas tap appear to do nothing.
+  const placementStartTime = useRef<number>(0);
   // First-use tool hint
   const [showToolHint, setShowToolHint] = useState(false);
   // File input ref for the empty-state CTA
@@ -169,6 +174,8 @@ export function CanvasArea() {
       setGhostPos(null);
       return;
     }
+    // Mark when placement mode activates so we can ignore bleed-through touch events
+    placementStartTime.current = Date.now();
 
     const onMove = (e: PointerEvent) => {
       if (e.pointerType === 'touch') return; // touch handled separately
@@ -181,6 +188,8 @@ export function CanvasArea() {
 
     const onCommit = async (e: PointerEvent) => {
       if (!pendingSignature || !canvasMeta || !doc) return;
+      // iOS fix (ios-4): ignore taps within 200ms of placement mode starting
+      if (Date.now() - placementStartTime.current < 200) return;
       const tRect = transformDiv.getBoundingClientRect();
       const localX = (e.clientX - tRect.left) / scale;
       const localY = (e.clientY - tRect.top) / scale;
@@ -210,6 +219,8 @@ export function CanvasArea() {
 
     // Touch: track touchmove, commit on touchend
     const onTouchMove = (e: TouchEvent) => {
+      // Prevent iOS Safari scroll during signature placement
+      e.preventDefault();
       const touch = e.touches[0];
       if (!touch) return;
       const tRect = transformDiv.getBoundingClientRect();
@@ -221,6 +232,8 @@ export function CanvasArea() {
 
     const onTouchEnd = (e: TouchEvent) => {
       if (!pendingSignature || !canvasMeta || !doc) return;
+      // iOS fix (ios-4): ignore taps within 200ms of placement mode starting
+      if (Date.now() - placementStartTime.current < 200) return;
       const touch = e.changedTouches[0];
       if (!touch) return;
       const tRect = transformDiv.getBoundingClientRect();
@@ -251,7 +264,7 @@ export function CanvasArea() {
 
     container.addEventListener('pointermove', onMove);
     container.addEventListener('pointerdown', onCommit);
-    container.addEventListener('touchmove', onTouchMove, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
     container.addEventListener('touchend', onTouchEnd, { passive: true });
 
     return () => {

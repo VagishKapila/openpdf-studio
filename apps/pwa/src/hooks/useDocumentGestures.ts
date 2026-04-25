@@ -12,6 +12,9 @@ export function useDocumentGestures(
   const maxScale = useViewportStore((s) => s.maxScale);
 
   const activeTool = useToolStore((s) => s.activeTool);
+  const pendingSignature = useToolStore((s) => s.pendingSignature);
+  const pendingSignatureRef = useRef(pendingSignature);
+  useEffect(() => { pendingSignatureRef.current = pendingSignature; }, [pendingSignature]);
   const activeToolRef = useRef(activeTool);
   useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
 
@@ -88,14 +91,15 @@ export function useDocumentGestures(
           cancel?.();
           return;
         }
-        // Draw and highlight tools own single-finger pointer events — don't pan.
+        // Draw, highlight, and signature placement own single-finger pointer events.
         // Also skip pan when select tool has an annotation selected so Konva
         // draggable can win the touch event on iOS.
         const hasSelection = selectedIdRef.current !== null;
         if (
           activeToolRef.current === 'draw' ||
           activeToolRef.current === 'highlight' ||
-          (activeToolRef.current === 'select' && hasSelection)
+          (activeToolRef.current === 'select' && hasSelection) ||
+          pendingSignatureRef.current !== null
         ) {
           cancel?.();
           return;

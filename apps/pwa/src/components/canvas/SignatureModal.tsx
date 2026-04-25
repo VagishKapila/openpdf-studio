@@ -3,6 +3,7 @@
  * Tabs: Draw (signature_pad) | Type (cursive font) | Upload (image file)
  */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import SignaturePad from 'signature_pad';
 import type { PendingSignature } from '@/store/tool';
 
@@ -156,21 +157,23 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
   };
 
   const handlePlace = () => {
+    // Capture sig data synchronously before closing
+    let sig: PendingSignature | null = null;
+
     if (tab === 'draw') {
       const pad = sigPadRef.current;
       if (!pad || pad.isEmpty()) return;
       const canvas = drawCanvasRef.current;
       if (!canvas) return;
       const dpr = window.devicePixelRatio || 1;
-      onPlace({
+      sig = {
         source: 'draw',
         imageData: canvas.toDataURL('image/png'),
         naturalWidth: canvas.width / dpr,
         naturalHeight: canvas.height / dpr,
-      });
+      };
     } else if (tab === 'type') {
       if (!typedText.trim()) return;
-      // Render text to offscreen canvas for consistent PNG imageData
       const fontSize = 64;
       const off = document.createElement('canvas');
       const ctx = off.getContext('2d');
@@ -183,23 +186,35 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
       ctx.fillStyle = '#1a1a1a';
       ctx.textBaseline = 'middle';
       ctx.fillText(typedText, 12, th / 2);
-      onPlace({
+      sig = {
         source: 'type',
         imageData: off.toDataURL('image/png'),
         text: typedText,
         fontFamily: selectedFont,
         naturalWidth: tw,
         naturalHeight: th,
-      });
+      };
     } else {
       if (!uploadDataUrl) return;
-      onPlace({
+      sig = {
         source: 'upload',
         imageData: uploadDataUrl,
         naturalWidth: uploadNaturalW,
         naturalHeight: uploadNaturalH,
-      });
+      };
     }
+
+    if (!sig) return;
+    const captured = sig;
+
+    // iOS fix (ios-4): close modal FIRST so all touch events from the
+    // "Place Signature" button have time to clear before placement listeners
+    // are registered. Without this the modal's touchend bleeds through and
+    // the first real canvas tap appears to do nothing.
+    onClose();
+    setTimeout(() => {
+      onPlace(captured);
+    }, 150);
   };
 
   const canPlace =
@@ -298,19 +313,29 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
           {/* Upload tab */}
           <div style={{ display: tab === 'upload' ? 'block' : 'none' }}>
             <div className="flex flex-col items-center gap-4">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg"
-                onChange={handleFileChange}
-                className="hidden"
-                data-testid="sig-file-input"
-              />
+              {/* iOS fix (ios-3): render file input via portal at document.body level.
+                  Inside a position:fixed overlay, <input type="file"> triggers a full
+                  page reload in iOS Safari PWA mode. The portal moves the input outside
+                  the fixed stacking context, which prevents the reload. Fix B (off-screen
+                  fixed position) is applied as an additional safeguard. */}
+              {createPortal(
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  style={{ position: 'fixed', top: '-200px', left: '-200px', opacity: 0, width: 1, height: 1 }}
+                  onChange={handleFileChange}
+                  data-testid="sig-file-input"
+                />,
+                document.body
+              )}
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-lg border border-dashed border-white/20 px-6 py-4 text-sm text-white/50 hover:border-amber-400/50 hover:text-white/70 transition-colors"
+                className="flex flex-col items-center gap-3 w-full rounded-xl border-2 border-dashed border-white/20 p-8 hover:border-amber-400/50 transition-colors"
               >
-                Click to choose image (PNG or JPG)
+                <span className="text-4xl">📎</span>
+                <span className="text-sm text-white/70">Tap to choose image</span>
+                <span className="text-xs text-white/40">PNG or JPEG</span>
               </button>
               {uploadDataUrl && (
                 <div className="rounded-lg overflow-hidden bg-white p-2 max-w-full">
