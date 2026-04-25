@@ -1,12 +1,30 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:4173';
+
+// Helper: load sample PDF via file chooser (matches day-10 pattern)
+async function loadTestPdf(page: Page) {
+  const samplePath = resolve(__dirname, '../../../tools/test-fixtures/sample.pdf');
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.locator('[data-testid="open-button"]').click(),
+  ]);
+  await fileChooser.setFiles(samplePath);
+  await page.waitForSelector('[data-testid="annotation-layer"]', { timeout: 10_000 });
+}
 
 test.describe('Day 2 — Gesture layer', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(BASE_URL);
-    // Wait for React to hydrate
-    await page.waitForSelector('#root > *', { timeout: 10_000 });
+    await page.waitForLoadState('networkidle');
+    // Gesture container (touch-action:none, translate3d) only mounts when a PDF is open.
+    // Days 3–10 evolved the idle state so auto-restore is not guaranteed.
+    await loadTestPdf(page);
   });
 
   test('gesture container has touch-action: none', async ({ page }) => {
@@ -42,13 +60,16 @@ test.describe('Day 2 — Gesture layer', () => {
 });
 
 test.describe('Day 2.1 — Toolbar scope + fit-to-width', () => {
+  // Must run at mobile viewport — MobileToolbar is md:hidden on desktop (≥768 px)
+  test.use({ viewport: { width: 390, height: 844 } });
+
   test.beforeEach(async ({ page }) => {
     await page.goto(BASE_URL);
-    await page.waitForSelector('#root > *', { timeout: 10_000 });
+    await page.waitForLoadState('networkidle');
   });
 
   test('mobile toolbar has exactly 6 buttons (5 tools + More)', async ({ page }) => {
-    // v1 scope: Select, Text, Draw, Highlight, Sign, More
+    // v1 scope: Move, Text, Draw, Mark, Sign, More
     const toolbar = page.locator('[data-testid="mobile-toolbar"]');
     await expect(toolbar).toBeVisible();
     const buttons = toolbar.locator('button');
@@ -57,7 +78,8 @@ test.describe('Day 2.1 — Toolbar scope + fit-to-width', () => {
 
   test('mobile toolbar includes the 5 primary tools by aria-label', async ({ page }) => {
     const toolbar = page.locator('[data-testid="mobile-toolbar"]');
-    for (const label of ['Select', 'Text', 'Draw', 'Highlight', 'Sign']) {
+    // Tool labels updated in Day 7.2: Select→Move, Highlight→Mark
+    for (const label of ['Move', 'Text', 'Draw', 'Mark', 'Sign']) {
       await expect(toolbar.locator(`button[aria-label="${label}"]`)).toHaveCount(1);
     }
   });
@@ -68,6 +90,8 @@ test.describe('Day 2.1 — Toolbar scope + fit-to-width', () => {
   });
 
   test('canvas transform uses scale directly (not scale/renderedScale)', async ({ page }) => {
+    // transform div only mounts after a PDF is open
+    await loadTestPdf(page);
     // At initial load the inner transform div should have scale(1) — not scale(0.667)
     // which would happen if we incorrectly divided by renderedScale=1.5
     const transformDiv = page.locator('main [style*="translate3d"]').first();
