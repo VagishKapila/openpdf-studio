@@ -88,6 +88,22 @@ export default defineConfig({
             launch_type: 'single-client',
           },
         ],
+        share_target: {
+          action: '/',
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url',
+            files: [
+              {
+                name: 'file',
+                accept: ['application/pdf', '.pdf'],
+              },
+            ],
+          },
+        },
       },
     }),
   ],

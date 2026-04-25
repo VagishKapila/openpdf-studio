@@ -112,7 +112,7 @@ export function AppShell() {
               <p className="text-sm font-medium text-white">Add FormIQ to Home Screen</p>
               <p className="text-xs text-white/50 mt-0.5">
                 Tap <strong className="text-white/70">Share</strong> then{' '}
-                <strong className="text-white/70">"Add to Home Screen"</strong> to open PDFs directly in FormIQ
+                <strong className="text-white/70">"Add to Home Screen"</strong> — then tap <strong className="text-white/70">Share</strong> on any PDF to open it in FormIQ
               </p>
             </div>
             <button

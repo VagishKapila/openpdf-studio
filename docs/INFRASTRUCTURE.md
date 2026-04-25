@@ -179,6 +179,20 @@ For worse cases (entire repo state broken):
 
 ---
 
+
+## Branch Strategy
+
+| Branch | Purpose | Deploy target |
+|--------|---------|---------------|
+| `pwa-main` | Production — v1.0.0 locked | app.snaphw.com |
+| `staging` | v1.1 development (auth, Request Signatures) | staging.snaphw.com (TBD) |
+
+### Rules
+- Never commit features directly to pwa-main after v1.0.0 tag
+- All v1.1+ work happens on staging branch
+- Hotfixes: branch from pwa-main, fix, merge back, tag v1.0.x
+- staging merges to pwa-main only after full Layer 9 verification
+
 ## Cost
 
 Approximate monthly costs as of launch:

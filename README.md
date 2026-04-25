@@ -1,5 +1,9 @@
 # FormIQ — Your Documents Should Work for You. With AI.
 
+![Version](https://img.shields.io/badge/version-1.0.0-amber)
+![Live](https://img.shields.io/badge/live-app.snaphw.com-green)
+![PWA](https://img.shields.io/badge/PWA-installable-blue)
+
 FormIQ is a privacy-first PDF editor and e-signature platform. Open, annotate,
 sign, and manage PDFs entirely on-device — no server uploads, no accounts required.
 AI-assisted features help you work smarter with every document.
