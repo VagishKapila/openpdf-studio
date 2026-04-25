@@ -50,9 +50,11 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
 
   useEffect(() => { ensureFontsLoaded(); }, []);
 
-  // Initialize signature_pad when Draw tab is shown
+  // Initialize signature_pad once when modal opens (draw tab is default).
+  // The pad lives for the whole modal session — we only resize when the
+  // draw tab becomes visible again after being hidden with display:none.
   useEffect(() => {
-    if (!open || tab !== 'draw') return;
+    if (!open) return;
     const canvas = drawCanvasRef.current;
     if (!canvas) return;
 
@@ -78,7 +80,28 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
       pad.off();
       sigPadRef.current = null;
     };
-  }, [open, tab]);
+  }, [open]);
+
+  // When the user switches back to the Draw tab the canvas was hidden
+  // (display:none) so its offsetWidth may have been 0. Re-size it now that
+  // it is visible again. v1 behaviour: switching back shows a blank canvas.
+  useEffect(() => {
+    if (tab !== 'draw') return;
+    const canvas = drawCanvasRef.current;
+    if (!canvas || !sigPadRef.current) return;
+    const timer = setTimeout(() => {
+      const ratio = window.devicePixelRatio || 1;
+      const maxW = Math.min(window.innerWidth * 0.9, 480);
+      canvas.width = maxW * ratio;
+      canvas.height = 200 * ratio;
+      canvas.style.width = `${maxW}px`;
+      canvas.style.height = '200px';
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.scale(ratio, ratio);
+      sigPadRef.current!.clear();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [tab]);
 
   const handleClear = () => { sigPadRef.current?.clear(); };
 
@@ -220,9 +243,11 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
           ))}
         </div>
 
-        {/* Content */}
+        {/* Content — all three tabs are always mounted; display:none hides inactive ones.
+             This preserves drawn signatures and typed text when the user switches tabs. */}
         <div className="flex-1 overflow-y-auto p-5">
-          {tab === 'draw' && (
+          {/* Draw tab */}
+          <div style={{ display: tab === 'draw' ? 'block' : 'none' }}>
             <div className="flex flex-col items-center gap-3">
               <p className="text-xs text-white/50">Draw your signature below</p>
               <div className="rounded-lg overflow-hidden border border-white/10 bg-white">
@@ -232,9 +257,10 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
                 Clear
               </button>
             </div>
-          )}
+          </div>
 
-          {tab === 'type' && (
+          {/* Type tab */}
+          <div style={{ display: tab === 'type' ? 'block' : 'none' }}>
             <div className="flex flex-col gap-4">
               <input
                 type="text"
@@ -267,9 +293,10 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
                 {typedText || <span className="text-gray-300 text-base" style={{ fontFamily: 'inherit' }}>Preview</span>}
               </div>
             </div>
-          )}
+          </div>
 
-          {tab === 'upload' && (
+          {/* Upload tab */}
+          <div style={{ display: tab === 'upload' ? 'block' : 'none' }}>
             <div className="flex flex-col items-center gap-4">
               <input
                 ref={fileInputRef}
@@ -291,7 +318,7 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
                 </div>
               )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Footer */}
