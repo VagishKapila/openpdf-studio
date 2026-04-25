@@ -1,13 +1,16 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useDocumentStore, useUIStore, useViewportStore } from '@/store';
-import { FileText, Menu, Upload, X } from 'lucide-react';
+import { FileText, Menu, Upload, X, Download } from 'lucide-react';
 import { loadPdfFromFile } from '@/lib/loadPdf';
+import { useExport } from '@/hooks/useExport';
 
 export function AppHeader() {
   const { document: doc, loadState, clearDocument } = useDocumentStore();
   const toggleAside = useUIStore((s) => s.toggleAside);
   const resetTransform = useViewportStore((s) => s.resetTransform);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { exportPdf, canExport, exporting } = useExport();
+  const [exportError, setExportError] = useState(false);
 
   const handleOpenClick = () => fileInputRef.current?.click();
 
@@ -17,9 +20,8 @@ export function AppHeader() {
     try {
       await loadPdfFromFile(file);
     } catch {
-      // error already set in store by loadPdfFromFile
+      // error already set in store
     } finally {
-      // reset so the same file can be re-opened
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -29,11 +31,22 @@ export function AppHeader() {
     resetTransform();
   };
 
+  const handleExport = async () => {
+    setExportError(false);
+    try {
+      await exportPdf();
+    } catch {
+      setExportError(true);
+      setTimeout(() => setExportError(false), 3000);
+    }
+  };
+
   return (
     <header
       className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-navy-900 px-3"
       data-testid="app-header"
     >
+      {/* Left: menu + logo */}
       <div className="flex items-center gap-2">
         <button
           onClick={toggleAside}
@@ -46,6 +59,7 @@ export function AppHeader() {
         <span className="hidden text-xs text-white/40 sm:inline">Studio</span>
       </div>
 
+      {/* Centre: document name */}
       <div className="flex items-center gap-1 truncate px-2 text-xs text-white/50">
         {loadState === 'ready' && doc ? (
           <>
@@ -58,8 +72,9 @@ export function AppHeader() {
         ) : null}
       </div>
 
+      {/* Right: actions */}
       <div className="flex items-center gap-1">
-        {/* Close button — only visible when a document is loaded */}
+        {/* Close button */}
         {loadState === 'ready' && doc && (
           <button
             onClick={handleCloseDocument}
@@ -72,6 +87,37 @@ export function AppHeader() {
           </button>
         )}
 
+        {/* Export button — only when a document is open */}
+        {canExport && (
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            data-testid="export-button"
+            className={[
+              'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+              exportError
+                ? 'bg-red-700/60 text-red-200'
+                : exporting
+                ? 'bg-amber-500/50 text-black/60 cursor-not-allowed'
+                : 'bg-amber-500 text-black hover:bg-amber-400',
+            ].join(' ')}
+            title="Export annotated PDF"
+          >
+            {exporting ? (
+              <>
+                <span className="h-3 w-3 animate-spin rounded-full border border-black/40 border-t-transparent" />
+                <span>Exporting…</span>
+              </>
+            ) : (
+              <>
+                <Download size={13} />
+                <span>Export</span>
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Open button */}
         <button
           onClick={handleOpenClick}
           className="flex items-center gap-1.5 rounded-md bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-400/20"
@@ -82,7 +128,6 @@ export function AppHeader() {
           <span>Open</span>
         </button>
 
-        {/* Hidden file input — persists across renders; reset after use */}
         <input
           ref={fileInputRef}
           type="file"
