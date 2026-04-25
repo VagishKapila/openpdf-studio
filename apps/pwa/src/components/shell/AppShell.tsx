@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppHeader } from './AppHeader';
 import { ToolPalette } from './ToolPalette';
 import { MobileToolbar } from './MobileToolbar';
@@ -15,6 +15,36 @@ export function AppShell() {
   const { activeTool, setTool, setPendingSignature } = useToolStore();
 
   const isSignModalOpen = activeTool === 'sign';
+
+  // iOS install banner — shown once to first-time Safari visitors who haven't installed the PWA
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
+    const hasSeenPrompt = localStorage.getItem('formiq-install-prompt-seen');
+    if (isIOS && !isInStandaloneMode && !hasSeenPrompt) {
+      const timer = setTimeout(() => setShowInstallBanner(true), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  // File Handler API — handle PDFs launched via "Open with FormIQ" on Android
+  useEffect(() => {
+    if (!('launchQueue' in window)) return;
+    (window as any).launchQueue.setConsumer(async (launchParams: any) => {
+      if (!launchParams.files || launchParams.files.length === 0) return;
+      try {
+        const fileHandle = launchParams.files[0];
+        const file = await fileHandle.getFile();
+        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+          await loadPdfFromFile(file);
+        }
+      } catch {
+        // silently ignore — loadPdfFromFile surfaces errors in store
+      }
+    });
+  }, []);
 
   const handleSignClose = useCallback(() => {
     setTool('select');
@@ -72,6 +102,32 @@ export function AppShell() {
         onClose={handleSignClose}
         onPlace={handleSignPlace}
       />
+
+      {/* iOS install prompt — one-time banner for first-time Safari visitors */}
+      {showInstallBanner && (
+        <div className="fixed bottom-20 left-4 right-4 z-50 rounded-2xl bg-neutral-900 border border-white/10 p-4 shadow-xl">
+          <div className="flex items-start gap-3">
+            <img src="/icon-192.png" className="h-10 w-10 rounded-xl flex-shrink-0" alt="FormIQ" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white">Add FormIQ to Home Screen</p>
+              <p className="text-xs text-white/50 mt-0.5">
+                Tap <strong className="text-white/70">Share</strong> then{' '}
+                <strong className="text-white/70">"Add to Home Screen"</strong> to open PDFs directly in FormIQ
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setShowInstallBanner(false);
+                localStorage.setItem('formiq-install-prompt-seen', '1');
+              }}
+              className="text-white/40 hover:text-white text-lg leading-none flex-shrink-0 ml-1"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
