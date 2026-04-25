@@ -118,9 +118,10 @@ export function AppHeader() {
               aria-label="Undo"
               title="Undo (⌘Z)"
               data-testid="undo-button"
-              className="rounded p-1.5 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex h-8 items-center gap-1 rounded-lg px-2 text-white/70 hover:bg-white/15 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
             >
-              <Undo2 size={16} />
+              <Undo2 size={15} />
+              <span className="hidden lg:inline text-[11px] font-mono">⌘Z</span>
             </button>
             <button
               onClick={() => redo()}
@@ -128,9 +129,10 @@ export function AppHeader() {
               aria-label="Redo"
               title="Redo (⌘⇧Z)"
               data-testid="redo-button"
-              className="rounded p-1.5 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex h-8 items-center gap-1 rounded-lg px-2 text-white/70 hover:bg-white/15 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
             >
-              <Redo2 size={16} />
+              <Redo2 size={15} />
+              <span className="hidden lg:inline text-[11px] font-mono">⌘⇧Z</span>
             </button>
           </>
         )}
