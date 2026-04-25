@@ -1,6 +1,6 @@
 import { useGesture } from '@use-gesture/react';
 import { useRef, useCallback, useEffect } from 'react';
-import { useViewportStore, useToolStore } from '@/store';
+import { useViewportStore, useToolStore, useAnnotationStore } from '@/store';
 
 export function useDocumentGestures(
   targetRef: React.RefObject<HTMLElement | null>,
@@ -14,6 +14,10 @@ export function useDocumentGestures(
   const activeTool = useToolStore((s) => s.activeTool);
   const activeToolRef = useRef(activeTool);
   useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
+
+  const selectedId = useAnnotationStore((s) => s.selectedId);
+  const selectedIdRef = useRef(selectedId);
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
 
   // Mirror store state into a ref so gesture callbacks read current values
   // without needing to re-subscribe on every render
@@ -84,8 +88,15 @@ export function useDocumentGestures(
           cancel?.();
           return;
         }
-        // Draw and highlight tools own single-finger pointer events — don't pan
-        if (activeToolRef.current === 'draw' || activeToolRef.current === 'highlight') {
+        // Draw and highlight tools own single-finger pointer events — don't pan.
+        // Also skip pan when select tool has an annotation selected so Konva
+        // draggable can win the touch event on iOS.
+        const hasSelection = selectedIdRef.current !== null;
+        if (
+          activeToolRef.current === 'draw' ||
+          activeToolRef.current === 'highlight' ||
+          (activeToolRef.current === 'select' && hasSelection)
+        ) {
           cancel?.();
           return;
         }

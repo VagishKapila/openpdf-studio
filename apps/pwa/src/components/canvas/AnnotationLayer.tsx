@@ -597,6 +597,10 @@ export function AnnotationLayer({
                 setSelected(capturedId);
               });
               if (capturedDraggable) {
+                // Fix B (iOS): stop touch propagation so Konva drag wins
+                konvaImg.on('touchstart', (e) => {
+                  e.cancelBubble = true;
+                });
                 konvaImg.on('dragend', () => {
                   const pos = konvaImg.position();
                   updateAnnotationRef.current(capturedId, {
@@ -646,6 +650,13 @@ export function AnnotationLayer({
             setSelected(capturedId);
           }
         });
+        // Fix B (iOS): stop touch propagation to the gesture hook so Konva
+        // draggable can capture single-finger drag on iOS.
+        if (isDraggable) {
+          shape.on('touchstart', (e) => {
+            e.cancelBubble = true;
+          });
+        }
         layer.add(shape);
       }
     }
