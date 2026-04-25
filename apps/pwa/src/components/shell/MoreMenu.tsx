@@ -1,18 +1,17 @@
-/** MoreMenu — bottom sheet shown when "More" is tapped in the mobile toolbar. */
-
-type MenuItem = { id: string; emoji: string; title: string; subtitle: string };
-
-const MORE_ITEMS: MenuItem[] = [
-  { id: 'pages',  emoji: '📄', title: 'Pages',  subtitle: 'View all pages' },
-  { id: 'search', emoji: '🔍', title: 'Search', subtitle: 'Find text in document' },
-  { id: 'export', emoji: '⬇️', title: 'Export', subtitle: 'Download with annotations' },
-  { id: 'print',  emoji: '🖨️', title: 'Print',  subtitle: 'Print document' },
-];
+import { useExport } from '@/hooks/useExport';
 
 type MoreMenuProps = { open: boolean; onClose: () => void };
 
 export function MoreMenu({ open, onClose }: MoreMenuProps) {
+  const { exportPdf, canExport, exporting } = useExport();
+
   if (!open) return null;
+
+  const handleExport = async () => {
+    await exportPdf();
+    onClose();
+  };
+
   return (
     <>
       <div
@@ -36,18 +35,55 @@ export function MoreMenu({ open, onClose }: MoreMenuProps) {
             ✕
           </button>
         </div>
-        {MORE_ITEMS.map((item) => (
-          <div key={item.id} className="flex items-center gap-3 rounded-xl px-2 py-3 opacity-50">
-            <span className="w-7 text-center text-xl">{item.emoji}</span>
-            <div className="flex-1">
-              <div className="text-sm text-white">{item.title}</div>
-              <div className="text-xs text-white/40">{item.subtitle}</div>
-            </div>
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/50">
-              Soon
-            </span>
+
+        {/* Pages — coming soon */}
+        <div className="flex items-center gap-3 rounded-xl px-2 py-3 opacity-50">
+          <span className="w-7 text-center text-xl">📄</span>
+          <div className="flex-1">
+            <div className="text-sm text-white">Pages</div>
+            <div className="text-xs text-white/40">View all pages</div>
           </div>
-        ))}
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/50">Soon</span>
+        </div>
+
+        {/* Search — coming soon */}
+        <div className="flex items-center gap-3 rounded-xl px-2 py-3 opacity-50">
+          <span className="w-7 text-center text-xl">🔍</span>
+          <div className="flex-1">
+            <div className="text-sm text-white">Search</div>
+            <div className="text-xs text-white/40">Find text in document</div>
+          </div>
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/50">Soon</span>
+        </div>
+
+        {/* Export — ACTIVE */}
+        <button
+          onClick={handleExport}
+          disabled={!canExport || exporting}
+          data-testid="export-button-mobile"
+          className="flex w-full items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <span className="w-7 text-center text-xl">⬇️</span>
+          <div className="flex-1 text-left">
+            <div className="text-sm text-white">
+              {exporting ? 'Exporting…' : 'Export PDF'}
+            </div>
+            <div className="text-xs text-white/40">Download with annotations</div>
+          </div>
+          {exporting && (
+            <span className="h-4 w-4 animate-spin rounded-full border border-white/30 border-t-white" />
+          )}
+        </button>
+
+        {/* Print — coming soon */}
+        <div className="flex items-center gap-3 rounded-xl px-2 py-3 opacity-50">
+          <span className="w-7 text-center text-xl">🖨️</span>
+          <div className="flex-1">
+            <div className="text-sm text-white">Print</div>
+            <div className="text-xs text-white/40">Print document</div>
+          </div>
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/50">Soon</span>
+        </div>
       </div>
     </>
   );
