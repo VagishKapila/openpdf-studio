@@ -10,6 +10,13 @@ export async function loadPdfFromFile(file: File): Promise<void> {
 
   if (!isPdf) throw new Error('Please select a PDF file.');
 
+  if (file.size > 50 * 1024 * 1024) {
+    const proceed = confirm(
+      'This PDF is large (over 50MB) and may be slow on mobile. Continue?',
+    );
+    if (!proceed) return;
+  }
+
   useDocumentStore.getState().setLoadState('loading');
 
   try {
