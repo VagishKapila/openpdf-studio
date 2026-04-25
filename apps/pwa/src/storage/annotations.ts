@@ -32,3 +32,13 @@ export async function getAllAnnotationsForDocument(
   const rows = await db.annotations.where('documentId').equals(documentId).toArray();
   return rows as Annotation[];
 }
+
+export async function deleteAnnotationsForPage(
+  documentId: DocumentId,
+  pageNumber: PageNumber,
+): Promise<void> {
+  await db.annotations
+    .where('[documentId+pageNumber]')
+    .equals([documentId, pageNumber])
+    .delete();
+}
