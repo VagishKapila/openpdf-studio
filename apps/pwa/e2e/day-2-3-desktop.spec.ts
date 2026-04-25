@@ -57,9 +57,20 @@ test.describe('Day 2.3 — Desktop layout (idle state, no PDF loaded)', () => {
   });
 
   test('Empty-state prompt is visible when no PDF loaded', async ({ page }) => {
-    // The empty state SVG + "Tap Open to load a PDF" message
-    const emptyState = page.locator('text=Open');
-    await expect(emptyState).toBeVisible();
+    // Clear any cached document so auto-restore does not load a PDF
+    await page.evaluate(async () => {
+      const dbs = await (indexedDB as IDBFactory & { databases?: () => Promise<IDBDatabaseInfo[]> }).databases?.() ?? [];
+      for (const db of dbs) {
+        if (db.name) indexedDB.deleteDatabase(db.name);
+      }
+    });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    // Use the unique heading text — 'text=Open' previously matched 6+ elements
+    // (the AppHeader "Open" button + the word "Open" inside the empty-state hint)
+    await expect(
+      page.locator('[data-testid="canvas-area"]').getByText('No document open'),
+    ).toBeVisible();
   });
 });
 
