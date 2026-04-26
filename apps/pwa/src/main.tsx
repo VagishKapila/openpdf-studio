@@ -18,35 +18,39 @@ Sentry.init({
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import './index.css';
 import App from './App';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');
+
 createRoot(root).render(
-  <Sentry.ErrorBoundary
-    fallback={({ resetError }) => (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-slate-900 p-8 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-400/10">
-          <span className="text-3xl">⚠️</span>
+  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''}>
+    <Sentry.ErrorBoundary
+      fallback={({ resetError }) => (
+        <div className="flex h-screen flex-col items-center justify-center gap-4 bg-slate-900 p-8 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-400/10">
+            <span className="text-3xl">⚠️</span>
+          </div>
+          <p className="text-xl font-bold text-white">Something went wrong</p>
+          <p className="text-sm text-white/50 max-w-xs">
+            This error has been reported automatically. Please try refreshing.
+          </p>
+          <button
+            onClick={resetError}
+            className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-black hover:bg-amber-400"
+          >
+            Try Again
+          </button>
         </div>
-        <p className="text-xl font-bold text-white">Something went wrong</p>
-        <p className="text-sm text-white/50 max-w-xs">
-          This error has been reported automatically. Please try refreshing.
-        </p>
-        <button
-          onClick={resetError}
-          className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-black hover:bg-amber-400"
-        >
-          Try Again
-        </button>
-      </div>
-    )}
-  >
-    <StrictMode>
-      <App />
-    </StrictMode>
-  </Sentry.ErrorBoundary>,
+      )}
+    >
+      <StrictMode>
+        <App />
+      </StrictMode>
+    </Sentry.ErrorBoundary>
+  </GoogleOAuthProvider>,
 );
 
 import('@/lib/analytics').then(({ trackEvent }) => {
@@ -56,8 +60,6 @@ import('@/lib/analytics').then(({ trackEvent }) => {
 });
 
 // Always expose store references for browser console testing and Playwright.
-// These are read-only references to Zustand stores — no security risk
-// (React DevTools already exposes this; this just makes it convenient).
 import('./store').then(({ useAnnotationStore, useDocumentStore, useViewportStore }) => {
   import('@/lib/annotations').then(({ createTextAnnotation }) => {
     (window as unknown as Record<string, unknown>).openpdfDebug = {
@@ -65,7 +67,6 @@ import('./store').then(({ useAnnotationStore, useDocumentStore, useViewportStore
       documents: useDocumentStore,
       viewport: useViewportStore,
 
-      /** Console helper: openpdfDebug.seed() or openpdfDebug.seed(2) for page 2 */
       seed: async (pageNumber = 1) => {
         const doc = useDocumentStore.getState().document;
         if (!doc) { console.warn('[OpenPDF] No document open — open a PDF first'); return; }
@@ -81,39 +82,26 @@ import('./store').then(({ useAnnotationStore, useDocumentStore, useViewportStore
         return ann;
       },
 
-      /**
-       * Playwright/console helper: create a blank 1-page test PDF, save it to
-       * Dexie, and load it into the document store — all without needing an
-       * existing document.  Call this from a test via:
-       *   await page.evaluate(() => window.openpdfDebug.seedDocument())
-       */
       seedDocument: async () => {
         const [{ PDFDocument }, { pdfjs }, { saveDocument, updatePageCount }] = await Promise.all([
           import('pdf-lib'),
           import('@/lib/pdfjs'),
           import('@/storage/documents'),
         ]);
-        // Build a minimal blank A4 page
         const pdfDoc = await PDFDocument.create();
         pdfDoc.addPage([595, 842]);
         const bytes = await pdfDoc.save();
-
-        // Save to Dexie (saveDocument expects a File)
         const file = new File([bytes], 'test-document.pdf', { type: 'application/pdf' });
         const id = await saveDocument(file);
-
-        // Load via PDF.js then set in store
         const data = (bytes as Uint8Array).buffer.slice(0);
         const pdf = await pdfjs.getDocument({ data }).promise;
         await updatePageCount(id, pdf.numPages);
-
         useDocumentStore.getState().setDocument({
           id,
           fileName: 'test-document.pdf',
           totalPages: pdf.numPages,
           pdf,
         });
-
         console.info('[OpenPDF] Test document seeded:', id);
         return id;
       },
