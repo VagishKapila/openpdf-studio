@@ -1,0 +1,44 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-amber: #f7b84b;
+  --color-navy-900: #0f172a;
+  --color-navy-800: #112244;
+  --color-navy-500: #1e3a5f;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Prevent iOS Safari bounce scroll interfering with gesture layer */
+body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/*
+ * Sonner v1.4.x + React 19 compat fix:
+ * The <style> prop passed to <Toaster> is applied to the inner <ol>,
+ * NOT to the outer <section> positioning wrapper. In React 19, ref-based
+ * inline-style writes on the section are also dropped. Force position here
+ * via CSS so toasts always appear above dialogs/backdrops.
+ * Targets Sonner's unique aria signature — safe, won't match other elements.
+ */
+section[aria-live="polite"][tabindex="-1"][aria-relevant] {
+  position: fixed !important;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 999999;
+  pointer-events: none;
+}
+section[aria-live="polite"][tabindex="-1"][aria-relevant] [data-sonner-toast] {
+  pointer-events: auto;
+}
