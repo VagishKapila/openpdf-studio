@@ -5,12 +5,13 @@ import { useAuthDialog } from '@/hooks/useAuthDialog';
 import { useAuth } from '@/stores/auth';
 import { brand, gradients, shadows } from '@/lib/brand';
 import { FormIQLogo } from '@/components/branding/FormIQLogo';
+import { GoogleButton } from './GoogleButton';
 import { LoginForm } from './LoginForm';
 import { SignupForm } from './SignupForm';
 
-// COWORK-41.D: GoogleButton temporarily removed to binary-search crash source.
-// If this renders without crashing, root cause is in useGoogleLogin / @react-oauth/google
-// with empty clientId. GoogleButton re-added once VITE_GOOGLE_CLIENT_ID is set.
+// COWORK-41.E: GoogleButton restored with VITE_GOOGLE_CLIENT_ID guard.
+// When clientId is unset (staging), the button is hidden — no crash.
+// When VITE_GOOGLE_CLIENT_ID is configured, the Google button appears automatically.
 
 export function AuthDialog() {
   const { open, mode, contextMessage, onAuthed, closeDialog, setMode } = useAuthDialog();
@@ -93,6 +94,19 @@ export function AuthDialog() {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Google OAuth — only shown when VITE_GOOGLE_CLIENT_ID is configured.
+                Guards against useGoogleLogin crash with empty clientId. */}
+            {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+              <div className="mt-4">
+                <div className="flex items-center gap-3 py-2">
+                  <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                  <span className="text-[11px]" style={{ color: brand.textSecondary }}>or</span>
+                  <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                </div>
+                <GoogleButton onSuccess={() => closeDialog()} />
+              </div>
+            ) : null}
           </div>
         </motion.div>
       </DialogContent>
