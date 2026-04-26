@@ -86,7 +86,7 @@ export function AppHeader() {
           <Menu size={18} />
         </button>
         <FormIQLogo variant="icon" size={28} glow={false} />
-        <span className="hidden text-xs text-white/40 sm:inline">Studio</span>
+        <span className="hidden text-xs text-white/40 sm:inline">FormIQ</span>
       </div>
 
       {/* Centre: document name */}
