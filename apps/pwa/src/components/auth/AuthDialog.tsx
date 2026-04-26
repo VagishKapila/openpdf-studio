@@ -1,4 +1,4 @@
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
 import { useAuthDialog } from '@/hooks/useAuthDialog';
@@ -17,6 +17,9 @@ import { SignupForm } from './SignupForm';
  *  - Brand-gradient title fade
  *  - Spring entry animation
  *  - FormIQ icon at the top of the dialog
+ *
+ * FIX (COWORK-41.B): Added DialogTitle + DialogDescription to satisfy
+ * @radix-ui/react-dialog v1.1 accessibility requirement and prevent crash.
  */
 export function AuthDialog() {
   const { open, mode, contextMessage, onAuthed, closeDialog, setMode } = useAuthDialog();
@@ -56,7 +59,7 @@ export function AuthDialog() {
             <div className="mb-4 flex justify-center">
               <FormIQLogo variant="icon" size={56} glow />
             </div>
-            <h2
+            <DialogTitle
               className="mb-2 text-center text-[24px] font-bold tracking-tight"
               style={{
                 background: gradients.title,
@@ -66,14 +69,14 @@ export function AuthDialog() {
               }}
             >
               Welcome to FormIQ
-            </h2>
-            <p
+            </DialogTitle>
+            <DialogDescription
               className="text-center text-[13.5px] leading-snug"
               style={{ color: brand.textSecondary }}
             >
               {contextMessage ??
                 'Sign in to send signature requests, save your work, and access your documents anywhere.'}
-            </p>
+            </DialogDescription>
           </div>
 
           <div className="px-8 pb-8">
