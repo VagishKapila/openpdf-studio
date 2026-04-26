@@ -20,6 +20,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import './index.css';
+import '@/styles/auth-animations.css';
 import App from './App';
 
 const root = document.getElementById('root');
