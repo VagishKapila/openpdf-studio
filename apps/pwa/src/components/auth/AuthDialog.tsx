@@ -5,22 +5,13 @@ import { useAuthDialog } from '@/hooks/useAuthDialog';
 import { useAuth } from '@/stores/auth';
 import { brand, gradients, shadows } from '@/lib/brand';
 import { FormIQLogo } from '@/components/branding/FormIQLogo';
-import { GoogleButton } from './GoogleButton';
 import { LoginForm } from './LoginForm';
 import { SignupForm } from './SignupForm';
 
-/**
- * Premium auth dialog with FormIQ brand identity:
- *  - Glass background (backdrop-blur 50px + saturate 200%)
- *  - Conic-gradient glow ring (cyan → teal → lime → yellow) rotating behind the card
- *  - Animated tab indicator that slides between Login / Signup
- *  - Brand-gradient title fade
- *  - Spring entry animation
- *  - FormIQ icon at the top of the dialog
- *
- * FIX (COWORK-41.B): Added DialogTitle + DialogDescription to satisfy
- * @radix-ui/react-dialog v1.1 accessibility requirement and prevent crash.
- */
+// COWORK-41.D: GoogleButton temporarily removed to binary-search crash source.
+// If this renders without crashing, root cause is in useGoogleLogin / @react-oauth/google
+// with empty clientId. GoogleButton re-added once VITE_GOOGLE_CLIENT_ID is set.
+
 export function AuthDialog() {
   const { open, mode, contextMessage, onAuthed, closeDialog, setMode } = useAuthDialog();
   const user = useAuth((s) => s.user);
@@ -54,7 +45,6 @@ export function AuthDialog() {
             className="pointer-events-none absolute -inset-[3px] -z-10 animate-formiq-logo-spin rounded-[22px] opacity-35 blur-md"
             style={{ background: gradients.conic }}
           />
-
           <div className="px-8 pb-5 pt-7">
             <div className="mb-4 flex justify-center">
               <FormIQLogo variant="icon" size={56} glow />
@@ -78,10 +68,7 @@ export function AuthDialog() {
                 'Sign in to send signature requests, save your work, and access your documents anywhere.'}
             </DialogDescription>
           </div>
-
           <div className="px-8 pb-8">
-            <GoogleButton onSuccess={() => closeDialog()} />
-            <Separator />
             <TabSwitcher mode={mode} onChange={setMode} />
             <AnimatePresence mode="wait">
               {mode === 'login' ? (
@@ -110,19 +97,6 @@ export function AuthDialog() {
         </motion.div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Separator() {
-  return (
-    <div
-      className="my-5 flex items-center gap-3.5 text-[11px] uppercase tracking-[0.12em]"
-      style={{ color: brand.textMuted }}
-    >
-      <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      or
-      <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-    </div>
   );
 }
 
