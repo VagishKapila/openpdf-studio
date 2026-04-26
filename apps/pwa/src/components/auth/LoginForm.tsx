@@ -1,11 +1,12 @@
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { useAuthStore } from '@/stores/auth';
+import { useAuth } from '@/stores/auth';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { AnimatedSubmitButton } from './AnimatedSubmitButton';
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -19,14 +20,16 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
-  const login = useAuthStore((s) => s.login);
-  const status = useAuthStore((s) => s.status);
+  const login = useAuth((s) => s.login);
+  const status = useAuth((s) => s.status);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
+  } = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+  });
 
   const onSubmit = async (values: LoginValues) => {
     try {
@@ -38,36 +41,52 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-      <div className="space-y-1">
-        <Label htmlFor="login-email">Email</Label>
+    <motion.form
+      onSubmit={handleSubmit(onSubmit)}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="space-y-3.5"
+    >
+      <div>
+        <Label htmlFor="login-email" className="text-zinc-300/70">
+          Email
+        </Label>
         <Input
           id="login-email"
           type="email"
           placeholder="you@company.com"
           autoComplete="email"
           {...register('email')}
+          className="auth-input"
+          aria-invalid={!!errors.email}
         />
-        {errors.email && <p className="text-xs text-rose-400">{errors.email.message}</p>}
+        {errors.email && (
+          <p className="mt-1.5 text-xs text-rose-400">{errors.email.message}</p>
+        )}
       </div>
-      <div className="space-y-1">
-        <Label htmlFor="login-password">Password</Label>
+
+      <div>
+        <Label htmlFor="login-password" className="text-zinc-300/70">
+          Password
+        </Label>
         <Input
           id="login-password"
           type="password"
           placeholder="••••••••"
           autoComplete="current-password"
           {...register('password')}
+          className="auth-input"
+          aria-invalid={!!errors.password}
         />
-        {errors.password && <p className="text-xs text-rose-400">{errors.password.message}</p>}
+        {errors.password && (
+          <p className="mt-1.5 text-xs text-rose-400">{errors.password.message}</p>
+        )}
       </div>
-      <Button
-        type="submit"
-        disabled={isSubmitting || status === 'loading'}
-        className="w-full bg-amber-400 text-black hover:bg-amber-300 disabled:opacity-60"
-      >
-        {isSubmitting || status === 'loading' ? 'Signing in…' : 'Sign in'}
-      </Button>
-    </form>
+
+      <AnimatedSubmitButton loading={isSubmitting || status === 'loading'}>
+        Sign in
+      </AnimatedSubmitButton>
+    </motion.form>
   );
 }

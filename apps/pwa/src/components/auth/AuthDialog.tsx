@@ -1,22 +1,27 @@
-import { useEffect, useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect } from 'react';
 import { useAuthDialog } from '@/hooks/useAuthDialog';
-import { useAuthStore } from '@/stores/auth';
+import { useAuth } from '@/stores/auth';
+import { brand, gradients, shadows } from '@/lib/brand';
+import { FormIQLogo } from '@/components/branding/FormIQLogo';
 import { GoogleButton } from './GoogleButton';
 import { LoginForm } from './LoginForm';
 import { SignupForm } from './SignupForm';
 
+/**
+ * Premium auth dialog with FormIQ brand identity:
+ *  - Glass background (backdrop-blur 50px + saturate 200%)
+ *  - Conic-gradient glow ring (cyan → teal → lime → yellow) rotating behind the card
+ *  - Animated tab indicator that slides between Login / Signup
+ *  - Brand-gradient title fade
+ *  - Spring entry animation
+ *  - FormIQ icon at the top of the dialog
+ */
 export function AuthDialog() {
   const { open, mode, contextMessage, onAuthed, closeDialog, setMode } = useAuthDialog();
-  const user = useAuthStore((s) => s.user);
+  const user = useAuth((s) => s.user);
 
-  // Close and fire callback when auth completes while dialog is open
   useEffect(() => {
     if (open && user) {
       onAuthed?.();
@@ -26,61 +31,139 @@ export function AuthDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && closeDialog()}>
-      <DialogContent className="max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-6 text-white shadow-2xl">
-        <DialogHeader className="mb-4">
-          <DialogTitle className="text-center text-xl font-bold">
-            {mode === 'login' ? 'Sign in to FormIQ' : 'Create your account'}
-          </DialogTitle>
-          {contextMessage && (
-            <DialogDescription className="text-center text-sm text-white/60">
-              {contextMessage}
-            </DialogDescription>
-          )}
-        </DialogHeader>
+      <DialogContent className="border-none bg-transparent p-0 shadow-none sm:max-w-[420px]">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.92, y: 20 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+          className="relative overflow-hidden rounded-[20px]"
+          style={{
+            background: brand.surface,
+            backdropFilter: 'blur(50px) saturate(200%)',
+            WebkitBackdropFilter: 'blur(50px) saturate(200%)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: shadows.dialog,
+          }}
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-[3px] -z-10 animate-formiq-logo-spin rounded-[22px] opacity-35 blur-md"
+            style={{ background: gradients.conic }}
+          />
 
-        <div className="space-y-4">
-          <GoogleButton onSuccess={() => closeDialog()} />
-
-          {/* Divider */}
-          <div className="relative flex items-center gap-3">
-            <div className="h-px flex-1 bg-white/10" />
-            <span className="text-xs uppercase tracking-widest text-white/30">or</span>
-            <div className="h-px flex-1 bg-white/10" />
+          <div className="px-8 pb-5 pt-7">
+            <div className="mb-4 flex justify-center">
+              <FormIQLogo variant="icon" size={56} glow />
+            </div>
+            <h2
+              className="mb-2 text-center text-[24px] font-bold tracking-tight"
+              style={{
+                background: gradients.title,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              Welcome to FormIQ
+            </h2>
+            <p
+              className="text-center text-[13.5px] leading-snug"
+              style={{ color: brand.textSecondary }}
+            >
+              {contextMessage ??
+                'Sign in to send signature requests, save your work, and access your documents anywhere.'}
+            </p>
           </div>
 
-          {/* Tab switcher */}
-          <div className="flex rounded-lg bg-white/5 p-1">
-            <button
-              type="button"
-              onClick={() => setMode('login')}
-              className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
-                mode === 'login'
-                  ? 'bg-amber-400/20 text-amber-400'
-                  : 'text-white/50 hover:text-white/70'
-              }`}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('signup')}
-              className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
-                mode === 'signup'
-                  ? 'bg-amber-400/20 text-amber-400'
-                  : 'text-white/50 hover:text-white/70'
-              }`}
-            >
-              Create account
-            </button>
+          <div className="px-8 pb-8">
+            <GoogleButton onSuccess={() => closeDialog()} />
+            <Separator />
+            <TabSwitcher mode={mode} onChange={setMode} />
+            <AnimatePresence mode="wait">
+              {mode === 'login' ? (
+                <motion.div
+                  key="login"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 8 }}
+                  transition={{ duration: 0.18 }}
+                >
+                  <LoginForm onSuccess={() => closeDialog()} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="signup"
+                  initial={{ opacity: 0, x: 8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.18 }}
+                >
+                  <SignupForm onSuccess={() => closeDialog()} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-
-          {mode === 'login' ? (
-            <LoginForm onSuccess={() => closeDialog()} />
-          ) : (
-            <SignupForm onSuccess={() => closeDialog()} />
-          )}
-        </div>
+        </motion.div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Separator() {
+  return (
+    <div
+      className="my-5 flex items-center gap-3.5 text-[11px] uppercase tracking-[0.12em]"
+      style={{ color: brand.textMuted }}
+    >
+      <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      or
+      <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+    </div>
+  );
+}
+
+function TabSwitcher({
+  mode,
+  onChange,
+}: {
+  mode: 'login' | 'signup';
+  onChange: (m: 'login' | 'signup') => void;
+}) {
+  return (
+    <div
+      className="relative mb-5 flex rounded-[11px] p-1"
+      style={{
+        background: 'rgba(0,0,0,0.35)',
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
+      <motion.div
+        layout
+        animate={{ x: mode === 'login' ? 0 : '100%' }}
+        transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+        className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-lg"
+        style={{
+          background: gradients.primarySoft,
+          boxShadow: `0 2px 10px ${brand.cyan}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => onChange('login')}
+        className="relative z-10 flex-1 py-2.5 text-[13px] font-medium transition-colors"
+        style={{ color: mode === 'login' ? '#fff' : brand.textSecondary }}
+      >
+        Sign in
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('signup')}
+        className="relative z-10 flex-1 py-2.5 text-[13px] font-medium transition-colors"
+        style={{ color: mode === 'signup' ? '#fff' : brand.textSecondary }}
+      >
+        Create account
+      </button>
+    </div>
   );
 }

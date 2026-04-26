@@ -1,0 +1,133 @@
+/*
+ * FormIQ auth UI animations.
+ * Import this once in your global CSS entry (e.g., src/main.tsx or src/index.css):
+ *   import '@/styles/auth-animations.css';
+ *
+ * Pure CSS for infinite-loop animations (Framer Motion is overkill for these).
+ * Framer Motion handles all stateful / interactive animations in components.
+ */
+
+@keyframes formiq-logo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes formiq-icon-pulse {
+  0%,
+  100% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.85;
+  }
+}
+
+@keyframes formiq-gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes formiq-mesh-drift-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(80px, -50px) scale(1.15);
+  }
+}
+
+@keyframes formiq-mesh-drift-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-100px, 60px) scale(0.9);
+  }
+}
+
+@keyframes formiq-mesh-drift-3 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-60px, -80px) scale(1.1);
+  }
+}
+
+.animate-formiq-logo-spin {
+  animation: formiq-logo-spin 12s linear infinite;
+}
+
+.animate-formiq-icon-pulse {
+  animation: formiq-icon-pulse 4s ease-in-out infinite;
+}
+
+.animate-formiq-gradient-shift {
+  animation: formiq-gradient-shift 5s ease infinite;
+}
+
+.animate-formiq-mesh-drift-1 {
+  animation: formiq-mesh-drift-1 22s ease-in-out infinite;
+}
+
+.animate-formiq-mesh-drift-2 {
+  animation: formiq-mesh-drift-2 26s ease-in-out infinite;
+}
+
+.animate-formiq-mesh-drift-3 {
+  animation: formiq-mesh-drift-3 30s ease-in-out infinite;
+}
+
+/* Auth dialog input style — referenced by .auth-input class on Input components */
+.auth-input {
+  height: 44px !important;
+  border-radius: 11px !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+  padding: 0 15px !important;
+  font-size: 14px !important;
+  transition: all 220ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.auth-input::placeholder {
+  color: rgba(232, 232, 240, 0.3) !important;
+}
+
+.auth-input:focus,
+.auth-input:focus-visible {
+  outline: none !important;
+  border-color: rgba(59, 169, 255, 0.55) !important;
+  background: rgba(0, 0, 0, 0.45) !important;
+  box-shadow:
+    0 0 0 4px rgba(59, 169, 255, 0.18),
+    0 4px 16px rgba(34, 211, 199, 0.15) !important;
+}
+
+.auth-input[aria-invalid='true'] {
+  border-color: rgba(244, 63, 94, 0.5) !important;
+  box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.12) !important;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-formiq-logo-spin,
+  .animate-formiq-icon-pulse,
+  .animate-formiq-gradient-shift,
+  .animate-formiq-mesh-drift-1,
+  .animate-formiq-mesh-drift-2,
+  .animate-formiq-mesh-drift-3 {
+    animation: none !important;
+  }
+}

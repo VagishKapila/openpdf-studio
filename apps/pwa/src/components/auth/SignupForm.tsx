@@ -1,11 +1,12 @@
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { useAuthStore } from '@/stores/auth';
+import { useAuth } from '@/stores/auth';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { AnimatedSubmitButton } from './AnimatedSubmitButton';
 
 const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -20,18 +21,20 @@ interface SignupFormProps {
 }
 
 export function SignupForm({ onSuccess }: SignupFormProps) {
-  const registerUser = useAuthStore((s) => s.register);
-  const status = useAuthStore((s) => s.status);
+  const register_ = useAuth((s) => s.register);
+  const status = useAuth((s) => s.status);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<SignupValues>({ resolver: zodResolver(signupSchema) });
+  } = useForm<SignupValues>({
+    resolver: zodResolver(signupSchema),
+  });
 
   const onSubmit = async (values: SignupValues) => {
     try {
-      await registerUser(values.email, values.password, values.name);
+      await register_(values.email, values.password, values.name);
       onSuccess?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Sign-up failed');
@@ -39,46 +42,69 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-      <div className="space-y-1">
-        <Label htmlFor="signup-name">Name</Label>
+    <motion.form
+      onSubmit={handleSubmit(onSubmit)}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="space-y-3.5"
+    >
+      <div>
+        <Label htmlFor="signup-name" className="text-zinc-300/70">
+          Name
+        </Label>
         <Input
           id="signup-name"
           placeholder="Your full name"
           autoComplete="name"
           {...register('name')}
+          className="auth-input"
+          aria-invalid={!!errors.name}
         />
-        {errors.name && <p className="text-xs text-rose-400">{errors.name.message}</p>}
+        {errors.name && (
+          <p className="mt-1.5 text-xs text-rose-400">{errors.name.message}</p>
+        )}
       </div>
-      <div className="space-y-1">
-        <Label htmlFor="signup-email">Email</Label>
+
+      <div>
+        <Label htmlFor="signup-email" className="text-zinc-300/70">
+          Email
+        </Label>
         <Input
           id="signup-email"
           type="email"
           placeholder="you@company.com"
           autoComplete="email"
           {...register('email')}
+          className="auth-input"
+          aria-invalid={!!errors.email}
         />
-        {errors.email && <p className="text-xs text-rose-400">{errors.email.message}</p>}
+        {errors.email && (
+          <p className="mt-1.5 text-xs text-rose-400">{errors.email.message}</p>
+        )}
       </div>
-      <div className="space-y-1">
-        <Label htmlFor="signup-password">Password</Label>
+
+      <div>
+        <Label htmlFor="signup-password" className="text-zinc-300/70">
+          Password
+        </Label>
         <Input
           id="signup-password"
           type="password"
           placeholder="At least 8 characters"
           autoComplete="new-password"
           {...register('password')}
+          className="auth-input"
+          aria-invalid={!!errors.password}
         />
-        {errors.password && <p className="text-xs text-rose-400">{errors.password.message}</p>}
+        {errors.password && (
+          <p className="mt-1.5 text-xs text-rose-400">{errors.password.message}</p>
+        )}
       </div>
-      <Button
-        type="submit"
-        disabled={isSubmitting || status === 'loading'}
-        className="w-full bg-amber-400 text-black hover:bg-amber-300 disabled:opacity-60"
-      >
-        {isSubmitting || status === 'loading' ? 'Creating account…' : 'Create account'}
-      </Button>
-    </form>
+
+      <AnimatedSubmitButton loading={isSubmitting || status === 'loading'}>
+        Create account
+      </AnimatedSubmitButton>
+    </motion.form>
   );
 }
