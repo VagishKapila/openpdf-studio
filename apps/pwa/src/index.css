@@ -35,3 +35,22 @@ body {
 [data-radix-popper-content-wrapper] {
   z-index: 50 !important;
 }
+
+/*
+ * Sonner v1.4.x + React 19 compat fix:
+ * Sonner does not forward the `style` prop to the outer <section> wrapper;
+ * React 19 also drops ref-based inline-style writes on that element.
+ * Previous fix in 745c00f was ineffective (style landed on inner <ol>).
+ * Target Sonner's unique aria signature to force position:fixed so toasts
+ * always appear above dialog backdrops (z-index 999999 > dialog z-index 50).
+ */
+section[aria-live="polite"][tabindex="-1"][aria-relevant] {
+  position: fixed !important;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 999999;
+  pointer-events: none;
+}
+section[aria-live="polite"][tabindex="-1"][aria-relevant] [data-sonner-toast] {
+  pointer-events: auto;
+}
