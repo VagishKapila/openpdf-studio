@@ -8,6 +8,7 @@ import { useExport } from '@/hooks/useExport';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import { Button } from '@/components/ui/button';
+import { FormIQLogo } from '@/components/branding/FormIQLogo';
 
 export function AppHeader() {
   const { document: doc, loadState, clearDocument } = useDocumentStore();
@@ -75,7 +76,7 @@ export function AppHeader() {
       className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-navy-900 px-3"
       data-testid="app-header"
     >
-      {/* Left: menu + logo */}
+      {/* Left: menu + brand logo */}
       <div className="flex items-center gap-2">
         <button
           onClick={toggleAside}
@@ -84,9 +85,7 @@ export function AppHeader() {
         >
           <Menu size={18} />
         </button>
-        <span className="text-sm font-bold tracking-tight text-white">
-          Form<span className="text-amber-400">IQ</span>
-        </span>
+        <FormIQLogo variant="icon" size={28} glow={false} />
         <span className="hidden text-xs text-white/40 sm:inline">Studio</span>
       </div>
 
@@ -157,8 +156,8 @@ export function AppHeader() {
               exportError
                 ? 'bg-red-700/60 text-red-200'
                 : exporting
-                  ? 'cursor-wait bg-amber-400/50 text-black/50'
-                  : 'bg-amber-400 text-black hover:bg-amber-300',
+                  ? 'cursor-wait bg-white/10 text-white/50'
+                  : 'bg-white/10 text-white hover:bg-white/20',
             ].join(' ')}
             title="Export annotated PDF"
           >
@@ -179,7 +178,7 @@ export function AppHeader() {
         {/* Open */}
         <button
           onClick={handleOpenClick}
-          className="flex items-center gap-1.5 rounded-md bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-400/20"
+          className="flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-white/20 hover:text-white"
           aria-label="Open PDF"
           data-testid="open-button"
         >
@@ -211,7 +210,11 @@ export function AppHeader() {
           <Button
             onClick={() => openDialog()}
             size="sm"
-            className="bg-amber-400 text-black hover:bg-amber-300 h-8 px-3 text-xs"
+            className="h-8 px-3 text-xs text-white"
+            style={{
+              background: 'linear-gradient(135deg, #3BA9FF 0%, #22D3C7 50%, #A3E635 100%)',
+              boxShadow: '0 4px 14px rgba(59,169,255,0.4)',
+            }}
           >
             Sign in
           </Button>
