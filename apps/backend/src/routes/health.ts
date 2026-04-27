@@ -9,10 +9,9 @@
 import { Router } from 'express';
 import { pool } from '../db/client';
 
-// Provided by npm/pnpm at runtime; fallback to package constant
 const VERSION = process.env.npm_package_version ?? '1.0.0';
 
-export const healthRouter = Router();
+export const healthRouter: Router = Router();
 
 healthRouter.get('/health', async (_req, res) => {
   let dbStatus: 'connected' | 'down' = 'down';

@@ -32,7 +32,7 @@ import { verifyGoogleAccessToken } from '../lib/google';
 import { requireAuth } from '../middleware/auth';
 import { Errors } from '../lib/errors';
 
-export const authRouter = Router();
+export const authRouter: Router = Router();
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
