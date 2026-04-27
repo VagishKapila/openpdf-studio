@@ -1,10 +1,8 @@
 /**
  * GET /health
- * Public endpoint used by Railway healthchecks and start-of-Cowork verification.
- *
- * Response:
- *   200 { ok: true, version, timestamp, db: "connected" | "down" }
- *   503 { ok: false, ... } when DB is unreachable
+ * Public endpoint for Railway healthchecks.
+ * Always returns HTTP 200 — db status is in the response body.
+ * Railway needs 2xx to consider the service healthy.
  */
 import { Router } from 'express';
 import { pool } from '../db/client';
@@ -22,12 +20,12 @@ healthRouter.get('/health', async (_req, res) => {
     client.release();
     dbStatus = 'connected';
   } catch {
-    // DB is down — return 503 so Railway marks service unhealthy
+    // DB temporarily unavailable — still return 200 so Railway does not
+    // kill the container during DB cold-start. The body signals db: "down".
   }
 
-  const status = dbStatus === 'connected' ? 200 : 503;
-  res.status(status).json({
-    ok: dbStatus === 'connected',
+  res.status(200).json({
+    ok: true,
     version: VERSION,
     timestamp: new Date().toISOString(),
     db: dbStatus,

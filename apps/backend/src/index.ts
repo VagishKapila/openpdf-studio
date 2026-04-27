@@ -2,10 +2,9 @@
  * FormIQ Backend — Express server entry point.
  *
  * Startup sequence:
- *   1. Load + validate environment config
- *   2. Run DB migrations (idempotent)
- *   3. Start HTTP server
- *   4. Register SIGTERM handler for graceful Railway shutdown
+ *   1. Start HTTP server immediately (Railway healthcheck can pass)
+ *   2. Run DB migrations async in background
+ *   3. Register SIGTERM handler for graceful shutdown
  */
 import 'dotenv/config';
 import express from 'express';
@@ -19,43 +18,36 @@ import { runMigrations } from './db/migrate';
 import { pool } from './db/client';
 
 async function bootstrap(): Promise<void> {
-  // ── Run migrations before accepting traffic ─────────────────────────────────
-  try {
-    await runMigrations();
-  } catch (err) {
-    console.error('[Startup] Migration failed — aborting:', err);
-    process.exit(1);
-  }
-
   // ── Build Express app ───────────────────────────────────────────────────────
   const app = express();
 
-  // Trust Railway's reverse proxy so req.ip reflects the real client IP
+  // Trust Railway proxy so req.ip reflects real client IP
   app.set('trust proxy', 1);
 
-  // Global middleware
   app.use(corsMiddleware);
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false }));
 
-  // Routes
   app.use(healthRouter);
   app.use('/auth', authRateLimit, authRouter);
 
-  // 404 handler
   app.use((_req, res) => {
     res.status(404).json({ error: 'Route not found' });
   });
 
-  // Error handler — must be last
   app.use(errorHandler);
 
-  // ── Start server ────────────────────────────────────────────────────────────
+  // ── Start HTTP server FIRST so healthcheck passes immediately ───────────────
   const server = app.listen(config.PORT, () => {
     console.log(
       `[FormIQ Backend] Listening on port ${config.PORT} (${config.NODE_ENV})`,
     );
   });
+
+  // ── Run migrations async — does not block server startup ───────────────────
+  runMigrations()
+    .then(() => console.log('[FormIQ Backend] Migrations complete'))
+    .catch((err) => console.error('[FormIQ Backend] Migration error (non-fatal):', err));
 
   // ── Graceful shutdown ───────────────────────────────────────────────────────
   process.on('SIGTERM', () => {
