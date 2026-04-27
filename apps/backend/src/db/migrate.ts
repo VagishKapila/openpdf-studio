@@ -1,25 +1,17 @@
 /**
  * Database migration runner.
- * Runs the initial schema SQL directly via pg — no Drizzle journal required.
- * Idempotent: all statements use IF NOT EXISTS.
+ * Uses the shared pool from db/client.ts (SSL already correctly configured).
+ * Runs .sql files from src/db/migrations/ in alphabetical order.
+ * Idempotent: tracked via _formiq_migrations table.
  *
- * Called automatically on server startup.
+ * Called automatically on server startup (non-fatal).
  * Can also be run standalone: tsx src/db/migrate.ts
  */
-import { Pool } from 'pg';
-import { config } from '../config';
+import { pool } from './client';
 import fs from 'fs';
 import path from 'path';
 
 async function runMigrations(): Promise<void> {
-  const pool = new Pool({
-    connectionString: config.DATABASE_URL,
-    ssl:
-      config.NODE_ENV === 'production' || config.NODE_ENV === 'staging'
-        ? { rejectUnauthorized: false }
-        : false,
-  });
-
   const client = await pool.connect();
   try {
     console.log('[DB] Running migrations...');
@@ -78,7 +70,7 @@ async function runMigrations(): Promise<void> {
     console.log('[DB] Migrations complete');
   } finally {
     client.release();
-    await pool.end();
+    // NOTE: do NOT call pool.end() here — the pool is shared with the running app
   }
 }
 
@@ -91,3 +83,4 @@ if (require.main === module) {
     process.exit(1);
   });
 }
+
