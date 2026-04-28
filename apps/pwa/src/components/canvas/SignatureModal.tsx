@@ -131,7 +131,7 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
         const d = ctx.getImageData(0, 0, W, H).data;
 
         const isPng = file.type === 'image/png';
-        const WHITE = 240; // threshold: R,G,B all >= WHITE → white pixel
+        const WHITE = 220; // threshold: R,G,B all >= WHITE → white pixel (tightened from 240 to reduce ink-edge halo — COWORK-44.A Bug F)
 
         let minX = W, minY = H, maxX = 0, maxY = 0;
         for (let y = 0; y < H; y++) {
@@ -214,12 +214,17 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
       };
     } else {
       if (!uploadDataUrl) return;
-      const sizeMultiplier = uploadSizePreset === 'S' ? 0.5 : uploadSizePreset === 'L' ? 1.5 : 1.0;
+      // Fixed PDF-space widths: multiplier approach produced identical results
+      // because all sizes exceeded the placement cap in CanvasArea.
+      // Absolute widths (80/150/240 PDF pts) stay within cap and look clearly
+      // distinct regardless of original image pixel dimensions. (COWORK-44.A Bug E)
+      const aspect = uploadNaturalW > 0 ? uploadNaturalH / uploadNaturalW : 1;
+      const targetW = uploadSizePreset === 'S' ? 80 : uploadSizePreset === 'L' ? 240 : 150;
       sig = {
         source: 'upload',
         imageData: uploadDataUrl,
-        naturalWidth: Math.round(uploadNaturalW * sizeMultiplier),
-        naturalHeight: Math.round(uploadNaturalH * sizeMultiplier),
+        naturalWidth: targetW,
+        naturalHeight: Math.round(targetW * aspect),
       };
     }
 
