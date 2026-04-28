@@ -97,6 +97,18 @@ export function CanvasArea() {
     });
   }, [activeTool, annotations.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Edit-tool first-use hint (COWORK-45) — shown once ever via localStorage flag.
+  // Reminds users of the two-step flow: drag to cover → type replacement.
+  useEffect(() => {
+    if (activeTool !== 'edit') return;
+    if (localStorage.getItem('formiq:hint:edit-tool-seen')) return;
+    localStorage.setItem('formiq:hint:edit-tool-seen', '1');
+    toast('Drag over text to cover it, then type your replacement. Original text stays in the PDF.', {
+      duration: 6000,
+      position: 'bottom-center',
+    });
+  }, [activeTool]);
+
   // Empty-state file open handler
   const handleEmptyStateOpen = () => {
     emptyFileInputRef.current?.click();
