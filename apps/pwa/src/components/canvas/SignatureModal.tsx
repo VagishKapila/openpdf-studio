@@ -47,6 +47,8 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
   const [uploadDataUrl, setUploadDataUrl] = useState<string | null>(null);
   const [uploadNaturalW, setUploadNaturalW] = useState(0);
   const [uploadNaturalH, setUploadNaturalH] = useState(0);
+  // Size preset applied at placement: S=50%, M=100%, L=150% of cropped dimensions
+  const [uploadSizePreset, setUploadSizePreset] = useState<'S' | 'M' | 'L'>('M');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { ensureFontsLoaded(); }, []);
@@ -106,50 +108,66 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
 
   const handleClear = () => { sigPadRef.current?.clear(); };
 
+  /** Crop image to its content bounding box, removing transparent or white margins.
+   *  PNG: crops to non-transparent pixels (alpha > 0).
+   *  JPEG / other: crops to non-white pixels (any channel < WHITE_THRESHOLD). */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Reset size preset on new upload
+    setUploadSizePreset('M');
     const reader = new FileReader();
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
       const img = new window.Image();
       img.onload = () => {
-        // Auto-crop transparent PNG
-        if (file.type === 'image/png') {
-          const off = document.createElement('canvas');
-          off.width = img.naturalWidth;
-          off.height = img.naturalHeight;
-          const ctx = off.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            const d = ctx.getImageData(0, 0, img.naturalWidth, img.naturalHeight).data;
-            let minX = img.naturalWidth, minY = img.naturalHeight, maxX = 0, maxY = 0;
-            for (let y = 0; y < img.naturalHeight; y++) {
-              for (let x = 0; x < img.naturalWidth; x++) {
-                if (d[(y * img.naturalWidth + x) * 4 + 3] > 0) {
-                  if (x < minX) minX = x; if (x > maxX) maxX = x;
-                  if (y < minY) minY = y; if (y > maxY) maxY = y;
-                }
-              }
-            }
-            if (maxX > minX && maxY > minY) {
-              const cw = maxX - minX + 1, ch = maxY - minY + 1;
-              const crop = document.createElement('canvas');
-              crop.width = cw; crop.height = ch;
-              const cCtx = crop.getContext('2d');
-              if (cCtx) {
-                cCtx.drawImage(off, minX, minY, cw, ch, 0, 0, cw, ch);
-                setUploadDataUrl(crop.toDataURL('image/png'));
-                setUploadNaturalW(cw);
-                setUploadNaturalH(ch);
-                return;
-              }
+        const W = img.naturalWidth;
+        const H = img.naturalHeight;
+        const off = document.createElement('canvas');
+        off.width = W; off.height = H;
+        const ctx = off.getContext('2d');
+        if (!ctx) { setUploadDataUrl(dataUrl); setUploadNaturalW(W); setUploadNaturalH(H); return; }
+        ctx.drawImage(img, 0, 0);
+        const d = ctx.getImageData(0, 0, W, H).data;
+
+        const isPng = file.type === 'image/png';
+        const WHITE = 240; // threshold: R,G,B all >= WHITE → white pixel
+
+        let minX = W, minY = H, maxX = 0, maxY = 0;
+        for (let y = 0; y < H; y++) {
+          for (let x = 0; x < W; x++) {
+            const idx = (y * W + x) * 4;
+            const r = d[idx], g = d[idx + 1], b = d[idx + 2], a = d[idx + 3];
+            // Keep pixel if: PNG with alpha > 0, or any image with non-white color
+            const keep = isPng ? (a > 0) : (r < WHITE || g < WHITE || b < WHITE);
+            if (keep) {
+              if (x < minX) minX = x; if (x > maxX) maxX = x;
+              if (y < minY) minY = y; if (y > maxY) maxY = y;
             }
           }
         }
+
+        if (maxX > minX && maxY > minY) {
+          // Add 2px padding so strokes at the edge aren't clipped
+          const PAD = 2;
+          const cw = maxX - minX + 1 + PAD * 2;
+          const ch = maxY - minY + 1 + PAD * 2;
+          const crop = document.createElement('canvas');
+          crop.width = cw; crop.height = ch;
+          const cCtx = crop.getContext('2d');
+          if (cCtx) {
+            cCtx.drawImage(off, minX - PAD, minY - PAD, cw, ch, 0, 0, cw, ch);
+            setUploadDataUrl(crop.toDataURL('image/png'));
+            setUploadNaturalW(cw);
+            setUploadNaturalH(ch);
+            return;
+          }
+        }
+
+        // Fallback: no crop possible (blank or single-color image)
         setUploadDataUrl(dataUrl);
-        setUploadNaturalW(img.naturalWidth);
-        setUploadNaturalH(img.naturalHeight);
+        setUploadNaturalW(W);
+        setUploadNaturalH(H);
       };
       img.src = dataUrl;
     };
@@ -196,11 +214,12 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
       };
     } else {
       if (!uploadDataUrl) return;
+      const sizeMultiplier = uploadSizePreset === 'S' ? 0.5 : uploadSizePreset === 'L' ? 1.5 : 1.0;
       sig = {
         source: 'upload',
         imageData: uploadDataUrl,
-        naturalWidth: uploadNaturalW,
-        naturalHeight: uploadNaturalH,
+        naturalWidth: Math.round(uploadNaturalW * sizeMultiplier),
+        naturalHeight: Math.round(uploadNaturalH * sizeMultiplier),
       };
     }
 
@@ -338,8 +357,31 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
                 <span className="text-xs text-white/40">PNG or JPEG</span>
               </button>
               {uploadDataUrl && (
-                <div className="rounded-lg overflow-hidden bg-white p-2 max-w-full">
-                  <img src={uploadDataUrl} alt="Signature preview" data-testid="sig-upload-preview" className="max-h-32 max-w-full object-contain" />
+                <div className="w-full flex flex-col gap-3">
+                  <div className="rounded-lg overflow-hidden bg-white p-2 max-w-full flex items-center justify-center">
+                    <img src={uploadDataUrl} alt="Signature preview" data-testid="sig-upload-preview" className="max-h-32 max-w-full object-contain" />
+                  </div>
+                  {/* Size presets */}
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-xs text-white/40 text-center">Placement size</p>
+                    <div className="flex gap-2" data-testid="sig-size-presets">
+                      {(['S', 'M', 'L'] as const).map((preset) => (
+                        <button
+                          key={preset}
+                          onClick={() => setUploadSizePreset(preset)}
+                          aria-pressed={uploadSizePreset === preset}
+                          className={[
+                            'flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors',
+                            uploadSizePreset === preset
+                              ? 'bg-amber-400/20 text-amber-400 border border-amber-400/40'
+                              : 'bg-white/5 text-white/50 hover:bg-white/10 border border-transparent',
+                          ].join(' ')}
+                        >
+                          {preset === 'S' ? 'Small' : preset === 'M' ? 'Medium' : 'Large'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -371,3 +413,4 @@ export function SignatureModal({ open, onClose, onPlace }: SignatureModalProps) 
     </div>
   );
 }
+
