@@ -24,6 +24,22 @@ export function AuthDialog() {
     }
   }, [open, user, onAuthed, closeDialog]);
 
+  // iOS-5: When the software keyboard appears the fixed dialog stays put and
+  // can hide the active input. scrollIntoView after keyboard animation (350ms)
+  // reliably lifts the input above the keyboard on all iOS/Safari/PWA versions.
+  useEffect(() => {
+    if (!open) return;
+    const onFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') return;
+      setTimeout(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 350);
+    };
+    window.addEventListener('focusin', onFocusIn);
+    return () => window.removeEventListener('focusin', onFocusIn);
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && closeDialog()}>
       <DialogContent className="border-none bg-transparent p-0 shadow-none sm:max-w-[420px]">
