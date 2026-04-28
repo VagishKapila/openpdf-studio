@@ -6,7 +6,7 @@ import {
   HIGHLIGHT_COLORS,
 } from '@/store/tool';
 import type { DrawStrokeWidth } from '@/store/tool';
-import { MousePointer2, Type, Pen, Highlighter, PenLine } from 'lucide-react';
+import { MousePointer2, Type, Pen, Highlighter, PenLine, SquarePen } from 'lucide-react';
 
 const TOOLS: { id: Tool; icon: React.ReactNode; label: string }[] = [
   { id: 'select',    icon: <MousePointer2 size={18} />, label: 'Select & Move' },
@@ -14,6 +14,7 @@ const TOOLS: { id: Tool; icon: React.ReactNode; label: string }[] = [
   { id: 'draw',      icon: <Pen size={18} />,           label: 'Draw' },
   { id: 'highlight', icon: <Highlighter size={18} />,   label: 'Highlight' },
   { id: 'sign',      icon: <PenLine size={18} />,       label: 'Sign' },
+  { id: 'edit',      icon: <SquarePen size={18} />,     label: 'Edit Text' },
 ];
 
 export function ToolPalette() {
@@ -160,6 +161,22 @@ export function ToolPalette() {
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Edit tool controls */}
+      {activeTool === 'edit' && (
+        <div
+          className="mt-2 flex flex-col items-center gap-2 w-full px-1"
+          data-testid="edit-tool-controls"
+        >
+          <div className="h-px w-8 bg-white/10" />
+          <p className="text-[10px] text-white/40 text-center leading-relaxed px-0.5">
+            Drag to cover text, then type your replacement.
+          </p>
+          <p className="text-[10px] text-white/25 text-center leading-relaxed px-0.5">
+            Original text stays in the PDF.
+          </p>
         </div>
       )}
     </aside>
