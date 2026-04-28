@@ -74,6 +74,21 @@ export function AppShell() {
     }
   }, []);
 
+  // Keyboard shortcut: E → Edit tool (COWORK-45)
+  // Skipped when focus is in an input/textarea/contentEditable to avoid intercepting typing
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if ((e.key === 'e' || e.key === 'E') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        setTool('edit');
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [setTool]);
+
+
   return (
     <div className="flex h-full flex-col bg-neutral-800">
       <AppHeader />
