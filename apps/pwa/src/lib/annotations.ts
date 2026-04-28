@@ -59,11 +59,27 @@ export type SignatureAnnotation = AnnotationBase & {
   fontFamily?: string;
 };
 
+/**
+ * CoverAnnotation — Tier 1 PDF text editing (COWORK-45).
+ * A white opaque rectangle drawn over existing PDF text. The underlying text
+ * is preserved in the exported PDF (Tier 1 visual-only limitation).
+ * Always renders white (#ffffff) with opacity 1. Color is intentionally
+ * not configurable in v1.1 — page-background detection is deferred to Tier 2.
+ */
+export type CoverAnnotation = AnnotationBase & {
+  type: 'cover';
+  x: number;      // PDF-space top-left
+  y: number;      // PDF-space top-left
+  width: number;  // PDF-space
+  height: number; // PDF-space
+};
+
 export type Annotation =
   | TextAnnotation
   | DrawAnnotation
   | HighlightAnnotation
-  | SignatureAnnotation;
+  | SignatureAnnotation
+  | CoverAnnotation;
 
 // ─── Factory helpers ────────────────────────────────────────────────────────
 
@@ -167,5 +183,36 @@ export function createSignatureAnnotation(args: {
     imageData: args.imageData,
     text: args.text,
     fontFamily: args.fontFamily,
+  };
+}
+
+/**
+ * createCoverAnnotation — factory for Tier 1 cover annotations (COWORK-45).
+ *
+ * Min-size enforcement is handled by the caller (AnnotationLayer).
+ * Minimum: 20px CSS-width × pdfScale ≈ 31 PDF-pt wide,
+ *          10px CSS-height × pdfScale ≈ 16 PDF-pt tall
+ * (at pdfScale ≈ 1.57 for a 612pt page at 390px CSS viewport)
+ */
+export function createCoverAnnotation(args: {
+  documentId: DocumentId;
+  pageNumber: PageNumber;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}): CoverAnnotation {
+  const now = Date.now();
+  return {
+    id: crypto.randomUUID(),
+    documentId: args.documentId,
+    pageNumber: args.pageNumber,
+    createdAt: now,
+    updatedAt: now,
+    type: 'cover',
+    x: args.x,
+    y: args.y,
+    width: args.width,
+    height: args.height,
   };
 }
