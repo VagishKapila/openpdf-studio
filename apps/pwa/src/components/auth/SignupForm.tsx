@@ -7,6 +7,7 @@ import { useAuth } from '@/stores/auth';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AnimatedSubmitButton } from './AnimatedSubmitButton';
+import { PasswordInput } from './PasswordInput';
 
 const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -88,13 +89,11 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         <Label htmlFor="signup-password" className="text-zinc-300/70">
           Password
         </Label>
-        <Input
+        <PasswordInput
           id="signup-password"
-          type="password"
           placeholder="At least 8 characters"
           autoComplete="new-password"
           {...register('password')}
-          className="auth-input"
           aria-invalid={!!errors.password}
         />
         {errors.password && (

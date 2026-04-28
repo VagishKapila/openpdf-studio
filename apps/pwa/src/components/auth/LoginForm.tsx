@@ -4,9 +4,10 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { useAuth } from '@/stores/auth';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AnimatedSubmitButton } from './AnimatedSubmitButton';
+import { PasswordInput } from './PasswordInput';
+import { Input } from '@/components/ui/input';
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -70,13 +71,11 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         <Label htmlFor="login-password" className="text-zinc-300/70">
           Password
         </Label>
-        <Input
+        <PasswordInput
           id="login-password"
-          type="password"
           placeholder="••••••••"
           autoComplete="current-password"
           {...register('password')}
-          className="auth-input"
           aria-invalid={!!errors.password}
         />
         {errors.password && (
