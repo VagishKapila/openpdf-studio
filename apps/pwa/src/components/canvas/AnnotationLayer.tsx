@@ -102,6 +102,11 @@ export function AnnotationLayer({
   // Live preview Konva layer (separate from the committed-annotations layer)
   const liveLayerRef = useRef<Konva.Layer | null>(null);
 
+  // Image cache: avoids async re-fetch of signature imageData on every render.
+  // Maps imageData URL → resolved HTMLImageElement.
+  // COWORK-44 Bug 2: eliminates the flash when activeTool changes.
+  const imgCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
+
   // Highlight drag start point
   const highlightStartRef = useRef<{ x: number; y: number; active: boolean }>({
     x: 0, y: 0, active: false,
@@ -476,6 +481,11 @@ export function AnnotationLayer({
 
   // Re-draw all annotation shapes when state changes
   useEffect(() => {
+    // COWORK-44 Bug 2: cancellation flag prevents stale imgEl.onload callbacks
+    // (from a previous activeTool dep change) from adding Konva.Image nodes to a
+    // layer that has already been destroyed and rebuilt by a newer effect run.
+    let cancelled = false;
+
     const layer = layerRef.current;
     if (!layer) return;
 
@@ -576,11 +586,11 @@ export function AnnotationLayer({
         }
         case 'signature': {
           if (ann.imageData) {
-            // Async: load image then add to layer imperatively
-            const imgEl = new window.Image();
             const capturedSelected = isSelected;
             const capturedDraggable = isDraggable;
-            imgEl.onload = () => {
+
+            const addKonvaImg = (imgEl: HTMLImageElement) => {
+              if (cancelled) return; // stale render run — skip
               const konvaImg = new Konva.Image({
                 x: pdfToKonva(ann.x),
                 y: pdfToKonva(ann.y),
@@ -612,8 +622,22 @@ export function AnnotationLayer({
               layer.add(konvaImg);
               layer.batchDraw();
             };
-            imgEl.src = ann.imageData;
-            // shape stays null — Konva.Image adds itself in onload
+
+            // Check image cache — if already loaded, add synchronously (no flash on tool switch)
+            const cached = imgCacheRef.current.get(ann.imageData);
+            if (cached) {
+              addKonvaImg(cached);
+            } else {
+              // Async path: load image, cache it, then add
+              const imgEl = new window.Image();
+              imgEl.onload = () => {
+                if (cancelled) return; // guard against stale callbacks
+                imgCacheRef.current.set(ann.imageData, imgEl);
+                addKonvaImg(imgEl);
+              };
+              imgEl.src = ann.imageData;
+            }
+            // shape stays null — Konva.Image adds itself via addKonvaImg
           } else {
             // Fallback placeholder for legacy annotations without imageData
             shape = new Konva.Rect({
@@ -662,6 +686,14 @@ export function AnnotationLayer({
     }
 
     layer.batchDraw();
+
+    return () => {
+      // Cancel any pending imgEl.onload callbacks from this render run.
+      // Without this, a tool switch that fires the effect again clears the layer
+      // and rebuilds, but the old onload fires AFTER the rebuild and adds stale
+      // Konva.Image nodes — causing visual glitches or duplicate shapes.
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annotations, selectedId, editingAnnotationId, pdfPageWidth, canvasWidth, activeTool]);
 
@@ -673,3 +705,4 @@ export function AnnotationLayer({
     />
   );
 }
+
