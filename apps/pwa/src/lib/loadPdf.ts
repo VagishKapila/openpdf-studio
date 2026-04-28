@@ -25,7 +25,10 @@ export async function loadPdfFromFile(file: File): Promise<void> {
 
     // Re-read bytes after saveDocument consumed the file stream
     const data = await file.arrayBuffer();
-    const pdf = await pdfjs.getDocument({ data }).promise;
+    const pdf = await pdfjs.getDocument({
+      data,
+      annotationMode: 0, // DISABLE — FormIQ uses Konva; PDF.js editor layer unused (COWORK-44.A.1)
+    }).promise;
 
     await updatePageCount(id, pdf.numPages);
 
@@ -72,7 +75,10 @@ export async function loadMostRecentDocument(): Promise<void> {
       throw new Error('Unrecognized document storage format — please re-open the PDF.');
     }
 
-    const pdf = await pdfjs.getDocument({ data: bytes }).promise;
+    const pdf = await pdfjs.getDocument({
+      data: bytes,
+      annotationMode: 0, // DISABLE — FormIQ uses Konva; PDF.js editor layer unused (COWORK-44.A.1)
+    }).promise;
     await touchDocument(stored.id);
 
     useDocumentStore.getState().setDocument({
