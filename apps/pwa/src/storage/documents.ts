@@ -3,8 +3,28 @@ export type { StoredDocument };
 
 export async function saveDocument(file: File): Promise<string> {
   const data = await file.arrayBuffer();
-  const id = crypto.randomUUID();
+
+  // Deterministic ID: SHA-256 of first 64 KB ensures the same PDF always gets
+  // the same document ID, so annotations survive a page refresh or app restart.
+  // (A random UUID was previously used, causing annotations to be orphaned each
+  // time the same file was reopened — COWORK-44.A Bug B)
+  const sample = data.slice(0, 65536);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', sample);
+  const id = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 32); // 128-bit hex prefix — collision-free for typical usage
+
   const now = Date.now();
+
+  const existing = await db.documents.get(id);
+  if (existing) {
+    // Same PDF reopened — bump lastOpenedAt so it appears first in the list;
+    // leave annotations untouched.
+    await db.documents.update(id, { lastOpenedAt: now });
+    return id;
+  }
+
   await db.documents.add({
     id,
     fileName: file.name,
