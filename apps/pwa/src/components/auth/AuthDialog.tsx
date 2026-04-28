@@ -32,7 +32,7 @@ export function AuthDialog() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.92, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-          className="relative overflow-hidden rounded-[20px]"
+          className="relative overflow-hidden overflow-y-auto max-h-[90dvh] rounded-[20px]"
           style={{
             background: brand.surface,
             backdropFilter: 'blur(50px) saturate(200%)',
@@ -46,7 +46,7 @@ export function AuthDialog() {
             className="pointer-events-none absolute -inset-[3px] -z-10 animate-formiq-logo-spin rounded-[22px] opacity-35 blur-md"
             style={{ background: gradients.conic }}
           />
-          <div className="px-8 pb-5 pt-7">
+          <div className="px-5 pb-5 pt-7 sm:px-8">
             <div className="mb-4 flex justify-center">
               <FormIQLogo variant="icon" size={56} glow />
             </div>
@@ -69,7 +69,7 @@ export function AuthDialog() {
                 'Sign in to send signature requests, save your work, and access your documents anywhere.'}
             </DialogDescription>
           </div>
-          <div className="px-8 pb-8">
+          <div className="px-5 pb-8 sm:px-8">
             <TabSwitcher mode={mode} onChange={setMode} />
             <AnimatePresence mode="wait">
               {mode === 'login' ? (
