@@ -117,9 +117,9 @@ export function AppHeader() {
           </button>
         )}
 
-        {/* Undo / Redo */}
+        {/* Undo / Redo — hidden on xs to prevent header overflow at 375px */}
         {loadState === 'ready' && doc && (
-          <>
+          <div className="hidden sm:flex items-center gap-1">
             <button
               onClick={() => undo()}
               disabled={!canUndo}
@@ -142,7 +142,7 @@ export function AppHeader() {
               <Redo2 size={15} />
               <span className="hidden text-[11px] font-mono lg:inline">⌘⇧Z</span>
             </button>
-          </>
+          </div>
         )}
 
         {/* Export */}
@@ -164,12 +164,12 @@ export function AppHeader() {
             {exporting ? (
               <>
                 <span className="inline-block animate-spin">⏳</span>
-                <span>Exporting…</span>
+                <span className="hidden sm:inline">Exporting…</span>
               </>
             ) : (
               <>
                 <Download size={13} />
-                <span>Export</span>
+                <span className="hidden sm:inline">Export</span>
               </>
             )}
           </button>
@@ -183,7 +183,7 @@ export function AppHeader() {
           data-testid="open-button"
         >
           <Upload size={13} />
-          <span>Open</span>
+          <span className="hidden sm:inline">Open</span>
         </button>
 
         {/* Request Signatures — gated behind auth */}
