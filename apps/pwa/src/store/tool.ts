@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { trackEvent } from '@/lib/analytics';
 
-// v1 scope: exactly 5 primary tools; "More" is a UI affordance handled in MobileToolbar
-export type Tool = 'select' | 'text' | 'draw' | 'highlight' | 'sign';
+// v1 scope: exactly 5 primary tools + 'edit' (Tier 1 cover-and-retype); "More" is a UI affordance
+export type Tool = 'select' | 'text' | 'draw' | 'highlight' | 'sign' | 'edit';
 
 export const TEXT_FONT_SIZES = [12, 14, 16, 20, 24, 32] as const;
 export type TextFontSize = (typeof TEXT_FONT_SIZES)[number];
