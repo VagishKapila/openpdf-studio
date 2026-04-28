@@ -504,8 +504,8 @@ export function AnnotationLayer({
       // Capture for closures
       const capturedId = ann.id;
       const capturedType = ann.type;
-      // Draw strokes are NOT draggable (their points are absolute, not position-offset)
-      const isDraggable = isSelectTool && ann.type !== 'draw';
+      // All annotation types are draggable in select mode — draw uses dragend delta to offset points
+      const isDraggable = isSelectTool;
 
       const konvaToPdf = (k: number) =>
         pdfPageWidth > 0 ? k * (pdfPageWidth / canvasWidth) : k;
@@ -555,8 +555,22 @@ export function AnnotationLayer({
             fill: ann.color,
             stroke: isSelected ? selColor : undefined,
             strokeWidth: isSelected ? 1.5 : 0,
-            draggable: false,
+            hitStrokeWidth: 12,   // wider hit area for finger-tap on mobile
+            draggable: isDraggable,
           });
+          if (isDraggable) {
+            shape.on('dragend', () => {
+              // Konva applies x/y offset during drag. Convert offset to PDF space
+              // and bake it into each point so the stroke redraws at its new position.
+              const dxPdf = konvaToPdf((shape as Konva.Path).x());
+              const dyPdf = konvaToPdf((shape as Konva.Path).y());
+              updateAnnotationRef.current(capturedId, {
+                points: (ann.points as Array<[number, number, number]>).map(
+                  ([px, py, pr]) => [px + dxPdf, py + dyPdf, pr] as [number, number, number]
+                ),
+              });
+            });
+          }
           break;
         }
         case 'highlight': {
