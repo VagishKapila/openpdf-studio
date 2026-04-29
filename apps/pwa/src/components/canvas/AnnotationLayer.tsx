@@ -104,6 +104,12 @@ export function AnnotationLayer({
   const setEditingIdRef = useRef(setEditingAnnotationId);
   useEffect(() => { setEditingIdRef.current = setEditingAnnotationId; }, [setEditingAnnotationId]);
 
+  // COWORK-44.B.2-R2: tracks which annotation (if any) is currently open in TextEditor.
+  // Needed inside the once-created onTouchEnd and stage.on('click') handlers to suppress
+  // spurious placement when the tap that dismisses the editor fires both blur and onTouchEnd.
+  const editingAnnotationIdRef = useRef(editingAnnotationId);
+  useEffect(() => { editingAnnotationIdRef.current = editingAnnotationId; }, [editingAnnotationId]);
+
   // Live preview Konva layer (separate from the committed-annotations layer)
   const liveLayerRef = useRef<Konva.Layer | null>(null);
 
@@ -139,6 +145,9 @@ export function AnnotationLayer({
       // Skip click that fires immediately after a cover commit (COWORK-45 — prevents double text placement)
       if (justCommittedCover) { justCommittedCover = false; return; }
       if (toolRef.current === 'text') {
+        // COWORK-44.B.2-R2: suppress if a text editor is already open — this click
+        // dismisses it (via onBlur) and must not also place a new annotation.
+        if (editingAnnotationIdRef.current !== null) return;
         const pos = stage.getPointerPosition();
         if (!pos) return;
         const scale = pdfPageWidthRef.current / canvasWidthRef.current;
@@ -183,8 +192,14 @@ export function AnnotationLayer({
       const hitNode = stageRef.current?.getIntersection({ x: localX, y: localY });
 
       if (!hitNode) {
-        // Tapped background — place new text annotation
         if (toolRef.current === 'text') {
+          // COWORK-44.B.2-R2: Guard against creating a spurious blank annotation when
+          // the tap-to-commit gesture fires this handler after blurring the TextEditor.
+          // On mobile a single tap simultaneously fires: textarea.onBlur (which commits
+          // the open annotation) AND this onTouchEnd (which would place a new blank
+          // annotation at the tap position, displayed as '…' via ann.text || '…').
+          // Suppressing when an editor is active prevents the blank annotation entirely.
+          if (editingAnnotationIdRef.current !== null) return;
           const scale = pdfPageWidthRef.current / canvasWidthRef.current;
           onPlaceTextRef.current(localX * scale, localY * scale);
         }
