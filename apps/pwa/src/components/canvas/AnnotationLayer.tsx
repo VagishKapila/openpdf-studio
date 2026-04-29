@@ -460,7 +460,7 @@ export function AnnotationLayer({
           ll.add(new Konva.Path({ data: getSvgPathFromStroke(poly), fill: drawColorRef.current, opacity: 0.85 }));
         }
         ll.batchDraw();
-      } else {
+      } else if (tool === 'highlight') {
         const x = Math.min(highlightStartRef.current.x, localX * scale);
         const y = Math.min(highlightStartRef.current.y, localY * scale);
         const w = Math.abs(localX * scale - highlightStartRef.current.x);
@@ -469,7 +469,7 @@ export function AnnotationLayer({
         ll.destroyChildren();
         ll.add(new Konva.Rect({ x: x * kScale, y: y * kScale, width: w * kScale, height: h * kScale, fill: highlightColorRef.current, opacity: 0.4 }));
         ll.batchDraw();
-      } else {
+      } else if (tool === 'edit') {
         // 'edit' — live cover rect preview (COWORK-45)
         const x = Math.min(coverStart.x, localX * scale);
         const y = Math.min(coverStart.y, localY * scale);
@@ -487,7 +487,7 @@ export function AnnotationLayer({
 
     const drawTouchEnd = async (e: TouchEvent) => {
       const tool = toolRef.current;
-      if (tool !== 'draw' && tool !== 'highlight') return;
+      if (tool !== 'draw' && tool !== 'highlight' && tool !== 'edit') return;
       const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchDrawId);
       if (!touch) return;
       touchDrawId = -1;
