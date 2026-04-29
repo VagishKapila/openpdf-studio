@@ -491,6 +491,16 @@ export function AnnotationLayer({
       const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchDrawId);
       if (!touch) return;
       touchDrawId = -1;
+      // COWORK-44.B.1-R3: Guard against double-commit when both pointerup and touchend
+      // fire for the same finger-lift gesture on mobile (iOS/Android).
+      //
+      // Root cause: on mobile, a single finger-lift fires BOTH pointerup and touchend in
+      // the same event-loop tick. toolRef.current is synced via a React useEffect, so it
+      // still reads 'edit' when the second handler runs. The coverStart.active = false set
+      // by the first handler normally prevents a double cover annotation, but if pointerup
+      // fires first it also sets justCommittedCover = true before its 200ms reset. Checking
+      // that flag here prevents the touch path from committing a second time in that window.
+      if (tool === 'edit' && justCommittedCover) return;
 
       const ll = liveLayerRef.current;
       if (ll) { ll.destroyChildren(); ll.batchDraw(); }
