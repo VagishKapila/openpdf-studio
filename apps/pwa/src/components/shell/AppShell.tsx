@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppHeader } from './AppHeader';
 import { ToolPalette } from './ToolPalette';
 import { MobileToolbar } from './MobileToolbar';
+import { MobileContextBar } from './MobileContextBar';
 import { PageNavDock } from './PageNavDock';
 import { DocumentSidebar } from './DocumentSidebar';
 import { CanvasArea } from '@/components/canvas/CanvasArea';
@@ -109,6 +110,8 @@ export function AppShell() {
           <PageNavDock />
         </main>
       </div>
+      {/* COWORK-44.B.1: tool-specific options (color, font size, stroke width) for mobile */}
+      <MobileContextBar />
       <MobileToolbar />
 
       {/* Sign tool modal */}

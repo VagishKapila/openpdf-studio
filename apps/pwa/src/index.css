@@ -18,6 +18,16 @@ body,
   -webkit-font-smoothing: antialiased;
 }
 
+/* COWORK-44.B.1: iOS Safari dynamic viewport fix.
+ * 100% on html/body resolves to 100vh on iOS, which includes the browser chrome
+ * (address bar + bottom bar). This causes ~400px of blank space below the canvas
+ * on iPhone 14 Pro Max. 100dvh = dynamic viewport height (excludes browser chrome).
+ * Supported iOS 15.4+. Older browsers fall through to the 100% above. */
+html,
+body {
+  height: 100dvh;
+}
+
 /* Prevent iOS Safari bounce scroll interfering with gesture layer */
 body {
   overscroll-behavior: none;
