@@ -79,7 +79,7 @@ export const useToolStore = create<ToolState>((set) => ({
     set({ activeTool });
     trackEvent('tool_selected', { tool: activeTool });
   },
-  textFontSize: 16,
+  textFontSize: 20, // COWORK-44.B.1-R2: raised from 16 → 20pt; 20 × (375/612) ≈ 12.3 CSS px on iPhone SE — clears the Retina anti-aliasing threshold for readability
   textColor: '#1a1a1a',
   setTextFontSize: (textFontSize) => set({ textFontSize }),
   setTextColor: (textColor) => set({ textColor }),
