@@ -148,9 +148,12 @@ export function AnnotationLayer({
         // COWORK-44.B.2-R2: suppress if a text editor is already open — this click
         // dismisses it (via onBlur) and must not also place a new annotation.
         if (editingAnnotationIdRef.current !== null) return;
+        // COWORK-48 FIX-3: suppress the synthesized twin of a touch placement
+        if (justPlacedText) return;
         const pos = stage.getPointerPosition();
         if (!pos) return;
         const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+        markTextPlaced();
         onPlaceTextRef.current(pos.x * scale, pos.y * scale);
       } else {
         setSelected(null);
@@ -172,6 +175,17 @@ export function AnnotationLayer({
     // Suppresses the Konva stage 'click' that fires immediately after a cover pointerUp,
     // preventing a double text-annotation placement (cover auto-switches to text + places ann).
     let justCommittedCover = false;
+    // COWORK-48 FIX-3: one physical tap fires BOTH the DOM onTouchEnd and Konva's
+    // synthesized stage 'click' 2-4ms apart. The editingAnnotationIdRef guard can't
+    // stop the twin because the ref syncs via useEffect — i.e. AFTER the event
+    // cascade completes — so the second event still sees editing === null and
+    // places a duplicate blank annotation. A synchronous closure flag (same
+    // pattern as justCommittedCover, COWORK-45) closes the window.
+    let justPlacedText = false;
+    const markTextPlaced = () => {
+      justPlacedText = true;
+      setTimeout(() => { justPlacedText = false; }, 300);
+    };
 
     const onTouchStart = (evt: TouchEvent) => {
       const t = evt.touches[0];
@@ -200,7 +214,10 @@ export function AnnotationLayer({
           // annotation at the tap position, displayed as '…' via ann.text || '…').
           // Suppressing when an editor is active prevents the blank annotation entirely.
           if (editingAnnotationIdRef.current !== null) return;
+          // COWORK-48 FIX-3: suppress if the paired touch/click twin already placed
+          if (justPlacedText) return;
           const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+          markTextPlaced();
           onPlaceTextRef.current(localX * scale, localY * scale);
         }
       }
