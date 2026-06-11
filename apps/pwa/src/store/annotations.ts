@@ -44,6 +44,9 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
   currentPageNumber: null,
 
   loadForPage: async (documentId, pageNumber) => {
+    // COWORK-48 FIX-2: self-heal — sweep blank text annotations (twin-tap bug
+    // residue) from Dexie before hydrating the page.
+    await annStorage.purgeBlankTextAnnotations(documentId, pageNumber);
     const annotations = await annStorage.getAnnotationsForPage(documentId, pageNumber);
     set({
       annotations,

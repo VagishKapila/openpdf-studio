@@ -21,13 +21,39 @@ export function TextEditor({ ann, pdfToCss, onCommit }: TextEditorProps) {
   const committed = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-focus on mount
+  // Auto-focus on mount.
+  // COWORK-44.B.1-R1: Two-part fix for pdfjs-dist v4 AnnotationEditorUIManager errors.
+  //
+  // Root cause: pdfjs v4 registers a document-level focusin event listener as part of
+  // its AnnotationEditorUIManager. When any textarea fires focusin, the UIManager
+  // intercepts it and calls initEditor() → setupEditorAfterValidation() on the target
+  // element. Our textarea has no pdfjs parentElement, so this throws:
+  //   "this.element.parentElement was null" (×14 at iPhone SE viewport).
+  //
+  // Fix part 1 — stopPropagation: prevent the focusin event from bubbling past the
+  //   textarea to pdfjs's document-level listener.
+  // Fix part 2 — requestAnimationFrame: defer focus by one frame so it fires outside
+  //   pdfjs's synchronous annotation-editor initialization window on page load.
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    el.focus();
-    // Place cursor at end of existing text
-    el.setSelectionRange(el.value.length, el.value.length);
+
+    // Part 1: stop focusin from reaching pdfjs's document listener.
+    // Must be registered before focus fires so the handler is in place.
+    const stopFocusBubble = (e: FocusEvent) => e.stopPropagation();
+    el.addEventListener('focusin', stopFocusBubble);
+
+    // Part 2: delay autofocus by one frame.
+    const raf = requestAnimationFrame(() => {
+      el.focus();
+      // Place cursor at end of existing text
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+
+    return () => {
+      el.removeEventListener('focusin', stopFocusBubble);
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
   // Reflect external annotation text changes only when a DIFFERENT annotation is opened

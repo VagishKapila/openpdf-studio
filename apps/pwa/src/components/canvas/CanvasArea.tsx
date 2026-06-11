@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { FileText } from 'lucide-react';
+import { toast } from 'sonner';
 import { useDocumentStore, useViewportStore, useAnnotationStore, useToolStore } from '@/store';
 import { useDocumentGestures } from '@/hooks/useDocumentGestures';
 import { useCanvasTransform } from '@/hooks/useCanvasTransform';
@@ -80,6 +81,33 @@ export function CanvasArea() {
       localStorage.setItem('formiq-tool-hint-seen', '1');
     }
   }, [activeTool, showToolHint]);
+
+  // Select-tool hint: Sonner toast, shown once per session when user first
+  // switches to select with at least one annotation present.
+  // Replaces the floating absolute div that appeared mid-screen on every
+  // select-tool activation (COWORK-44 Bug 3).
+  useEffect(() => {
+    if (activeTool !== 'select') return;
+    if (sessionStorage.getItem('formiq-select-hint-seen')) return;
+    if (annotations.length === 0) return;
+    sessionStorage.setItem('formiq-select-hint-seen', '1');
+    toast('Tap an annotation to select it, then drag to move', {
+      duration: 3000,
+      position: 'bottom-center',
+    });
+  }, [activeTool, annotations.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Edit-tool first-use hint (COWORK-45) — shown once ever via localStorage flag.
+  // Reminds users of the two-step flow: drag to cover → type replacement.
+  useEffect(() => {
+    if (activeTool !== 'edit') return;
+    if (localStorage.getItem('formiq:hint:edit-tool-seen')) return;
+    localStorage.setItem('formiq:hint:edit-tool-seen', '1');
+    toast('Drag over text to cover it, then type your replacement. Original text stays in the PDF.', {
+      duration: 6000,
+      position: 'bottom-center',
+    });
+  }, [activeTool]);
 
   // Empty-state file open handler
   const handleEmptyStateOpen = () => {
@@ -472,12 +500,8 @@ export function CanvasArea() {
         </div>
       )}
 
-      {/* Drag hint — shown when select tool is active */}
-      {activeTool === 'select' && (
-        <div className="pointer-events-none select-none absolute top-2 left-1/2 z-30 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white/80">
-          Tap an annotation to select · drag to move
-        </div>
-      )}
+      {/* Drag hint: converted to Sonner toast in the effect above (COWORK-44 Bug 3).
+           Shown once per session via sessionStorage key 'formiq-select-hint-seen'. */}
 
       <div
         ref={transformDivRef}
@@ -590,3 +614,4 @@ export function CanvasArea() {
     </div>
   );
 }
+

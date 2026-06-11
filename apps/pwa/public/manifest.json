@@ -1,0 +1,17 @@
+{
+  "name": "FormIQ",
+  "short_name": "FormIQ",
+  "description": "PDF annotation and signature requests \u2014 in your browser",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06060d",
+  "theme_color": "#3BA9FF",
+  "icons": [
+    {
+      "src": "/brand/formiq-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

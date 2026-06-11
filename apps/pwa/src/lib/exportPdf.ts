@@ -122,6 +122,21 @@ export async function exportAnnotatedPdf(
             });
             break;
           }
+
+          case 'cover': {
+            // COWORK-45 Tier 1: bake white rectangle over existing text.
+            // Underlying text remains in the PDF content stream (visual-only edit).
+            // No border — borderWidth omitted so pdf-lib draws fill only.
+            page.drawRectangle({
+              x: ann.x,
+              y: pageH - ann.y - ann.height,
+              width: ann.width,
+              height: ann.height,
+              color: rgb(1, 1, 1),
+              opacity: 1,
+            });
+            break;
+          }
         }
       } catch (annErr) {
         // Skip individual annotation failures — don't abort the whole export

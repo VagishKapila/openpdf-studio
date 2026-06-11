@@ -1,7 +1,7 @@
 /**
  * FormIQ → Varshyl Dashboard Master analytics.
- * Currently a no-op — hub.varshyl.com is being restored.
- * Will activate automatically once VITE_VARSHYL_WEBHOOK_URL is added to Railway env vars.
+ * Sends events to hub.varshyl.com via the VSAA webhook.
+ * Auth header: X-Varshyl-Key (matches hub.varshyl.com/webhook/formiq contract).
  */
 
 export async function trackEvent(
@@ -19,7 +19,8 @@ export async function trackEvent(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(webhookSecret ? { 'x-api-key': webhookSecret } : {}),
+        // X-Varshyl-Key is the auth header expected by hub.varshyl.com
+        ...(webhookSecret ? { 'X-Varshyl-Key': webhookSecret } : {}),
       },
       body: JSON.stringify({
         product: 'formiq',
@@ -33,3 +34,4 @@ export async function trackEvent(
     // Never let analytics break the app
   }
 }
+

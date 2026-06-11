@@ -2,17 +2,20 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppHeader } from './AppHeader';
 import { ToolPalette } from './ToolPalette';
 import { MobileToolbar } from './MobileToolbar';
+import { MobileContextBar } from './MobileContextBar';
 import { PageNavDock } from './PageNavDock';
 import { DocumentSidebar } from './DocumentSidebar';
 import { CanvasArea } from '@/components/canvas/CanvasArea';
 import { SelectionActionBar } from '@/components/canvas/SelectionActionBar';
 import { SignatureModal } from '@/components/canvas/SignatureModal';
 import { loadPdfFromFile } from '@/lib/loadPdf';
-import { useToolStore } from '@/store';
+import { useDocumentStore, useToolStore } from '@/store';
 import type { PendingSignature } from '@/store/tool';
 
 export function AppShell() {
   const { activeTool, setTool, setPendingSignature } = useToolStore();
+  // COWORK-48 FIX-1: banner must never sit on top of PageNavDock while a document is open
+  const hasOpenDocument = useDocumentStore((s) => s.document !== null);
 
   const isSignModalOpen = activeTool === 'sign';
 
@@ -28,6 +31,21 @@ export function AppShell() {
       return () => clearTimeout(timer);
     }
   }, []);
+
+  // COWORK-48 FIX-1: hide the banner the moment a document opens — it overlaps
+  // PageNavDock (z-50, bottom-20) and intercepts Prev/Next taps on iOS.
+  useEffect(() => {
+    if (hasOpenDocument) setShowInstallBanner(false);
+  }, [hasOpenDocument]);
+
+  // COWORK-48 FIX-1: auto-dismiss after 15s so the banner can never linger
+  // into a document-open session (does not set the seen flag — banner may
+  // reappear next visit until explicitly dismissed).
+  useEffect(() => {
+    if (!showInstallBanner) return;
+    const timer = setTimeout(() => setShowInstallBanner(false), 15000);
+    return () => clearTimeout(timer);
+  }, [showInstallBanner]);
 
   // File Handler API — handle PDFs launched via "Open with FormIQ" on Android
   useEffect(() => {
@@ -74,6 +92,21 @@ export function AppShell() {
     }
   }, []);
 
+  // Keyboard shortcut: E → Edit tool (COWORK-45)
+  // Skipped when focus is in an input/textarea/contentEditable to avoid intercepting typing
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if ((e.key === 'e' || e.key === 'E') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        setTool('edit');
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [setTool]);
+
+
   return (
     <div className="flex h-full flex-col bg-neutral-800">
       <AppHeader />
@@ -94,6 +127,8 @@ export function AppShell() {
           <PageNavDock />
         </main>
       </div>
+      {/* COWORK-44.B.1: tool-specific options (color, font size, stroke width) for mobile */}
+      <MobileContextBar />
       <MobileToolbar />
 
       {/* Sign tool modal */}
@@ -104,7 +139,7 @@ export function AppShell() {
       />
 
       {/* iOS install prompt — one-time banner for first-time Safari visitors */}
-      {showInstallBanner && (
+      {showInstallBanner && !hasOpenDocument && (
         <div className="fixed bottom-20 left-4 right-4 z-50 rounded-2xl bg-neutral-900 border border-white/10 p-4 shadow-xl">
           <div className="flex items-start gap-3">
             <img src="/icon-192.png" className="h-10 w-10 rounded-xl flex-shrink-0" alt="FormIQ" />

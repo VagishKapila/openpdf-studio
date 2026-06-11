@@ -14,7 +14,7 @@ import { getStroke } from 'perfect-freehand';
 import { useAnnotationStore } from '@/store';
 import type { Tool } from '@/store';
 import { useToolStore } from '@/store';
-import { createDrawAnnotation, createHighlightAnnotation } from '@/lib/annotations';
+import { createDrawAnnotation, createHighlightAnnotation, createCoverAnnotation } from '@/lib/annotations';
 
 /** Convert perfect-freehand output polygon to an SVG path `d` string. */
 function getSvgPathFromStroke(stroke: number[][]): string {
@@ -87,6 +87,10 @@ export function AnnotationLayer({
   const documentIdRef = useRef(documentId);
   const pageNumberRef = useRef(pageNumber);
 
+  // setTool ref for auto-switching to text after cover commit (COWORK-45)
+  const setTool = useToolStore((s) => s.setTool);
+  const setToolRef = useRef(setTool);
+
   useEffect(() => { drawColorRef.current = drawColor; }, [drawColor]);
   useEffect(() => { drawStrokeWidthRef.current = drawStrokeWidth; }, [drawStrokeWidth]);
   useEffect(() => { highlightColorRef.current = highlightColor; }, [highlightColor]);
@@ -94,13 +98,25 @@ export function AnnotationLayer({
   useEffect(() => { updateAnnotationRef.current = updateAnnotation; }, [updateAnnotation]);
   useEffect(() => { documentIdRef.current = documentId; }, [documentId]);
   useEffect(() => { pageNumberRef.current = pageNumber; }, [pageNumber]);
+  useEffect(() => { setToolRef.current = setTool; }, [setTool]);
 
   // Stable ref to setEditingAnnotationId for use inside once-created event handler
   const setEditingIdRef = useRef(setEditingAnnotationId);
   useEffect(() => { setEditingIdRef.current = setEditingAnnotationId; }, [setEditingAnnotationId]);
 
+  // COWORK-44.B.2-R2: tracks which annotation (if any) is currently open in TextEditor.
+  // Needed inside the once-created onTouchEnd and stage.on('click') handlers to suppress
+  // spurious placement when the tap that dismisses the editor fires both blur and onTouchEnd.
+  const editingAnnotationIdRef = useRef(editingAnnotationId);
+  useEffect(() => { editingAnnotationIdRef.current = editingAnnotationId; }, [editingAnnotationId]);
+
   // Live preview Konva layer (separate from the committed-annotations layer)
   const liveLayerRef = useRef<Konva.Layer | null>(null);
+
+  // Image cache: avoids async re-fetch of signature imageData on every render.
+  // Maps imageData URL → resolved HTMLImageElement.
+  // COWORK-44 Bug 2: eliminates the flash when activeTool changes.
+  const imgCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
   // Highlight drag start point
   const highlightStartRef = useRef<{ x: number; y: number; active: boolean }>({
@@ -126,10 +142,18 @@ export function AnnotationLayer({
     // Desktop: Konva mouse-click on stage background → place text or deselect
     stage.on('click', (e) => {
       if (e.target !== stage) return;
+      // Skip click that fires immediately after a cover commit (COWORK-45 — prevents double text placement)
+      if (justCommittedCover) { justCommittedCover = false; return; }
       if (toolRef.current === 'text') {
+        // COWORK-44.B.2-R2: suppress if a text editor is already open — this click
+        // dismisses it (via onBlur) and must not also place a new annotation.
+        if (editingAnnotationIdRef.current !== null) return;
+        // COWORK-48 FIX-3: suppress the synthesized twin of a touch placement
+        if (justPlacedText) return;
         const pos = stage.getPointerPosition();
         if (!pos) return;
         const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+        markTextPlaced();
         onPlaceTextRef.current(pos.x * scale, pos.y * scale);
       } else {
         setSelected(null);
@@ -145,6 +169,23 @@ export function AnnotationLayer({
     const livePoints: Array<[number, number, number]> = [];
     let isPointerDrawing = false;
     let drawPointerId = -1;
+
+    // Cover-tool mutable state (COWORK-45)
+    const coverStart = { x: 0, y: 0, active: false };
+    // Suppresses the Konva stage 'click' that fires immediately after a cover pointerUp,
+    // preventing a double text-annotation placement (cover auto-switches to text + places ann).
+    let justCommittedCover = false;
+    // COWORK-48 FIX-3: one physical tap fires BOTH the DOM onTouchEnd and Konva's
+    // synthesized stage 'click' 2-4ms apart. The editingAnnotationIdRef guard can't
+    // stop the twin because the ref syncs via useEffect — i.e. AFTER the event
+    // cascade completes — so the second event still sees editing === null and
+    // places a duplicate blank annotation. A synchronous closure flag (same
+    // pattern as justCommittedCover, COWORK-45) closes the window.
+    let justPlacedText = false;
+    const markTextPlaced = () => {
+      justPlacedText = true;
+      setTimeout(() => { justPlacedText = false; }, 300);
+    };
 
     const onTouchStart = (evt: TouchEvent) => {
       const t = evt.touches[0];
@@ -165,9 +206,18 @@ export function AnnotationLayer({
       const hitNode = stageRef.current?.getIntersection({ x: localX, y: localY });
 
       if (!hitNode) {
-        // Tapped background — place new text annotation
         if (toolRef.current === 'text') {
+          // COWORK-44.B.2-R2: Guard against creating a spurious blank annotation when
+          // the tap-to-commit gesture fires this handler after blurring the TextEditor.
+          // On mobile a single tap simultaneously fires: textarea.onBlur (which commits
+          // the open annotation) AND this onTouchEnd (which would place a new blank
+          // annotation at the tap position, displayed as '…' via ann.text || '…').
+          // Suppressing when an editor is active prevents the blank annotation entirely.
+          if (editingAnnotationIdRef.current !== null) return;
+          // COWORK-48 FIX-3: suppress if the paired touch/click twin already placed
+          if (justPlacedText) return;
           const scale = pdfPageWidthRef.current / canvasWidthRef.current;
+          markTextPlaced();
           onPlaceTextRef.current(localX * scale, localY * scale);
         }
       }
@@ -180,7 +230,7 @@ export function AnnotationLayer({
     // ── Pointer handlers for draw + highlight capture ─────────────────────────
     const onPointerDown = (e: PointerEvent) => {
       const tool = toolRef.current;
-      if (tool !== 'draw' && tool !== 'highlight') return;
+      if (tool !== 'draw' && tool !== 'highlight' && tool !== 'edit') return;
       e.stopPropagation();
       container.setPointerCapture(e.pointerId);
       drawPointerId = e.pointerId;
@@ -194,18 +244,23 @@ export function AnnotationLayer({
         livePoints.length = 0;
         livePoints.push([localX * scale, localY * scale, e.pressure || 0.5]);
         isPointerDrawing = true;
-      } else {
+      } else if (tool === 'highlight') {
         highlightStartRef.current.x = localX * scale;
         highlightStartRef.current.y = localY * scale;
         highlightStartRef.current.active = true;
+      } else {
+        // 'edit' — start cover rectangle
+        coverStart.x = localX * scale;
+        coverStart.y = localY * scale;
+        coverStart.active = true;
       }
     };
 
     const onPointerMove = (e: PointerEvent) => {
       if (e.pointerId !== drawPointerId) return;
       const tool = toolRef.current;
-      if (tool !== 'draw' && tool !== 'highlight') return;
-      if (!isPointerDrawing && !highlightStartRef.current.active) return;
+      if (tool !== 'draw' && tool !== 'highlight' && tool !== 'edit') return;
+      if (!isPointerDrawing && !highlightStartRef.current.active && !coverStart.active) return;
 
       const rect = container.getBoundingClientRect();
       const localX = e.clientX - rect.left;
@@ -235,7 +290,7 @@ export function AnnotationLayer({
           ll.add(livePath);
         }
         ll.batchDraw();
-      } else {
+      } else if (tool === 'highlight') {
         // highlight live rect
         const x = Math.min(highlightStartRef.current.x, localX * scale);
         const y = Math.min(highlightStartRef.current.y, localY * scale);
@@ -251,6 +306,26 @@ export function AnnotationLayer({
           opacity: 0.4,
         });
         ll.add(liveRect);
+        ll.batchDraw();
+      } else {
+        // 'edit' — live white cover rect preview (COWORK-45)
+        const x = Math.min(coverStart.x, localX * scale);
+        const y = Math.min(coverStart.y, localY * scale);
+        const w = Math.abs(localX * scale - coverStart.x);
+        const h = Math.abs(localY * scale - coverStart.y);
+        const kScale = canvasWidthRef.current / pdfPageWidthRef.current;
+
+        ll.destroyChildren();
+        const coverPreview = new Konva.Rect({
+          x: x * kScale, y: y * kScale,
+          width: w * kScale, height: h * kScale,
+          fill: '#ffffff',
+          opacity: 0.9,
+          stroke: '#94a3b8',
+          strokeWidth: 1.5,
+          dash: [4, 3],
+        });
+        ll.add(coverPreview);
         ll.batchDraw();
       }
     };
@@ -296,6 +371,34 @@ export function AnnotationLayer({
           });
           await addAnnotationRef.current(ann);
         }
+      } else if (tool === 'edit' && coverStart.active) {
+        // COWORK-45: Cover annotation commit
+        coverStart.active = false;
+        const rect = container.getBoundingClientRect();
+        const localX = e.clientX - rect.left;
+        const localY = e.clientY - rect.top;
+        const pdfScale = pdfPageWidthRef.current / canvasWidthRef.current;
+        const x = Math.min(coverStart.x, localX * pdfScale);
+        const y = Math.min(coverStart.y, localY * pdfScale);
+        const w = Math.abs(localX * pdfScale - coverStart.x);
+        const h = Math.abs(localY * pdfScale - coverStart.y);
+        // Min-size enforcement: 20px CSS wide × 10px CSS tall
+        // At pdfScale≈1.57 (612pt page / 390px): 20px→31pt, 10px→16pt
+        const wCssPx = w / pdfScale;
+        const hCssPx = h / pdfScale;
+        if (wCssPx >= 20 && hCssPx >= 10) {
+          const ann = createCoverAnnotation({
+            documentId: documentIdRef.current,
+            pageNumber: pageNumberRef.current,
+            x, y, width: w, height: h,
+          });
+          await addAnnotationRef.current(ann);
+          // Auto-switch to text tool + place text annotation at cover top-left (COWORK-45 §3)
+          justCommittedCover = true;
+          setToolRef.current('text');
+          onPlaceTextRef.current(x, y);
+          setTimeout(() => { justCommittedCover = false; }, 200);
+        }
       }
     };
 
@@ -303,6 +406,7 @@ export function AnnotationLayer({
       drawPointerId = -1;
       isPointerDrawing = false;
       highlightStartRef.current.active = false;
+      coverStart.active = false; // COWORK-45
       livePoints.length = 0;
       const ll = liveLayerRef.current;
       if (ll) { ll.destroyChildren(); ll.batchDraw(); }
@@ -313,6 +417,7 @@ export function AnnotationLayer({
       drawPointerId = -1;
       isPointerDrawing = false;
       highlightStartRef.current.active = false;
+      coverStart.active = false; // COWORK-45
       livePoints.length = 0;
       const ll = liveLayerRef.current;
       if (ll) { ll.destroyChildren(); ll.batchDraw(); }
@@ -329,7 +434,7 @@ export function AnnotationLayer({
 
     const drawTouchStart = (e: TouchEvent) => {
       const tool = toolRef.current;
-      if (tool !== 'draw' && tool !== 'highlight') return;
+      if (tool !== 'draw' && tool !== 'highlight' && tool !== 'edit') return;
       if (e.touches.length > 1) return;
       e.preventDefault();
       e.stopPropagation();
@@ -345,19 +450,24 @@ export function AnnotationLayer({
         livePoints.length = 0;
         livePoints.push([localX * scale, localY * scale, (touch as Touch & { force?: number }).force || 0.5]);
         isPointerDrawing = true;
-      } else {
+      } else if (tool === 'highlight') {
         highlightStartRef.current.x = localX * scale;
         highlightStartRef.current.y = localY * scale;
         highlightStartRef.current.active = true;
+      } else {
+        // 'edit' — cover start
+        coverStart.x = localX * scale;
+        coverStart.y = localY * scale;
+        coverStart.active = true;
       }
     };
 
     const drawTouchMove = (e: TouchEvent) => {
       const tool = toolRef.current;
-      if (tool !== 'draw' && tool !== 'highlight') return;
+      if (tool !== 'draw' && tool !== 'highlight' && tool !== 'edit') return;
       const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchDrawId);
       if (!touch) return;
-      if (!isPointerDrawing && !highlightStartRef.current.active) return;
+      if (!isPointerDrawing && !highlightStartRef.current.active && !coverStart.active) return;
       e.preventDefault();
 
       const rect = container.getBoundingClientRect();
@@ -382,7 +492,7 @@ export function AnnotationLayer({
           ll.add(new Konva.Path({ data: getSvgPathFromStroke(poly), fill: drawColorRef.current, opacity: 0.85 }));
         }
         ll.batchDraw();
-      } else {
+      } else if (tool === 'highlight') {
         const x = Math.min(highlightStartRef.current.x, localX * scale);
         const y = Math.min(highlightStartRef.current.y, localY * scale);
         const w = Math.abs(localX * scale - highlightStartRef.current.x);
@@ -391,15 +501,38 @@ export function AnnotationLayer({
         ll.destroyChildren();
         ll.add(new Konva.Rect({ x: x * kScale, y: y * kScale, width: w * kScale, height: h * kScale, fill: highlightColorRef.current, opacity: 0.4 }));
         ll.batchDraw();
+      } else if (tool === 'edit') {
+        // 'edit' — live cover rect preview (COWORK-45)
+        const x = Math.min(coverStart.x, localX * scale);
+        const y = Math.min(coverStart.y, localY * scale);
+        const w = Math.abs(localX * scale - coverStart.x);
+        const h = Math.abs(localY * scale - coverStart.y);
+        const kScale = canvasWidthRef.current / pdfPageWidthRef.current;
+        ll.destroyChildren();
+        ll.add(new Konva.Rect({
+          x: x * kScale, y: y * kScale, width: w * kScale, height: h * kScale,
+          fill: '#ffffff', opacity: 0.9, stroke: '#94a3b8', strokeWidth: 1.5, dash: [4, 3],
+        }));
+        ll.batchDraw();
       }
     };
 
     const drawTouchEnd = async (e: TouchEvent) => {
       const tool = toolRef.current;
-      if (tool !== 'draw' && tool !== 'highlight') return;
+      if (tool !== 'draw' && tool !== 'highlight' && tool !== 'edit') return;
       const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchDrawId);
       if (!touch) return;
       touchDrawId = -1;
+      // COWORK-44.B.1-R3: Guard against double-commit when both pointerup and touchend
+      // fire for the same finger-lift gesture on mobile (iOS/Android).
+      //
+      // Root cause: on mobile, a single finger-lift fires BOTH pointerup and touchend in
+      // the same event-loop tick. toolRef.current is synced via a React useEffect, so it
+      // still reads 'edit' when the second handler runs. The coverStart.active = false set
+      // by the first handler normally prevents a double cover annotation, but if pointerup
+      // fires first it also sets justCommittedCover = true before its 200ms reset. Checking
+      // that flag here prevents the touch path from committing a second time in that window.
+      if (tool === 'edit' && justCommittedCover) return;
 
       const ll = liveLayerRef.current;
       if (ll) { ll.destroyChildren(); ll.batchDraw(); }
@@ -435,6 +568,33 @@ export function AnnotationLayer({
             color: highlightColorRef.current,
           });
           await addAnnotationRef.current(ann);
+        }
+      } else if (tool === 'edit' && coverStart.active) {
+        // COWORK-45: Cover annotation commit (touch path)
+        coverStart.active = false;
+        const rect = container.getBoundingClientRect();
+        const localX = touch.clientX - rect.left;
+        const localY = touch.clientY - rect.top;
+        const pdfScale = pdfPageWidthRef.current / canvasWidthRef.current;
+        const x = Math.min(coverStart.x, localX * pdfScale);
+        const y = Math.min(coverStart.y, localY * pdfScale);
+        const w = Math.abs(localX * pdfScale - coverStart.x);
+        const h = Math.abs(localY * pdfScale - coverStart.y);
+        // Min-size enforcement: 20px CSS wide × 10px CSS tall
+        const wCssPx = w / pdfScale;
+        const hCssPx = h / pdfScale;
+        if (wCssPx >= 20 && hCssPx >= 10) {
+          const ann = createCoverAnnotation({
+            documentId: documentIdRef.current,
+            pageNumber: pageNumberRef.current,
+            x, y, width: w, height: h,
+          });
+          await addAnnotationRef.current(ann);
+          // Auto-switch to text tool + place text at cover top-left (COWORK-45 §3)
+          justCommittedCover = true;
+          setToolRef.current('text');
+          onPlaceTextRef.current(x, y);
+          setTimeout(() => { justCommittedCover = false; }, 200);
         }
       }
     };
@@ -476,6 +636,11 @@ export function AnnotationLayer({
 
   // Re-draw all annotation shapes when state changes
   useEffect(() => {
+    // COWORK-44 Bug 2: cancellation flag prevents stale imgEl.onload callbacks
+    // (from a previous activeTool dep change) from adding Konva.Image nodes to a
+    // layer that has already been destroyed and rebuilt by a newer effect run.
+    let cancelled = false;
+
     const layer = layerRef.current;
     if (!layer) return;
 
@@ -494,8 +659,8 @@ export function AnnotationLayer({
       // Capture for closures
       const capturedId = ann.id;
       const capturedType = ann.type;
-      // Draw strokes are NOT draggable (their points are absolute, not position-offset)
-      const isDraggable = isSelectTool && ann.type !== 'draw';
+      // All annotation types are draggable in select mode — draw uses dragend delta to offset points
+      const isDraggable = isSelectTool;
 
       const konvaToPdf = (k: number) =>
         pdfPageWidth > 0 ? k * (pdfPageWidth / canvasWidth) : k;
@@ -545,8 +710,22 @@ export function AnnotationLayer({
             fill: ann.color,
             stroke: isSelected ? selColor : undefined,
             strokeWidth: isSelected ? 1.5 : 0,
-            draggable: false,
+            hitStrokeWidth: 12,   // wider hit area for finger-tap on mobile
+            draggable: isDraggable,
           });
+          if (isDraggable) {
+            shape.on('dragend', () => {
+              // Konva applies x/y offset during drag. Convert offset to PDF space
+              // and bake it into each point so the stroke redraws at its new position.
+              const dxPdf = konvaToPdf((shape as Konva.Path).x());
+              const dyPdf = konvaToPdf((shape as Konva.Path).y());
+              updateAnnotationRef.current(capturedId, {
+                points: (ann.points as Array<[number, number, number]>).map(
+                  ([px, py, pr]) => [px + dxPdf, py + dyPdf, pr] as [number, number, number]
+                ),
+              });
+            });
+          }
           break;
         }
         case 'highlight': {
@@ -574,13 +753,40 @@ export function AnnotationLayer({
           }
           break;
         }
+        case 'cover': {
+          // COWORK-45 Tier 1: opaque white rectangle covering existing PDF text.
+          // Underlying text is preserved in the exported PDF (visual edit only).
+          shape = new Konva.Rect({
+            x: pdfToKonva(ann.x),
+            y: pdfToKonva(ann.y),
+            width: pdfToKonva(ann.width),
+            height: pdfToKonva(ann.height),
+            fill: '#ffffff',
+            opacity: 1,
+            stroke: isSelected ? selColor : undefined,
+            strokeWidth: isSelected ? selWidth : 0,
+            listening: !isDraggable,
+            draggable: isDraggable,
+          });
+          if (isDraggable) {
+            (shape as Konva.Rect).listening(true);
+            shape.on('dragend', () => {
+              const pos = (shape as Konva.Rect).position();
+              updateAnnotationRef.current(capturedId, {
+                x: konvaToPdf(pos.x),
+                y: konvaToPdf(pos.y),
+              });
+            });
+          }
+          break;
+        }
         case 'signature': {
           if (ann.imageData) {
-            // Async: load image then add to layer imperatively
-            const imgEl = new window.Image();
             const capturedSelected = isSelected;
             const capturedDraggable = isDraggable;
-            imgEl.onload = () => {
+
+            const addKonvaImg = (imgEl: HTMLImageElement) => {
+              if (cancelled) return; // stale render run — skip
               const konvaImg = new Konva.Image({
                 x: pdfToKonva(ann.x),
                 y: pdfToKonva(ann.y),
@@ -612,8 +818,22 @@ export function AnnotationLayer({
               layer.add(konvaImg);
               layer.batchDraw();
             };
-            imgEl.src = ann.imageData;
-            // shape stays null — Konva.Image adds itself in onload
+
+            // Check image cache — if already loaded, add synchronously (no flash on tool switch)
+            const cached = imgCacheRef.current.get(ann.imageData);
+            if (cached) {
+              addKonvaImg(cached);
+            } else {
+              // Async path: load image, cache it, then add
+              const imgEl = new window.Image();
+              imgEl.onload = () => {
+                if (cancelled) return; // guard against stale callbacks
+                imgCacheRef.current.set(ann.imageData, imgEl);
+                addKonvaImg(imgEl);
+              };
+              imgEl.src = ann.imageData;
+            }
+            // shape stays null — Konva.Image adds itself via addKonvaImg
           } else {
             // Fallback placeholder for legacy annotations without imageData
             shape = new Konva.Rect({
@@ -662,6 +882,14 @@ export function AnnotationLayer({
     }
 
     layer.batchDraw();
+
+    return () => {
+      // Cancel any pending imgEl.onload callbacks from this render run.
+      // Without this, a tool switch that fires the effect again clears the layer
+      // and rebuilds, but the old onload fires AFTER the rebuild and adds stale
+      // Konva.Image nodes — causing visual glitches or duplicate shapes.
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annotations, selectedId, editingAnnotationId, pdfPageWidth, canvasWidth, activeTool]);
 
@@ -673,3 +901,4 @@ export function AnnotationLayer({
     />
   );
 }
+

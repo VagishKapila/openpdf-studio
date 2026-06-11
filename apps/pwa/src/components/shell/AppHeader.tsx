@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDocumentStore, useUIStore, useViewportStore, useAnnotationStore } from '@/store';
-import { FileText, Menu, Upload, X, Download, Undo2, Redo2 } from 'lucide-react';
+import { useAuthStore } from '@/stores/auth';
+import { useAuthDialog } from '@/hooks/useAuthDialog';
+import { FileText, Menu, Upload, X, Download, Undo2, Redo2, Lock, PenLine } from 'lucide-react';
 import { loadPdfFromFile } from '@/lib/loadPdf';
 import { useExport } from '@/hooks/useExport';
+import { UserMenu } from '@/components/auth/UserMenu';
+import { RequireAuth } from '@/components/auth/RequireAuth';
+import { Button } from '@/components/ui/button';
 
 export function AppHeader() {
   const { document: doc, loadState, clearDocument } = useDocumentStore();
@@ -19,7 +24,9 @@ export function AppHeader() {
   const canUndo = undoStack.length > 0;
   const canRedo = redoStack.length > 0;
 
-  // Keyboard shortcut: Cmd/Ctrl+Z → undo, Cmd/Ctrl+Shift+Z → redo
+  const user = useAuthStore((s) => s.user);
+  const openDialog = useAuthDialog((s) => s.openDialog);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.key !== 'z') return;
@@ -68,7 +75,7 @@ export function AppHeader() {
       className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-navy-900 px-3"
       data-testid="app-header"
     >
-      {/* Left: menu + logo */}
+      {/* Left: menu + brand logo */}
       <div className="flex items-center gap-2">
         <button
           onClick={toggleAside}
@@ -86,7 +93,7 @@ export function AppHeader() {
         {loadState === 'ready' && doc ? (
           <>
             <FileText size={13} className="shrink-0" />
-            <span className="truncate max-w-[160px]">{doc.fileName}</span>
+            <span className="max-w-[160px] truncate">{doc.fileName}</span>
             <span className="shrink-0 text-white/30">· {doc.totalPages}p</span>
           </>
         ) : loadState === 'loading' ? (
@@ -96,7 +103,7 @@ export function AppHeader() {
 
       {/* Right: actions */}
       <div className="flex items-center gap-1">
-        {/* Close button */}
+        {/* Close document */}
         {loadState === 'ready' && doc && (
           <button
             onClick={handleCloseDocument}
@@ -109,19 +116,19 @@ export function AppHeader() {
           </button>
         )}
 
-        {/* Undo / Redo — only when a document is open */}
+        {/* Undo / Redo — hidden on xs to prevent header overflow at 375px */}
         {loadState === 'ready' && doc && (
-          <>
+          <div className="hidden sm:flex items-center gap-1">
             <button
               onClick={() => undo()}
               disabled={!canUndo}
               aria-label="Undo"
               title="Undo (⌘Z)"
               data-testid="undo-button"
-              className="flex h-8 items-center gap-1 rounded-lg px-2 text-white/70 hover:bg-white/15 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+              className="flex h-8 items-center gap-1 rounded-lg px-2 text-white/70 hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
             >
               <Undo2 size={15} />
-              <span className="hidden lg:inline text-[11px] font-mono">⌘Z</span>
+              <span className="hidden text-[11px] font-mono lg:inline">⌘Z</span>
             </button>
             <button
               onClick={() => redo()}
@@ -129,15 +136,15 @@ export function AppHeader() {
               aria-label="Redo"
               title="Redo (⌘⇧Z)"
               data-testid="redo-button"
-              className="flex h-8 items-center gap-1 rounded-lg px-2 text-white/70 hover:bg-white/15 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+              className="flex h-8 items-center gap-1 rounded-lg px-2 text-white/70 hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
             >
               <Redo2 size={15} />
-              <span className="hidden lg:inline text-[11px] font-mono">⌘⇧Z</span>
+              <span className="hidden text-[11px] font-mono lg:inline">⌘⇧Z</span>
             </button>
-          </>
+          </div>
         )}
 
-        {/* Export button — only when a document is open */}
+        {/* Export */}
         {canExport && (
           <button
             onClick={handleExport}
@@ -148,35 +155,69 @@ export function AppHeader() {
               exportError
                 ? 'bg-red-700/60 text-red-200'
                 : exporting
-                ? 'bg-amber-400/50 text-black/50 cursor-wait'
-                : 'bg-amber-400 text-black hover:bg-amber-300',
+                  ? 'cursor-wait bg-white/10 text-white/50'
+                  : 'bg-white/10 text-white hover:bg-white/20',
             ].join(' ')}
             title="Export annotated PDF"
           >
             {exporting ? (
               <>
                 <span className="inline-block animate-spin">⏳</span>
-                <span>Exporting…</span>
+                <span className="hidden sm:inline">Exporting…</span>
               </>
             ) : (
               <>
                 <Download size={13} />
-                <span>Export</span>
+                <span className="hidden sm:inline">Export</span>
               </>
             )}
           </button>
         )}
 
-        {/* Open button */}
+        {/* Open */}
         <button
           onClick={handleOpenClick}
-          className="flex items-center gap-1.5 rounded-md bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-400/20"
+          className="flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-white/20 hover:text-white"
           aria-label="Open PDF"
           data-testid="open-button"
         >
           <Upload size={13} />
-          <span>Open</span>
+          <span className="hidden sm:inline">Open</span>
         </button>
+
+        {/* Request Signatures — gated behind auth */}
+        <RequireAuth
+          contextMessage="Sign in to send documents for signature"
+          onAuthed={() => {
+            /* TODO: open Request Signatures flow in COWORK-42 */
+          }}
+        >
+          <button
+            className="flex items-center gap-1.5 rounded-md border border-white/20 px-3 py-1.5 text-xs font-medium text-white/70 hover:border-white/40 hover:text-white"
+            title={user ? 'Request Signatures' : 'Sign in to request signatures'}
+          >
+            {!user && <Lock size={11} className="opacity-60" />}
+            <PenLine size={13} />
+            <span className="hidden sm:inline">Signatures</span>
+          </button>
+        </RequireAuth>
+
+        {/* Auth: UserMenu when signed in, Sign In button when not */}
+        {user ? (
+          <UserMenu />
+        ) : (
+          <Button
+            onClick={() => openDialog()}
+            size="sm"
+            className="h-8 px-3 text-xs text-white"
+            style={{
+              background: 'linear-gradient(135deg, #3BA9FF 0%, #22D3C7 50%, #A3E635 100%)',
+              boxShadow: '0 4px 14px rgba(59,169,255,0.4)',
+            }}
+          >
+            Sign in
+          </Button>
+        )}
 
         <input
           ref={fileInputRef}
