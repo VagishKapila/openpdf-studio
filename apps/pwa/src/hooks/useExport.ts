@@ -35,18 +35,28 @@ export function useExport() {
 
       const annotatedBytes = await exportAnnotatedPdf(pdfBytes, allAnnotations);
 
-      // Trigger browser download
+      // COWORK-50 F1: open the exported PDF in a new tab so the browser's
+      // native viewer shows a preview (with its own download/share controls).
+      // Falls back to a direct download when the popup is blocked or we're in
+      // a standalone PWA context where window.open returns null.
       const blob = new Blob([annotatedBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
       const base = doc.fileName.replace(/\.pdf$/i, '');
-      a.download = `${base}-annotated.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      trackEvent('pdf_exported', { annotation_count: allAnnotations.length });
+      const previewWin = window.open(url, '_blank');
+      if (!previewWin) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${base}-annotated.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      // Delay revocation so the preview tab has time to load the blob
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      trackEvent('pdf_exported', {
+        annotation_count: allAnnotations.length,
+        mode: previewWin ? 'preview' : 'download',
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Export failed. Please try again.';
       alert(msg);
