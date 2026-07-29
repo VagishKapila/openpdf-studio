@@ -8,6 +8,7 @@ import { loadMostRecentDocument, loadPdfFromFile } from '@/lib/loadPdf';
 import { createTextAnnotation, createSignatureAnnotation } from '@/lib/annotations';
 import type { TextAnnotation } from '@/lib/annotations';
 import { AnnotationLayer } from './AnnotationLayer';
+import { getPageImageRects, type ImageRect } from '@/lib/pdfImages';
 import { TextEditor } from './TextEditor';
 
 const CLOSED_FLAG_KEY = 'openpdf_doc_explicitly_closed';
@@ -38,6 +39,8 @@ export function CanvasArea() {
 
   const [isInitializing, setIsInitializing] = useState(true);
   const [canvasMeta, setCanvasMeta] = useState<CanvasMeta | null>(null);
+  // COWORK-50 F4: embedded-image rects for the current page (edit tool only)
+  const [imageRects, setImageRects] = useState<ImageRect[]>([]);
   // Position of the ghost signature overlay in transformDiv-local CSS pixels
   const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null);
   // iOS fix (ios-4b): ignore-window ref — skip commits within 200ms of placement
@@ -128,6 +131,21 @@ export function CanvasArea() {
     }
     void loadForPage(doc.id, currentPage);
   }, [doc?.id, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // COWORK-50 F4: detect embedded images when the Edit tool is active so the
+  // user can tap one to cover ("delete") it. Operator-list scan is lazy —
+  // only runs in edit mode, per page, and is cancelled on switch.
+  useEffect(() => {
+    if (!doc || activeTool !== 'edit') {
+      setImageRects([]);
+      return;
+    }
+    let cancelled = false;
+    void getPageImageRects(doc.pdf, currentPage)
+      .then((rects) => { if (!cancelled) setImageRects(rects); })
+      .catch(() => { if (!cancelled) setImageRects([]); });
+    return () => { cancelled = true; };
+  }, [doc?.id, currentPage, activeTool]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── PDF rendering ──────────────────────────────────────────────────────────
   const renderPdfPage = useCallback(
@@ -530,6 +548,7 @@ export function CanvasArea() {
             onPlaceText={onPlaceText}
             documentId={doc.id}
             pageNumber={currentPage}
+            imageRects={imageRects}
           />
         )}
 

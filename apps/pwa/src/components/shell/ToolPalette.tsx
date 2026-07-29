@@ -6,7 +6,8 @@ import {
   HIGHLIGHT_COLORS,
 } from '@/store/tool';
 import type { DrawStrokeWidth } from '@/store/tool';
-import { MousePointer2, Type, Pen, Highlighter, PenLine, SquarePen } from 'lucide-react';
+import { MousePointer2, Type, Pen, Highlighter, PenLine, SquarePen, ImagePlus } from 'lucide-react';
+import { useInsertImage } from '@/hooks/useInsertImage';
 
 const TOOLS: { id: Tool; icon: React.ReactNode; label: string }[] = [
   { id: 'select',    icon: <MousePointer2 size={18} />, label: 'Select & Move' },
@@ -24,6 +25,7 @@ export function ToolPalette() {
     drawColor, drawStrokeWidth, setDrawColor, setDrawStrokeWidth,
     highlightColor, setHighlightColor,
   } = useToolStore();
+  const { openImagePicker } = useInsertImage();
 
   return (
     <aside
@@ -48,6 +50,17 @@ export function ToolPalette() {
           {t.icon}
         </button>
       ))}
+
+      {/* COWORK-50 F3: Insert image — an action, not a mode; placed via tap like signatures */}
+      <button
+        onClick={openImagePicker}
+        aria-label="Insert image"
+        data-testid="tool-insert-image"
+        title="Insert image"
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+      >
+        <ImagePlus size={18} />
+      </button>
 
       {/* Text tool controls */}
       {activeTool === 'text' && (
@@ -173,6 +186,9 @@ export function ToolPalette() {
           <div className="h-px w-8 bg-white/10" />
           <p className="text-[10px] text-white/40 text-center leading-relaxed px-0.5">
             Drag to cover text, then type your replacement.
+          </p>
+          <p className="text-[10px] text-white/40 text-center leading-relaxed px-0.5">
+            Tap an outlined image to remove it.
           </p>
           <p className="text-[10px] text-white/25 text-center leading-relaxed px-0.5">
             Original text stays in the PDF.

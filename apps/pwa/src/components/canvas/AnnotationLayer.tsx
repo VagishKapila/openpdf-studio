@@ -31,6 +31,8 @@ function getSvgPathFromStroke(stroke: number[][]): string {
   return d.join(' ');
 }
 
+import type { ImageRect } from '@/lib/pdfImages';
+
 export type AnnotationLayerProps = {
   canvasWidth: number;
   canvasHeight: number;
@@ -40,6 +42,8 @@ export type AnnotationLayerProps = {
   onPlaceText: (pdfX: number, pdfY: number) => void;
   documentId: string;
   pageNumber: number;
+  /** COWORK-50 F4: embedded-image rects (PDF top-left space) — edit tool only */
+  imageRects?: ImageRect[];
 };
 
 export function AnnotationLayer({
@@ -51,10 +55,13 @@ export function AnnotationLayer({
   onPlaceText,
   documentId,
   pageNumber,
+  imageRects = [],
 }: AnnotationLayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
   const layerRef = useRef<Konva.Layer | null>(null);
+  // COWORK-50 F4: dedicated layer for tappable embedded-image outlines
+  const imageOutlineLayerRef = useRef<Konva.Layer | null>(null);
 
   // Refs to keep event handlers up-to-date without recreating the stage
   const toolRef = useRef(activeTool);
@@ -109,6 +116,51 @@ export function AnnotationLayer({
   // spurious placement when the tap that dismisses the editor fires both blur and onTouchEnd.
   const editingAnnotationIdRef = useRef(editingAnnotationId);
   useEffect(() => { editingAnnotationIdRef.current = editingAnnotationId; }, [editingAnnotationId]);
+
+  // ── COWORK-50 F4: embedded-image outlines (edit tool) ──────────────────────
+  // Tap an outlined image → a cover annotation is placed exactly over it,
+  // visually deleting the image (same Tier-1 mechanics as text cover).
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    if (!imageOutlineLayerRef.current || imageOutlineLayerRef.current.getStage() !== stage) {
+      imageOutlineLayerRef.current = new Konva.Layer();
+      stage.add(imageOutlineLayerRef.current);
+    }
+    const layer = imageOutlineLayerRef.current;
+    layer.destroyChildren();
+
+    if (activeTool === 'edit' && imageRects.length > 0 && pdfPageWidth > 0) {
+      const toKonva = (v: number) => v * (canvasWidth / pdfPageWidth);
+      for (const rect of imageRects) {
+        const outline = new Konva.Rect({
+          x: toKonva(rect.x),
+          y: toKonva(rect.y),
+          width: toKonva(rect.width),
+          height: toKonva(rect.height),
+          stroke: '#F59E0B',
+          strokeWidth: 1.5,
+          dash: [6, 4],
+          fill: 'rgba(245, 158, 11, 0.08)',
+          name: 'image-outline',
+        });
+        outline.on('click tap', () => {
+          const ann = createCoverAnnotation({
+            documentId,
+            pageNumber,
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          });
+          void addAnnotationRef.current(ann);
+          outline.destroy(); // covered — outline no longer applies
+        });
+        layer.add(outline);
+      }
+    }
+    layer.batchDraw();
+  }, [imageRects, activeTool, canvasWidth, pdfPageWidth, documentId, pageNumber]);
 
   // Live preview Konva layer (separate from the committed-annotations layer)
   const liveLayerRef = useRef<Konva.Layer | null>(null);
