@@ -4,7 +4,32 @@ import { FileText, Trash2, Upload, X } from 'lucide-react';
 import { useDocumentStore, useUIStore } from '@/store';
 import { pdfjs } from '@/lib/pdfjs';
 import { listDocuments, deleteDocument, type StoredDocument } from '@/storage/documents';
+import { ensureThumbnail } from '@/lib/thumbnails';
 import { db } from '@/storage/db';
+
+/** COWORK-50 F2: page-1 preview thumbnail with objectURL lifecycle; icon fallback. */
+function DocThumbnail({ doc }: { doc: StoredDocument }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!doc.thumbnail) return;
+    const objectUrl = URL.createObjectURL(doc.thumbnail);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [doc.thumbnail]);
+
+  if (!url) {
+    return <FileText size={15} className="mt-0.5 shrink-0 text-amber-400/70" />;
+  }
+  return (
+    <img
+      src={url}
+      alt=""
+      className="mt-0.5 h-14 w-11 shrink-0 rounded border border-white/10 bg-white object-cover object-top"
+      data-testid="doc-thumbnail"
+    />
+  );
+}
 
 export function DocumentSidebar() {
   const aside = useUIStore((s) => s.aside);
@@ -34,6 +59,7 @@ export function DocumentSidebar() {
         totalPages: pdf.numPages,
         pdf,
       });
+      void ensureThumbnail(pdf, doc.id).then(() => refreshList()); // COWORK-50 F2 backfill
     } catch {
       // leave current doc in place if load fails
     }
@@ -138,10 +164,7 @@ export function DocumentSidebar() {
                         isCurrent ? 'bg-white/10' : '',
                       ].join(' ')}
                     >
-                      <FileText
-                        size={15}
-                        className="mt-0.5 shrink-0 text-amber-400/70"
-                      />
+                      <DocThumbnail doc={stored} />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-xs font-medium text-white/80">
                           {stored.fileName}

@@ -2,6 +2,7 @@ import { pdfjs } from '@/lib/pdfjs';
 import { saveDocument, updatePageCount, touchDocument, listDocuments } from '@/storage/documents';
 import { useDocumentStore } from '@/store';
 import { trackEvent } from '@/lib/analytics';
+import { ensureThumbnail } from '@/lib/thumbnails';
 
 export async function loadPdfFromFile(file: File): Promise<void> {
   const isPdf =
@@ -31,6 +32,7 @@ export async function loadPdfFromFile(file: File): Promise<void> {
     }).promise;
 
     await updatePageCount(id, pdf.numPages);
+    void ensureThumbnail(pdf, id); // COWORK-50 F2 — fire and forget
 
     useDocumentStore.getState().setDocument({
       id,
@@ -80,6 +82,7 @@ export async function loadMostRecentDocument(): Promise<void> {
       annotationMode: 0, // DISABLE — FormIQ uses Konva; PDF.js editor layer unused (COWORK-44.A.1)
     }).promise;
     await touchDocument(stored.id);
+    void ensureThumbnail(pdf, stored.id); // COWORK-50 F2 — backfills existing docs
 
     useDocumentStore.getState().setDocument({
       id: stored.id,
