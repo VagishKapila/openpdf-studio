@@ -1,10 +1,12 @@
 import { useExport } from '@/hooks/useExport';
 import { useAnnotationStore } from '@/store';
+import { useInsertImage } from '@/hooks/useInsertImage';
 
 type MoreMenuProps = { open: boolean; onClose: () => void };
 
 export function MoreMenu({ open, onClose }: MoreMenuProps) {
   const { exportPdf, canExport, exporting } = useExport();
+  const { openImagePicker } = useInsertImage();
   const undoStack = useAnnotationStore((s) => s.undoStack);
   const redoStack = useAnnotationStore((s) => s.redoStack);
   const undo = useAnnotationStore((s) => s.undo);
@@ -100,6 +102,19 @@ export function MoreMenu({ open, onClose }: MoreMenuProps) {
           </div>
           <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/50">Soon</span>
         </div>
+
+        {/* COWORK-50 F3: Insert image */}
+        <button
+          onClick={() => { openImagePicker(); onClose(); }}
+          data-testid="insert-image-button-mobile"
+          className="flex w-full items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-white/10"
+        >
+          <span className="w-7 text-center text-xl">🖼️</span>
+          <div className="flex-1 text-left">
+            <div className="text-sm text-white">Insert image</div>
+            <div className="text-xs text-white/40">Add a photo or logo, tap to place</div>
+          </div>
+        </button>
 
         {/* Export — ACTIVE */}
         <button
